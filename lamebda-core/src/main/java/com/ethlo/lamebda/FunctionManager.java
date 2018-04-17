@@ -31,10 +31,11 @@ public class FunctionManager<I,O, T extends ServerFunction<I, O>> implements Ite
         logger.info(exists ? "{} was modified" : "{} was loaded", func.getClass().getSimpleName());
     }
     
+    @SuppressWarnings("deprecation")
     @PostConstruct
     protected void loadAll()
     {
-        for (HandlerFunctionInfo f : loader.findAll(PageRequest.of(0, Integer.MAX_VALUE)))
+        for (HandlerFunctionInfo f : loader.findAll(new PageRequest(0, Integer.MAX_VALUE)))
         {
             addFunction(loader.loadClass(f.getName()));
         }
