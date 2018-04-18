@@ -1,5 +1,25 @@
 package com.ethlo.lamebda;
 
+/*-
+ * #%L
+ * lamebda-core
+ * %%
+ * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
 import java.io.IOException;
 import java.util.function.Consumer;
 
@@ -8,21 +28,15 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.util.Assert;
 
-import com.ethlo.lamebda.function.ServerFunction;
-
 import groovy.lang.GroovyClassLoader;
 
-public abstract class ClassResourceLoader<I,O,T extends ServerFunction<I, O>>
+public abstract class ClassResourceLoader
 {
     private final ApplicationContext applicationContext;
     private Consumer<FunctionModificationNotice> changeListener;
-    private Class<T> type;
     
-    public ClassResourceLoader(Class<T> type, ApplicationContext applicationContext)
+    public ClassResourceLoader(ApplicationContext applicationContext)
     {
-        Assert.notNull(type, "type cannot be null");
-        this.type = type;
-        
         Assert.notNull(applicationContext, "applicationContext cannot be null");
         this.applicationContext = applicationContext;
     }
@@ -51,15 +65,15 @@ public abstract class ClassResourceLoader<I,O,T extends ServerFunction<I, O>>
         this.changeListener = l;
     }
     
-    public final T loadClass(String name)
+    public final ServerFunction loadClass(String name)
     {
         try (final GroovyClassLoader classLoader = new GroovyClassLoader())
         {
             final Class<?> clazz = classLoader.parseClass(load(name + ".groovy"));
-            Assert.isTrue(name.equals(clazz.getName()), "Incorrect class name " + clazz.getName() + " in " + name);
-            final T f = type.cast(clazz.newInstance());
-            applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
-            return f;
+            Assert.isTrue(name.equals(clazz.getSimpleName()), "Incorrect class name " + clazz.getName() + " in " + name);
+            final Object instance = clazz.newInstance();
+            applicationContext.getAutowireCapableBeanFactory().autowireBean(instance);
+            return ServerFunction.class.cast(instance);
         }
         catch (InstantiationException | IllegalAccessException | IOException exc)
         {

@@ -1,4 +1,4 @@
-package com.ethlo.lamebda;
+package com.ethlo.lamebda.error;
 
 /*-
  * #%L
@@ -20,28 +20,32 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent.Kind;
-
-public enum ChangeType
+public class HttpError
 {
-    CREATED, MODIFIED, DELETED;
+    private final int status;
+    private String message;
     
-    public static ChangeType from(Kind<?> k)
+    public static final HttpError E404 = new HttpError(404, "Not Found");
+    public static final HttpError E405 = new HttpError(405, "Method not allowed");
+    
+    public HttpError(int status, String message)
     {
-        if (k == StandardWatchEventKinds.ENTRY_CREATE)
-        {
-            return ChangeType.CREATED;
-        }
-        else if (k == StandardWatchEventKinds.ENTRY_MODIFY)
-        {
-            return ChangeType.MODIFIED;
-        }
-        else if (k == StandardWatchEventKinds.ENTRY_DELETE)
-        {
-            return ChangeType.DELETED;
-        }
-        
-        throw new IllegalArgumentException("Unknown kind " + k); 
+        this.status = status;
+        this.message = message;
+    }
+    
+    public HttpError(int status)
+    {
+        this.status = status;
+    }
+    
+    public int getStatus()
+    {
+        return status;
+    }
+
+    public String getMessage()
+    {
+        return message;
     }
 }

@@ -1,4 +1,4 @@
-package com.ethlo.lamebda;
+package com.ethlo.lamebda.error;
 
 /*-
  * #%L
@@ -20,28 +20,17 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent.Kind;
-
-public enum ChangeType
+public abstract class ClientException extends RuntimeException
 {
-    CREATED, MODIFIED, DELETED;
-    
-    public static ChangeType from(Kind<?> k)
+    private static final long serialVersionUID = 8703127206192317947L;
+
+    public ClientException(String msg, Throwable cause)
     {
-        if (k == StandardWatchEventKinds.ENTRY_CREATE)
-        {
-            return ChangeType.CREATED;
-        }
-        else if (k == StandardWatchEventKinds.ENTRY_MODIFY)
-        {
-            return ChangeType.MODIFIED;
-        }
-        else if (k == StandardWatchEventKinds.ENTRY_DELETE)
-        {
-            return ChangeType.DELETED;
-        }
-        
-        throw new IllegalArgumentException("Unknown kind " + k); 
+        super(msg, cause);
+    }
+
+    public ClientException(String msg)
+    {
+        super(msg);
     }
 }

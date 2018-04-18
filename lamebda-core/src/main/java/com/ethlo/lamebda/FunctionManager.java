@@ -1,5 +1,25 @@
 package com.ethlo.lamebda;
 
+/*-
+ * #%L
+ * lamebda-core
+ * %%
+ * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -10,28 +30,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 
-import com.ethlo.lamebda.function.ServerFunction;
+import com.ethlo.lamebda.error.HttpError;
 
-public class FunctionManager<I,O, T extends ServerFunction<I, O>> implements Iterable<T>
+public class FunctionManager
 {
-    private static final Logger logger = LoggerFactory.getLogger(FunctionManager.class);
+    protected static final Logger logger = LoggerFactory.getLogger(FunctionManager.class);
     
-    private Map<String, T> functions = new ConcurrentHashMap<>();
-    private ClassResourceLoader<I,O, T> loader;
+    private Map<String, ServerFunction> functions = new ConcurrentHashMap<>();
+    private ClassResourceLoader loader;
     
-    public FunctionManager(ClassResourceLoader<I,O, T> loader)
+    public FunctionManager(ClassResourceLoader loader)
     {
         this.loader = loader;
         loader.setChangeListener(n->addFunction(loader.loadClass(n.getName())));
     }
     
-    private void addFunction(T func)
+    private void addFunction(ServerFunction func)
     {
         final boolean exists = functions.put(func.getClass().getName(), func) != null;
         logger.info(exists ? "{} was modified" : "{} was loaded", func.getClass().getSimpleName());
     }
     
-    @SuppressWarnings("deprecation")
     @PostConstruct
     protected void loadAll()
     {
@@ -41,9 +60,23 @@ public class FunctionManager<I,O, T extends ServerFunction<I, O>> implements Ite
         }
     }
 
-    @Override
-    public Iterator<T> iterator()
+    public void handle(HttpRequest request, HttpResponse response)
     {
-        return functions.values().iterator();
+        final Iterator<ServerFunction> iter = functions.values().iterator();
+        while (iter.hasNext())
+        {
+            final ServerFunction f = iter.next();
+            if (f.handle(request, response))
+            {
+                return;
+            }
+        }
+        
+        logger.info("No function found to handle: {}", request.path());
+        final ServerFunction f = (req, res) ->{
+            res.respond(HttpError.E404);
+            return true;
+        };
+        f.handle(request, response);
     }
 }

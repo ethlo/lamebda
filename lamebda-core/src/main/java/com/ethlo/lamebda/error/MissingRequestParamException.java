@@ -1,4 +1,4 @@
-package com.ethlo.lamebda;
+package com.ethlo.lamebda.error;
 
 /*-
  * #%L
@@ -20,28 +20,12 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent.Kind;
-
-public enum ChangeType
+public class MissingRequestParamException extends ClientException
 {
-    CREATED, MODIFIED, DELETED;
-    
-    public static ChangeType from(Kind<?> k)
+    private static final long serialVersionUID = 6998488211390868027L;
+
+    public MissingRequestParamException(String param)
     {
-        if (k == StandardWatchEventKinds.ENTRY_CREATE)
-        {
-            return ChangeType.CREATED;
-        }
-        else if (k == StandardWatchEventKinds.ENTRY_MODIFY)
-        {
-            return ChangeType.MODIFIED;
-        }
-        else if (k == StandardWatchEventKinds.ENTRY_DELETE)
-        {
-            return ChangeType.DELETED;
-        }
-        
-        throw new IllegalArgumentException("Unknown kind " + k); 
+        super("Missing parameter " + param);
     }
 }

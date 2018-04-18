@@ -1,5 +1,9 @@
 package com.ethlo.lamebda;
 
+import java.io.OutputStream;
+
+import com.ethlo.lamebda.error.HttpError;
+
 /*-
  * #%L
  * lamebda-core
@@ -20,28 +24,23 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent.Kind;
-
-public enum ChangeType
+public interface HttpResponse
 {
-    CREATED, MODIFIED, DELETED;
+    void setStatus(int status);
+
+    void setContentType(String string);
+
+    void setCharacterEncoding(String name);
     
-    public static ChangeType from(Kind<?> k)
-    {
-        if (k == StandardWatchEventKinds.ENTRY_CREATE)
-        {
-            return ChangeType.CREATED;
-        }
-        else if (k == StandardWatchEventKinds.ENTRY_MODIFY)
-        {
-            return ChangeType.MODIFIED;
-        }
-        else if (k == StandardWatchEventKinds.ENTRY_DELETE)
-        {
-            return ChangeType.DELETED;
-        }
-        
-        throw new IllegalArgumentException("Unknown kind " + k); 
-    }
+    void write(String body);
+    
+    void write(byte[] body);
+
+    void respond(HttpError error);
+
+    void respondError(int status);
+
+    void respondError(int status, String message);
+
+    void respondJson(int status, Object body);
 }

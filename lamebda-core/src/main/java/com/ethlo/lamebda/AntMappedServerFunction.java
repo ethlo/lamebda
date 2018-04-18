@@ -1,5 +1,8 @@
 package com.ethlo.lamebda;
 
+import org.springframework.util.AntPathMatcher;
+import org.springframework.util.PathMatcher;
+
 /*-
  * #%L
  * lamebda-core
@@ -20,28 +23,27 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent.Kind;
-
-public enum ChangeType
+public abstract class AntMappedServerFunction implements ServerFunction
 {
-    CREATED, MODIFIED, DELETED;
-    
-    public static ChangeType from(Kind<?> k)
+    private static final PathMatcher PATH_MATCHER = new AntPathMatcher();
+    private final String pattern;
+
+    public AntMappedServerFunction(String pattern)
     {
-        if (k == StandardWatchEventKinds.ENTRY_CREATE)
+        this.pattern = pattern;
+    }
+
+    @Override
+    public boolean handle(HttpRequest request, HttpResponse response)
+    {
+        if (! PATH_MATCHER.match(pattern, request.path()))
         {
-            return ChangeType.CREATED;
-        }
-        else if (k == StandardWatchEventKinds.ENTRY_MODIFY)
-        {
-            return ChangeType.MODIFIED;
-        }
-        else if (k == StandardWatchEventKinds.ENTRY_DELETE)
-        {
-            return ChangeType.DELETED;
+            return false;
         }
         
-        throw new IllegalArgumentException("Unknown kind " + k); 
+        doHandle(request, response);
+        return true;
     }
+    
+    protected abstract void doHandle(HttpRequest request, HttpResponse response);
 }
