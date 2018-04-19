@@ -1,5 +1,7 @@
 package com.ethlo.lamebda;
 
+import java.util.Map;
+
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
 
@@ -25,12 +27,12 @@ import com.ethlo.lamebda.error.ErrorResponse;
  * #L%
  */
 
-public abstract class PathServerFunction implements ServerFunction
+public abstract class SimpleServerFunction implements ServerFunction
 {
     private static final PathMatcher PATH_MATCHER = new AntPathMatcher();
     private final String pattern;
 
-    public PathServerFunction(String pattern)
+    public SimpleServerFunction(String pattern)
     {
         this.pattern = pattern;
     }
@@ -131,5 +133,10 @@ public abstract class PathServerFunction implements ServerFunction
     protected void trace(HttpRequest request, HttpResponse response)
     {
         
+    }
+    
+    protected Map<String, String> getPathVars(HttpRequest request)
+    {
+        return PATH_MATCHER.extractUriTemplateVariables(pattern, request.path());
     }
 }
