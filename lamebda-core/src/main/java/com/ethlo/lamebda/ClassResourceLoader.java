@@ -23,15 +23,20 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.util.function.Consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.util.Assert;
 
+import com.google.common.base.CaseFormat;
+
 import groovy.lang.GroovyClassLoader;
 
 public abstract class ClassResourceLoader
 {
+    private static final Logger logger = LoggerFactory.getLogger(ClassResourceLoader.class);
     private final ApplicationContext applicationContext;
     private Consumer<FunctionModificationNotice> changeListener;
     
@@ -84,5 +89,19 @@ public abstract class ClassResourceLoader
     protected void functionChanged(String name, ChangeType changeType)
     {
         changeListener.accept(new FunctionModificationNotice(name, changeType));
+    }
+
+    public String loadApiSpec(String functionName)
+    {
+        final String fileName = CaseFormat.LOWER_HYPHEN.to(CaseFormat.UPPER_CAMEL, functionName) + ".json";
+        try
+        {
+            return load(fileName);
+        }
+        catch (IOException exc)
+        {
+            logger.warn("No API documentation file {} found for function {}", fileName, functionName);
+            return null;
+        }
     }
 }

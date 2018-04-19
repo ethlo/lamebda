@@ -1,5 +1,7 @@
 package com.ethlo.lamebda;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.UndeclaredThrowableException;
 
 /*-
@@ -30,10 +32,15 @@ import javax.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.domain.PageRequest;
 
 import com.ethlo.lamebda.error.ErrorResponse;
+import com.google.common.base.CaseFormat;
 import com.google.common.base.Throwables;
+import com.google.common.io.CharStreams;
+import com.google.common.net.MediaType;
 
 public class FunctionManager
 {
@@ -59,12 +66,66 @@ public class FunctionManager
     {
         for (HandlerFunctionInfo f : loader.findAll(new PageRequest(0, Integer.MAX_VALUE)))
         {
-            addFunction(loader.loadClass(f.getName()));
+            try
+            {
+                addFunction(loader.loadClass(f.getName()));
+            }
+            catch (Exception exc)
+            {
+                logger.error("Error in gateway function {}: {}", f.getName(), exc.getMessage());
+            }
         }
     }
 
     public void handle(HttpRequest request, HttpResponse response)
     {
+        final SimpleServerFunction docFunc = new SimpleServerFunction("/doc/*")
+        {
+            @Override
+            protected void get(HttpRequest request, HttpResponse response)
+            {
+                try
+                {
+                    final String docPage = CharStreams.toString(new InputStreamReader(new ClassPathResource("doc.html").getInputStream()));
+                    response.setContentType(MediaType.HTML_UTF_8.toString());
+                    response.write(docPage);
+                }
+                catch (IOException exc)
+                {
+                    throw new DataAccessResourceFailureException("Could not load doc index page", exc);
+                }
+            }
+        };
+        
+        final SimpleServerFunction specFunc = new SimpleServerFunction("/doc/*.json")
+        {
+            @Override
+            protected void get(HttpRequest request, HttpResponse response)
+            {
+                final String name = getPathVars("/doc/{function}.*", request).get("function");
+                final String functionName = CaseFormat.LOWER_HYPHEN.to(CaseFormat.UPPER_CAMEL, name);
+                final boolean functionExists = functions.containsKey(functionName);
+                if (functionExists)
+                {
+                    response.write(loader.loadApiSpec(functionName));
+                }
+                else
+                {
+                    response.error(HttpStatus.NOT_FOUND, "No API documentation file was found");
+                }
+            }
+        };
+        
+        if (specFunc.handle(request, response) == FunctionResult.PROCESSED)
+        {
+            return;
+        }
+        
+        if (docFunc.handle(request, response) == FunctionResult.PROCESSED)
+        {
+            return;
+        }
+        
         final Iterator<ServerFunction> iter = functions.values().iterator();
         while (iter.hasNext())
         {

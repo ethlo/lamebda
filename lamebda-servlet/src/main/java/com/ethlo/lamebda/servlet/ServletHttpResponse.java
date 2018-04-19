@@ -23,6 +23,7 @@ package com.ethlo.lamebda.servlet;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 
 import javax.servlet.http.HttpServletResponse;
@@ -39,7 +40,7 @@ public class ServletHttpResponse implements HttpResponse
     private static final ObjectMapper OM = new ObjectMapper();
     static
     {
-        OM.setSerializationInclusion(Include.NON_DEFAULT);
+        OM.setSerializationInclusion(Include.NON_NULL);
     }
     
     private final HttpServletResponse response;
@@ -71,13 +72,13 @@ public class ServletHttpResponse implements HttpResponse
     @Override
     public void write(String body)
     {
-        try (final OutputStream out = response.getOutputStream())
+        try (final Writer w = new OutputStreamWriter(response.getOutputStream(), response.getCharacterEncoding()))
         {
-            new OutputStreamWriter(out).write(body);
+            w.write(body);
         }
         catch (IOException exc)
         {
-            throw new DataAccessResourceFailureException("Cannot send data", exc);
+            throw new DataAccessResourceFailureException(exc.getMessage(), exc);
         }
     }
 
@@ -90,7 +91,7 @@ public class ServletHttpResponse implements HttpResponse
         }
         catch (IOException exc)
         {
-            throw new DataAccessResourceFailureException("Cannot send data", exc);
+            throw new DataAccessResourceFailureException(exc.getMessage(), exc);
         }
     }
     

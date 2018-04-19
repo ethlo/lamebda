@@ -43,11 +43,18 @@ public interface HttpRequest
     List<String> header(String name);
     
     /**
-     * Case sensitive
+     * Case sensitive. Returns error on missing parameter. See also {@link #param(String, String)}
      * @param name
      * @return
      */
     String param(String name);
+    
+    /**
+     * Case sensitive
+     * @param name
+     * @return
+     */
+    String param(String name, String defaultValue);
     
     /**
      * Returns the request path

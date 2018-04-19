@@ -79,6 +79,17 @@ public class ServletHttpRequest implements HttpRequest
         }
         throw new MissingRequestParamException(name);
     }
+    
+    @Override
+    public String param(String name, String defaultValue)
+    {
+        final String res = request.getParameter(name);
+        if (res != null)
+        {
+            return res; 
+        }
+        return defaultValue;
+    }
 
     @Override
     public String path()

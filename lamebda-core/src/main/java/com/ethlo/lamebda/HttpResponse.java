@@ -1,7 +1,5 @@
 package com.ethlo.lamebda;
 
-import java.io.OutputStream;
-
 import com.ethlo.lamebda.error.ErrorResponse;
 
 /*-

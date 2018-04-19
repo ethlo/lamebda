@@ -1,5 +1,6 @@
 package com.ethlo.lamebda;
 
+import java.util.Collections;
 import java.util.Map;
 
 import org.springframework.util.AntPathMatcher;
@@ -135,8 +136,15 @@ public abstract class SimpleServerFunction implements ServerFunction
         
     }
     
-    protected Map<String, String> getPathVars(HttpRequest request)
+    protected Map<String, String> getPathVars(String pattern, HttpRequest request)
     {
-        return PATH_MATCHER.extractUriTemplateVariables(pattern, request.path());
+        try
+        {
+            return PATH_MATCHER.extractUriTemplateVariables(pattern, request.path());
+        }
+        catch (IllegalStateException exc)
+        {
+            return Collections.emptyMap();
+        }
     }
 }
