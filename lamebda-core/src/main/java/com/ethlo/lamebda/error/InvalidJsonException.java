@@ -20,32 +20,12 @@ package com.ethlo.lamebda.error;
  * #L%
  */
 
-public class HttpError
+public class InvalidJsonException extends ClientException
 {
-    private final int status;
-    private String message;
-    
-    public static final HttpError E404 = new HttpError(404, "Not Found");
-    public static final HttpError E405 = new HttpError(405, "Method not allowed");
-    
-    public HttpError(int status, String message)
-    {
-        this.status = status;
-        this.message = message;
-    }
-    
-    public HttpError(int status)
-    {
-        this.status = status;
-    }
-    
-    public int getStatus()
-    {
-        return status;
-    }
+    private static final long serialVersionUID = 6998488211390868027L;
 
-    public String getMessage()
+    public InvalidJsonException(String msg, Throwable cause)
     {
-        return message;
+        super(msg, cause);
     }
 }

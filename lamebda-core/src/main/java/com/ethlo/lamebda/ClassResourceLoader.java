@@ -52,7 +52,7 @@ public abstract class ClassResourceLoader
     /**
      * Return a list of all known functions
      * @param pageable
-     * @return
+     * @return 
      */
     public abstract Page<HandlerFunctionInfo> findAll(Pageable pageable);
     

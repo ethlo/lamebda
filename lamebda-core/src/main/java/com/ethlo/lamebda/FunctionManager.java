@@ -1,5 +1,7 @@
 package com.ethlo.lamebda;
 
+import java.lang.reflect.UndeclaredThrowableException;
+
 /*-
  * #%L
  * lamebda-core
@@ -30,7 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 
-import com.ethlo.lamebda.error.HttpError;
+import com.ethlo.lamebda.error.ErrorResponse;
+import com.google.common.base.Throwables;
 
 public class FunctionManager
 {
@@ -65,18 +68,35 @@ public class FunctionManager
         final Iterator<ServerFunction> iter = functions.values().iterator();
         while (iter.hasNext())
         {
-            final ServerFunction f = iter.next();
-            if (f.handle(request, response))
+            if (doHandle(request, response, iter.next()))
             {
                 return;
             }
         }
         
-        logger.info("No function found to handle: {}", request.path());
-        final ServerFunction f = (req, res) ->{
-            res.respond(HttpError.E404);
-            return true;
-        };
-        f.handle(request, response);
+        response.error(ErrorResponse.notFound("No function found to handle '" + request.path() + "'"));
     }
+
+    private boolean doHandle(HttpRequest request, HttpResponse response, ServerFunction f)
+    {
+        try
+        {
+            return f.handle(request, response);
+        }
+        catch (RuntimeException exc)
+        {
+            throw handleError(exc);
+        }
+    }
+    
+    private RuntimeException handleError(final RuntimeException exc)
+    {
+        Throwable cause = exc; 
+        if (exc instanceof UndeclaredThrowableException && exc.getCause() != null)
+        {
+            cause = exc.getCause();
+        }
+        throw Throwables.propagate(cause);
+    }
+
 }

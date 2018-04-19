@@ -30,7 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.dao.DataAccessResourceFailureException;
 
 import com.ethlo.lamebda.HttpResponse;
-import com.ethlo.lamebda.error.HttpError;
+import com.ethlo.lamebda.error.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ServletHttpResponse implements HttpResponse
@@ -90,25 +90,25 @@ public class ServletHttpResponse implements HttpResponse
     }
     
     @Override
-    public void respond(HttpError error)
+    public void error(ErrorResponse error)
     {
-        respondJson(error.getStatus(), error);
+        json(error.getStatus(), error);
     }
     
     @Override
-    public void respondError(int status)
+    public void error(int status)
     {
-        respondJson(status, new HttpError(status));
+        json(status, new ErrorResponse(status));
     }
     
     @Override
-    public void respondError(int status, String message)
+    public void error(int status, String message)
     {
-        respondJson(status, new HttpError(status, message));
+        json(status, new ErrorResponse(status, message));
     }
     
     @Override
-    public void respondJson(int status, Object body)
+    public void json(int status, Object body)
     {
         try (final OutputStream out = response.getOutputStream())
         {

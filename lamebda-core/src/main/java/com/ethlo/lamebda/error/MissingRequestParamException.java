@@ -26,6 +26,6 @@ public class MissingRequestParamException extends ClientException
 
     public MissingRequestParamException(String param)
     {
-        super("Missing parameter " + param);
+        super("Missing query parameter '" + param + "'");
     }
 }

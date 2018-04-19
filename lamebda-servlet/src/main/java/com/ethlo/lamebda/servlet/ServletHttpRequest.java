@@ -35,11 +35,13 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.util.Assert;
 
 import com.ethlo.lamebda.HttpRequest;
+import com.ethlo.lamebda.error.InvalidJsonException;
 import com.ethlo.lamebda.error.MissingRequestParamException;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.io.ByteStreams;
 
+import groovy.json.JsonException;
 import groovy.json.JsonSlurper;
 
 public class ServletHttpRequest implements HttpRequest
@@ -115,7 +117,14 @@ public class ServletHttpRequest implements HttpRequest
     @Override
     public Object json()
     {
-        return JSON_SLURPER.parse(rawBody());
+        try
+        {
+            return JSON_SLURPER.parse(rawBody());
+        }
+        catch (JsonException exc)
+        {
+            throw new InvalidJsonException(exc.getMessage(), exc);
+        }
     }
 
     @Override

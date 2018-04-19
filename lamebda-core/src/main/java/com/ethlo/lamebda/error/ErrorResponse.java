@@ -1,8 +1,6 @@
-package com.ethlo.lamebda;
+package com.ethlo.lamebda.error;
 
-import java.io.OutputStream;
-
-import com.ethlo.lamebda.error.ErrorResponse;
+import com.ethlo.lamebda.HttpStatus;
 
 /*-
  * #%L
@@ -24,23 +22,34 @@ import com.ethlo.lamebda.error.ErrorResponse;
  * #L%
  */
 
-public interface HttpResponse
+public class ErrorResponse
 {
-    void setStatus(int status);
-
-    void setContentType(String string);
-
-    void setCharacterEncoding(String name);
+    private final int status;
+    private String message;
     
-    void write(String body);
+    public ErrorResponse(int status, String message)
+    {
+        this.status = status;
+        this.message = message;
+    }
     
-    void write(byte[] body);
+    public ErrorResponse(int status)
+    {
+        this.status = status;
+    }
+    
+    public int getStatus()
+    {
+        return status;
+    }
 
-    void error(ErrorResponse error);
+    public String getMessage()
+    {
+        return message;
+    }
 
-    void error(int status);
-
-    void error(int status, String message);
-
-    void json(int status, Object body);
+    public static ErrorResponse notFound(String msg)
+    {
+        return new ErrorResponse(HttpStatus.NOT_FOUND, msg);
+    }
 }
