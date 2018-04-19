@@ -1,5 +1,6 @@
 package com.ethlo.lamebda;
 
+import java.net.InetAddress;
 import java.util.List;
 
 /*-
@@ -77,4 +78,10 @@ public interface HttpRequest
      * @return
      */
     String remoteIp();
+    
+    /**
+     * Returns the remote host calling this function
+     * @return
+     */
+    InetAddress remoteIpAddress();
 }

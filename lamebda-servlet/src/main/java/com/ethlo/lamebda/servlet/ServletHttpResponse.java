@@ -31,11 +31,16 @@ import org.springframework.dao.DataAccessResourceFailureException;
 
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.error.ErrorResponse;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ServletHttpResponse implements HttpResponse
 {
     private static final ObjectMapper OM = new ObjectMapper();
+    static
+    {
+        OM.setSerializationInclusion(Include.NON_DEFAULT);
+    }
     
     private final HttpServletResponse response;
     

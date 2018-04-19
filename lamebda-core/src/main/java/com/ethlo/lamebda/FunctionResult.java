@@ -19,14 +19,8 @@ package com.ethlo.lamebda;
  * limitations under the License.
  * #L%
  */
-@FunctionalInterface
-public interface ServerFunction
+
+public enum FunctionResult
 {
-    /**
-     * Handle the request and write the contents to the response
-     * @param request The incoming HTTP request
-     * @param response The outgoing response
-     * @return The handling result, {@link FunctionResult#PROCESSED} if this method handled the request, otherwise {@link FunctionResult#SKIPPED}
-     */
-    FunctionResult handle(HttpRequest request, HttpResponse response);
+    PROCESSED, SKIPPED; 
 }

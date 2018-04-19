@@ -22,6 +22,8 @@ package com.ethlo.lamebda.servlet;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -170,5 +172,18 @@ public class ServletHttpRequest implements HttpRequest
     public String method()
     {
         return request.getMethod();
+    }
+
+    @Override
+    public InetAddress remoteIpAddress()
+    {
+        try
+        {
+            return InetAddress.getByName(this.remoteIp());
+        }
+        catch (UnknownHostException exc)
+        {
+            throw new IllegalArgumentException("Cannot parse IP address: " + this.remoteIp(), exc);
+        }
     }
 }

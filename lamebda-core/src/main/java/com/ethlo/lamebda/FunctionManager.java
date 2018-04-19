@@ -81,7 +81,12 @@ public class FunctionManager
     {
         try
         {
-            return f.handle(request, response);
+            final FunctionResult result = f.handle(request, response);
+            if (result == null)
+            {
+                throw new IllegalStateException("A function should never return null. Expected FunctionResult");
+            }
+            return result == FunctionResult.PROCESSED;
         }
         catch (RuntimeException exc)
         {
