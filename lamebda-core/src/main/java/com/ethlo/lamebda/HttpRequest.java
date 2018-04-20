@@ -1,7 +1,10 @@
 package com.ethlo.lamebda;
 
 import java.net.InetAddress;
+import java.nio.charset.Charset;
 import java.util.List;
+
+import com.ethlo.lamebda.util.Multimap;
 
 /*-
  * #%L
@@ -22,8 +25,6 @@ import java.util.List;
  * limitations under the License.
  * #L%
  */
-
-import com.google.common.collect.Multimap;
 
 public interface HttpRequest
 {
@@ -91,4 +92,10 @@ public interface HttpRequest
      * @return
      */
     InetAddress remoteIpAddress();
+
+    /**
+     * 
+     * @return
+     */
+    Charset charset();
 }

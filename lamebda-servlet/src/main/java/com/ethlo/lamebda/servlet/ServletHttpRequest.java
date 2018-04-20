@@ -21,9 +21,11 @@ package com.ethlo.lamebda.servlet;
  */
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,15 +35,12 @@ import java.util.Map.Entry;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.util.Assert;
-
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.error.InvalidJsonException;
 import com.ethlo.lamebda.error.MissingRequestParamException;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.io.ByteStreams;
+import com.ethlo.lamebda.util.Assert;
+import com.ethlo.lamebda.util.IoUtil;
+import com.ethlo.lamebda.util.Multimap;
 
 import groovy.json.JsonException;
 import groovy.json.JsonSlurper;
@@ -104,11 +103,11 @@ public class ServletHttpRequest implements HttpRequest
         {
             try
             {
-                body = ByteStreams.toByteArray(request.getInputStream());
+                body = IoUtil.toByteArray(request.getInputStream());
             }
             catch (IOException exc)
             {
-                throw new DataAccessResourceFailureException("Cannot read body contents", exc);
+                throw new UncheckedIOException(exc);
             }
         }
         return body;
@@ -117,14 +116,7 @@ public class ServletHttpRequest implements HttpRequest
     @Override
     public String body()
     {
-        try
-        {
-            return new String(rawBody(), request.getCharacterEncoding());
-        }
-        catch (UnsupportedEncodingException exc)
-        {
-            throw new DataAccessResourceFailureException("Cannot read body contents as the encoding is not supported", exc);
-        }
+        return new String(rawBody(), charset());
     }
 
     @Override
@@ -149,12 +141,12 @@ public class ServletHttpRequest implements HttpRequest
     @Override
     public Multimap<String, String> headers()
     {
-        final Multimap<String, String> map = ArrayListMultimap.create();
+        final Multimap<String, String> map = new Multimap<>();
         final Enumeration<String> names = request.getHeaderNames();
         while(names.hasMoreElements())
         {
             final String name = names.nextElement();
-            map.putAll(name, Collections.list(request.getHeaders(name)));
+            map.addAll(name, Collections.list(request.getHeaders(name)));
         }
         return map;
     }
@@ -164,10 +156,10 @@ public class ServletHttpRequest implements HttpRequest
     {
         if (queryParams == null)
         {
-            queryParams = ArrayListMultimap.create();
+            queryParams = new Multimap<>();
             for (Entry<String, String[]> e : request.getParameterMap().entrySet())
             {
-                queryParams.putAll(e.getKey(), Arrays.asList(e.getValue()));
+                queryParams.addAll(e.getKey(), Arrays.asList(e.getValue()));
             }
         }
         return queryParams;
@@ -196,5 +188,12 @@ public class ServletHttpRequest implements HttpRequest
         {
             throw new IllegalArgumentException("Cannot parse IP address: " + this.remoteIp(), exc);
         }
+    }
+
+    @Override
+    public Charset charset()
+    {
+        final String characterEncoding = request.getCharacterEncoding();
+        return characterEncoding != null ? Charset.forName(characterEncoding) : StandardCharsets.UTF_8;
     }
 }

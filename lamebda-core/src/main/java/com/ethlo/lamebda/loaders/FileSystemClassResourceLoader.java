@@ -42,10 +42,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 
 import com.ethlo.lamebda.ChangeType;
 import com.ethlo.lamebda.ClassResourceLoader;
@@ -58,9 +54,9 @@ public class FileSystemClassResourceLoader extends ClassResourceLoader
     private final String basePath;
     private final WatchService watchService;
 
-    public FileSystemClassResourceLoader(ApplicationContext applicationContext, String basePath) throws IOException
+    public FileSystemClassResourceLoader(FunctionPostProcesor functionPostProcesor, String basePath) throws IOException
     {
-        super(applicationContext);
+        super(functionPostProcesor);
         this.basePath = basePath;
         this.watchService = FileSystems.getDefault().newWatchService();
         final Path path = Paths.get(basePath);
@@ -160,15 +156,14 @@ public class FileSystemClassResourceLoader extends ClassResourceLoader
     }
 
     @Override
-    public Page<HandlerFunctionInfo> findAll(Pageable pageable)
+    public List<HandlerFunctionInfo> findAll(long offset, int size)
     {
         final String[] files = Paths.get(basePath).toFile().list((d,f)->f.endsWith(".groovy"));
-        final List<HandlerFunctionInfo> content = Arrays.asList(files)
+        return Arrays.asList(files)
             .stream()
-            .skip(pageable.getOffset())
-            .limit(pageable.getPageSize())
+            .skip(offset)
+            .limit(size)
             .map(n->new HandlerFunctionInfo(getBaseName(n)))
             .collect(Collectors.toList());
-        return new PageImpl<>(content, pageable, files.length);
     }
 }

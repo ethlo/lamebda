@@ -23,12 +23,11 @@ package com.ethlo.lamebda.servlet;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 
 import javax.servlet.http.HttpServletResponse;
-
-import org.springframework.dao.DataAccessResourceFailureException;
 
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.error.ErrorResponse;
@@ -78,7 +77,7 @@ public class ServletHttpResponse implements HttpResponse
         }
         catch (IOException exc)
         {
-            throw new DataAccessResourceFailureException(exc.getMessage(), exc);
+            throw new UncheckedIOException(exc);
         }
     }
 
@@ -91,7 +90,7 @@ public class ServletHttpResponse implements HttpResponse
         }
         catch (IOException exc)
         {
-            throw new DataAccessResourceFailureException(exc.getMessage(), exc);
+            throw new UncheckedIOException(exc.getMessage(), exc);
         }
     }
     
@@ -125,7 +124,7 @@ public class ServletHttpResponse implements HttpResponse
         }
         catch (IOException exc)
         {
-            throw new DataAccessResourceFailureException("Cannot send data", exc);
+            throw new UncheckedIOException(exc);
         }
     }
 }

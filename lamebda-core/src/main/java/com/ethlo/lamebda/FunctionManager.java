@@ -1,8 +1,7 @@
 package com.ethlo.lamebda;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.nio.charset.StandardCharsets;
 
 /*-
  * #%L
@@ -32,15 +31,10 @@ import javax.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.dao.DataAccessResourceFailureException;
-import org.springframework.data.domain.PageRequest;
 
 import com.ethlo.lamebda.error.ErrorResponse;
-import com.google.common.base.CaseFormat;
-import com.google.common.base.Throwables;
-import com.google.common.io.CharStreams;
-import com.google.common.net.MediaType;
+import com.ethlo.lamebda.util.IoUtil;
+import com.ethlo.lamebda.util.StringUtil;
 
 public class FunctionManager
 {
@@ -64,7 +58,7 @@ public class FunctionManager
     @PostConstruct
     protected void loadAll()
     {
-        for (HandlerFunctionInfo f : loader.findAll(new PageRequest(0, Integer.MAX_VALUE)))
+        for (HandlerFunctionInfo f : loader.findAll(0, Integer.MAX_VALUE))
         {
             try
             {
@@ -84,16 +78,9 @@ public class FunctionManager
             @Override
             protected void get(HttpRequest request, HttpResponse response)
             {
-                try
-                {
-                    final String docPage = CharStreams.toString(new InputStreamReader(new ClassPathResource("doc.html").getInputStream()));
-                    response.setContentType(MediaType.HTML_UTF_8.toString());
-                    response.write(docPage);
-                }
-                catch (IOException exc)
-                {
-                    throw new DataAccessResourceFailureException("Could not load doc index page", exc);
-                }
+                final String docPage = IoUtil.classPathResourceAsString("doc.html", StandardCharsets.UTF_8);
+                response.setContentType(HttpMimeType.HTML);
+                response.write(docPage);
             }
         };
         
@@ -103,7 +90,7 @@ public class FunctionManager
             protected void get(HttpRequest request, HttpResponse response)
             {
                 final String name = getPathVars("/doc/{function}.*", request).get("function");
-                final String functionName = CaseFormat.LOWER_HYPHEN.to(CaseFormat.UPPER_CAMEL, name);
+                final String functionName = StringUtil.hyphenToCamelCase(name);
                 final boolean functionExists = functions.containsKey(functionName);
                 if (functionExists)
                 {
@@ -162,7 +149,12 @@ public class FunctionManager
         {
             cause = exc.getCause();
         }
-        throw Throwables.propagate(cause);
+        
+        if (cause instanceof RuntimeException)
+        {
+            throw (RuntimeException) cause;
+        }
+        throw new RuntimeException(cause);
     }
 
 }

@@ -21,29 +21,32 @@ package com.ethlo.lamebda;
  */
 
 import java.io.IOException;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.util.Assert;
 
-import com.google.common.base.CaseFormat;
+import com.ethlo.lamebda.loaders.FunctionPostProcesor;
+import com.ethlo.lamebda.util.Assert;
+import com.ethlo.lamebda.util.StringUtil;
 
 import groovy.lang.GroovyClassLoader;
 
 public abstract class ClassResourceLoader
 {
     private static final Logger logger = LoggerFactory.getLogger(ClassResourceLoader.class);
-    private final ApplicationContext applicationContext;
+    private final FunctionPostProcesor functionPostProcesor;
     private Consumer<FunctionModificationNotice> changeListener;
     
-    public ClassResourceLoader(ApplicationContext applicationContext)
+    public ClassResourceLoader()
     {
-        Assert.notNull(applicationContext, "applicationContext cannot be null");
-        this.applicationContext = applicationContext;
+        this.functionPostProcesor = f->f;
+    }
+    
+    public ClassResourceLoader(FunctionPostProcesor functionPostProcesor)
+    {
+        this.functionPostProcesor = Assert.notNull(functionPostProcesor, "functionPostProcesor cannot be null");
     }
     
     /**
@@ -59,7 +62,7 @@ public abstract class ClassResourceLoader
      * @param pageable
      * @return 
      */
-    public abstract Page<HandlerFunctionInfo> findAll(Pageable pageable);
+    public abstract List<HandlerFunctionInfo> findAll(long offset, int size);
     
     /**
      * Set a listener that gets notified whenever the function's source changes
@@ -76,9 +79,7 @@ public abstract class ClassResourceLoader
         {
             final Class<?> clazz = classLoader.parseClass(load(name + ".groovy"));
             Assert.isTrue(name.equals(clazz.getSimpleName()), "Incorrect class name " + clazz.getName() + " in " + name);
-            final Object instance = clazz.newInstance();
-            applicationContext.getAutowireCapableBeanFactory().autowireBean(instance);
-            return ServerFunction.class.cast(instance);
+            return functionPostProcesor.process(ServerFunction.class.cast(clazz.newInstance()));
         }
         catch (InstantiationException | IllegalAccessException | IOException exc)
         {
@@ -93,7 +94,7 @@ public abstract class ClassResourceLoader
 
     public String loadApiSpec(String functionName)
     {
-        final String fileName = CaseFormat.LOWER_HYPHEN.to(CaseFormat.UPPER_CAMEL, functionName) + ".json";
+        final String fileName = StringUtil.hyphenToCamelCase(functionName) + ".json";
         try
         {
             return load(fileName);

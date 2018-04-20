@@ -3,9 +3,6 @@ package com.ethlo.lamebda;
 import java.util.Collections;
 import java.util.Map;
 
-import org.springframework.util.AntPathMatcher;
-import org.springframework.util.PathMatcher;
-
 import com.ethlo.lamebda.error.ErrorResponse;
 
 /*-
@@ -30,7 +27,7 @@ import com.ethlo.lamebda.error.ErrorResponse;
 
 public abstract class SimpleServerFunction implements ServerFunction
 {
-    private static final PathMatcher PATH_MATCHER = new AntPathMatcher();
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
     private final String pattern;
 
     public SimpleServerFunction(String pattern)
