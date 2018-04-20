@@ -1,5 +1,7 @@
-# lamebda
-Simple functional processing inspired by ServerLess and AWS Lambda, but can also runn within your existing infrastructure as a gateway or integration layer.
+# Lamebda
+Simple functional HTTP processing inspired by ServerLess and AWS Lambda, but can also runn within your existing infrastructure as a gateway or integration layer.
+
+> It Really Whips The Lambda's Ass!
 
 ### Usage from Spring Web Controller
 ```java
