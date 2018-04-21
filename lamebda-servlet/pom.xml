@@ -8,6 +8,7 @@
 	</parent>
 	<artifactId>lamebda-servlet</artifactId>
 	<dependencies>
+	
 		<dependency>
 			<groupId>com.ethlo.lamebda</groupId>
 			<artifactId>lamebda-core</artifactId>

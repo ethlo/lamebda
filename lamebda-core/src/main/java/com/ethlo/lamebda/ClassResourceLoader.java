@@ -59,8 +59,9 @@ public abstract class ClassResourceLoader
     
     /**
      * Return a list of all known functions
-     * @param pageable
-     * @return 
+     * @param offset The number of items to skip
+     * @param size The number of items to return
+     * @return A list of {@link HandlerFunctionInfo}s
      */
     public abstract List<HandlerFunctionInfo> findAll(long offset, int size);
     

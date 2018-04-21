@@ -58,7 +58,7 @@ public class ServletHttpRequest implements HttpRequest
     public ServletHttpRequest(String prefix, HttpServletRequest request)
     {
         Assert.notNull(request, "request cannot be null");
-        this.path = request.getRequestURI().substring(request.getContextPath().length()).substring(prefix.length());
+        this.path = request.getRequestURI().substring(prefix.length());
         this.request = request;
     }
     
