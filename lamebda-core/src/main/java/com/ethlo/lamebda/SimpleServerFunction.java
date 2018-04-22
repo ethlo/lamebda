@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.ethlo.lamebda.error.ErrorResponse;
+import com.ethlo.lamebda.util.StringUtil;
 
 /*-
  * #%L
@@ -30,10 +31,17 @@ public abstract class SimpleServerFunction implements ServerFunction
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
     private final String pattern;
 
+    public SimpleServerFunction()
+    {
+        final String hyphenenated = StringUtil.camelCaseToHyphen(getClass().getSimpleName());
+        this.pattern = "/" + hyphenenated + "/**";
+    }
+    
     public SimpleServerFunction(String pattern)
     {
         this.pattern = pattern;
     }
+
 
     @Override
     public FunctionResult handle(HttpRequest request, HttpResponse response)

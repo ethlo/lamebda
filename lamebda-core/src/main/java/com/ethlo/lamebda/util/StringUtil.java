@@ -92,4 +92,9 @@ public class StringUtil
         }
         return count;
     }
+
+    public static String camelCaseToHyphen(String s)
+    {
+        return s.replaceAll("([a-z])([A-Z]+)", "$1-$2").toLowerCase();
+    }
 }

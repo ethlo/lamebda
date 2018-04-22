@@ -21,7 +21,6 @@ package com.ethlo.lamebda;
  */
 
 import java.io.IOException;
-import java.util.List;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -33,47 +32,29 @@ import com.ethlo.lamebda.util.StringUtil;
 
 import groovy.lang.GroovyClassLoader;
 
-public abstract class ClassResourceLoader
+public abstract class AbstractClassResourceLoader implements ClassResourceLoader
 {
-    private static final Logger logger = LoggerFactory.getLogger(ClassResourceLoader.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractClassResourceLoader.class);
     private final FunctionPostProcesor functionPostProcesor;
     private Consumer<FunctionModificationNotice> changeListener;
     
-    public ClassResourceLoader()
+    public AbstractClassResourceLoader()
     {
         this.functionPostProcesor = f->f;
     }
     
-    public ClassResourceLoader(FunctionPostProcesor functionPostProcesor)
+    public AbstractClassResourceLoader(FunctionPostProcesor functionPostProcesor)
     {
         this.functionPostProcesor = Assert.notNull(functionPostProcesor, "functionPostProcesor cannot be null");
     }
     
-    /**
-     * Load the contents of the named class
-     * @param name The class name
-     * @return The contents of the specified name
-     * @throws IOException If the class could not be found or loaded
-     */
-    public abstract String load(String name) throws IOException;
-    
-    /**
-     * Return a list of all known functions
-     * @param offset The number of items to skip
-     * @param size The number of items to return
-     * @return A list of {@link HandlerFunctionInfo}s
-     */
-    public abstract List<HandlerFunctionInfo> findAll(long offset, int size);
-    
-    /**
-     * Set a listener that gets notified whenever the function's source changes
-     * @param l The listener
-     */
+    @Override
     public void setChangeListener(Consumer<FunctionModificationNotice> l)
     {
         this.changeListener = l;
     }
     
+    @Override
     public final ServerFunction loadClass(String name)
     {
         try (final GroovyClassLoader classLoader = new GroovyClassLoader())
@@ -93,6 +74,7 @@ public abstract class ClassResourceLoader
         changeListener.accept(new FunctionModificationNotice(name, changeType));
     }
 
+    @Override
     public String loadApiSpec(String functionName)
     {
         final String fileName = StringUtil.hyphenToCamelCase(functionName) + ".json";

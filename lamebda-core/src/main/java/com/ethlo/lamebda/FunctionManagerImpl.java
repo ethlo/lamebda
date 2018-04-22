@@ -36,14 +36,14 @@ import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.util.IoUtil;
 import com.ethlo.lamebda.util.StringUtil;
 
-public class FunctionManager
+public class FunctionManagerImpl implements FunctionManager
 {
-    protected static final Logger logger = LoggerFactory.getLogger(FunctionManager.class);
+    protected static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
     
     private Map<String, ServerFunction> functions = new ConcurrentHashMap<>();
     private ClassResourceLoader loader;
     
-    public FunctionManager(ClassResourceLoader loader)
+    public FunctionManagerImpl(ClassResourceLoader loader)
     {
         this.loader = loader;
         loader.setChangeListener(n->addFunction(loader.loadClass(n.getName())));
@@ -71,6 +71,7 @@ public class FunctionManager
         }
     }
 
+    @Override
     public void handle(HttpRequest request, HttpResponse response)
     {
         final SimpleServerFunction docFunc = new SimpleServerFunction("/doc/*")
