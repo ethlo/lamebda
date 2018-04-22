@@ -1,56 +1,64 @@
 # Lamebda
-Simple functional HTTP processing inspired by ServerLess and AWS Lambda, but can also runn within your existing infrastructure as a gateway or integration layer.
+Simple HTTP processing handler supporting dynamically loading of HTTP handler functions. Intended for running within your existing infrastructure as a gateway or integration layer embedded with your current framework like, but not limited to,  Spring MVC or Spring Flux.
 
 > It Really Whips The Lambda's Ass!
 
-### Usage from Spring Web Controller
-```java
-@Configuration
-public class LamebdaCfg
-{
-    private static final String PATH = "/lamebda";
-    private static final String PATH_PATTERN = PATH + "/**";
-    
-    @Bean
-    public FunctionManager functionManager(ApplicationContext applicationContext)
-    {
-        String contextPath = "/servlet"
-        String sourceDir = "/var/lib/lamebda/scripts"
-        return new FunctionManager(new FileSystemClassResourceLoader(applicationContext, sourceDir));
-    }
-    
-    @Controller
-    public class LamebdaController
-    {
-        @Autowired
-        private FunctionManager functionManager;
-        
-        @RequestMapping(PATH_PATTERN)
-        public void handle(HttpServletRequest request, HttpServletResponse response)
-        {
-            final HttpRequest req = new ServletHttpRequest(PATH, request);
-            final HttpResponse res = new ServletHttpResponse(response);
-            functionManager.handle(req, res);
-        }
-    }
-}
+# Usage with Spring Boot and Spring MVC
 
+```xml
+<dependency>
+    <groupId>com.ethlo.lamebda</groupId>
+    <artifactId>lamebda-spring-web-starter</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
 ```
 
-### Example script
+```properties
+lamebda.enabled=true
+lamebda.source.directory=/my/groovy/scripts
+lamebda.request-path=/mypath
+```
+
+Voila!
+
+### Invocation/delegation from a standard HttpServlet
+
+```xml
+<dependency>
+    <groupId>com.ethlo.lamebda</groupId>
+    <artifactId>lamebda-servlet</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+```java
+public class MyLamebdaServlet implements HttpServlet
+{
+    String contextPath = "/servlet"
+    String sourceDir = "/var/lib/lamebda/scripts"
+    final ClassResourceLoader loader = new FileSystemClassResourceLoader(f->f, sourceDir);
+    return new FunctionManager(loader);
+
+    @Override
+    public void service(HttpServletrequest req, HttpServletResponse res)
+    {
+        final HttpRequest request = new ServletHttpRequest(PATH, request);
+        final HttpResponse ressponse = new ServletHttpResponse(response);
+        functionManager.handle(request, response);
+    }
+}
+```
+
+### An example script
 ```groovy
 class MyFunction extends SimpleServerFunction {
 
     @Autowired
     private MyService service;
 
-    def MyFunction() {
-        super("/mine/**")
-    }
-
     @Override
     void get(HttpRequest request, HttpResponse response) {
-        response.json(200, [method: request.method, message:'Hello world'])
+        response.json(HttpStatus.OK, [method: request.method, message:'Hello world'])
     }
 
     @Override
@@ -58,7 +66,7 @@ class MyFunction extends SimpleServerFunction {
       def json = request.json()
       def prop = json.myprop
       def id = service.register(prop)
-      response.json(200, [id: id])
+      response.json(HttpStatus.CREATED, [id: id])
     }
 }
 ```
