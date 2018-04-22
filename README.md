@@ -66,7 +66,7 @@ class MyFunction extends SimpleServerFunction {
       def json = request.json()
       def prop = json.myprop
       def id = service.register(prop)
-      response.json(HttpStatus.200, [id: id])
+      response.json(HttpStatus.201, [id: id])
     }
 }
 ```
