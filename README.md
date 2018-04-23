@@ -3,6 +3,29 @@ Simple HTTP processing handler supporting dynamically loading of HTTP handler fu
 
 > It Really Whips The Lambda's Ass!
 
+### An simple example script
+```groovy
+class MyFunction extends SimpleServerFunction {
+
+    @Autowired
+    private MyService service;
+
+    @Override
+    void get(HttpRequest request, HttpResponse response) {
+        response.json(HttpStatus.OK, [method: request.method, message:'Hello world'])
+    }
+
+    @Override
+    void post(HttpRequest request, HttpResponse response) {
+      def json = request.json()
+      def id = service.register(json.mypayload)
+      response.json(HttpStatus.CREATED, [id: id])
+    }
+}
+```
+
+This scripts responds to GET and POST, and the url mapping is based on the class name hyphenated, i.e. /my-function.
+
 # Usage with Spring Boot and Spring MVC
 
 ```xml
@@ -35,38 +58,20 @@ Voila!
 public class MyLamebdaServlet implements HttpServlet
 {
     String contextPath = "/servlet"
-    String sourceDir = "/var/lib/lamebda/scripts"
+    String sourceDir = "/my/scripts"
     final ClassResourceLoader loader = new FileSystemClassResourceLoader(f->f, sourceDir);
     return new FunctionManager(loader);
 
     @Override
     public void service(HttpServletrequest req, HttpServletResponse res)
     {
-        final HttpRequest request = new ServletHttpRequest(PATH, request);
+        final HttpRequest request = new ServletHttpRequest(contextPath, request);
         final HttpResponse ressponse = new ServletHttpResponse(response);
         functionManager.handle(request, response);
     }
 }
 ```
 
-### An example script
-```groovy
-class MyFunction extends SimpleServerFunction {
+Add the example script below to the `sourcDir` folder.
 
-    @Autowired
-    private MyService service;
-
-    @Override
-    void get(HttpRequest request, HttpResponse response) {
-        response.json(HttpStatus.OK, [method: request.method, message:'Hello world'])
-    }
-
-    @Override
-    void post(HttpRequest request, HttpResponse response) {
-      def json = request.json()
-      def prop = json.myprop
-      def id = service.register(prop)
-      response.json(HttpStatus.CREATED, [id: id])
-    }
-}
-```
+Your function should be available under `/servlet/my-function`
