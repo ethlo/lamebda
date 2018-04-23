@@ -1,5 +1,5 @@
 # Lamebda
-Simple HTTP processing handler supporting dynamically loading of HTTP handler functions. Intended for running within your existing infrastructure as a gateway or integration layer embedded with your current framework like, but not limited to,  Spring MVC or Spring Flux.
+Simple HTTP handler supporting dynamic loading of HTTP handler functions. Intended for running within your existing infrastructure as a gateway or integration layer embedded with your current framework like, but not limited to, Spring MVC or Spring Flux.
 
 > It Really Whips The Lambda's Ass!
 
@@ -24,7 +24,7 @@ class MyFunction extends SimpleServerFunction {
 }
 ```
 
-This scripts responds to GET and POST, and the url mapping is based on the class name hyphenated, i.e. /my-function.
+This scripts responds to `GET` and `POST`, and the url mapping is based on the class name hyphenated, i.e. `/my-function`.
 
 # Usage with Spring Boot and Spring MVC
 
@@ -38,11 +38,11 @@ This scripts responds to GET and POST, and the url mapping is based on the class
 
 ```properties
 lamebda.enabled=true
-lamebda.source.directory=/my/groovy/scripts
+lamebda.source.directory=/my/scripts
 lamebda.request-path=/mypath
 ```
 
-Voila!
+Your function should be available under `/servlet/mypath/my-function`
 
 ### Invocation/delegation from a standard HttpServlet
 
