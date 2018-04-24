@@ -3,7 +3,15 @@ Simple HTTP handler supporting dynamic loading of HTTP handler functions. Intend
 
 > It Really Whips The Lambda's Ass!
 
-### An simple example script
+### Example use-cases
+
+* Ad-hoc API services and integration projects - Changes in the integration code can evolve freely from the core service
+* Transactional support across multiple API calls
+* Batch multiple API calls to avoid chatty data exchange
+* API prototyping
+* A powerful support tool for extracting data or changing state (think JMX on steroids)
+
+### A simple example script
 ```groovy
 class MyFunction extends SimpleServerFunction {
 
