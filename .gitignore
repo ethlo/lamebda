@@ -3,4 +3,6 @@ target
 .settings
 .springBeans
 .classpath
+.factorypath
 bin
+*.versionsBackup
