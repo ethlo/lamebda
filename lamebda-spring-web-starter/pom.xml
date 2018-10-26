@@ -4,14 +4,10 @@
 	<parent>
 		<groupId>com.ethlo.lamebda</groupId>
 		<artifactId>lamebda</artifactId>
-		<version>0.1.0</version>
+		<version>0.1.0-SNAPSHOT</version>
 	</parent>
 	<artifactId>lamebda-spring-web-starter</artifactId>
 	<dependencies>
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-webmvc</artifactId>
-		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>javax.servlet-api</artifactId>
@@ -36,8 +32,8 @@
 		</dependency>
 		<dependency>
 			<groupId>com.ethlo.lamebda</groupId>
-			<artifactId>lamebda-servlet</artifactId>
-			<version>0.1.0</version>
+			<artifactId>lamebda-springmvc</artifactId>
+			<version>0.1.0-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 </project>
