@@ -127,4 +127,10 @@ public class ServletHttpResponse implements HttpResponse
             throw new UncheckedIOException(exc);
         }
     }
+
+    @Override
+    public Object raw()
+    {
+        return response;
+    }
 }

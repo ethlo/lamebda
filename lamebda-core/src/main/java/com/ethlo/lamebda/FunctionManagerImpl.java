@@ -2,28 +2,7 @@ package com.ethlo.lamebda;
 
 import java.lang.reflect.UndeclaredThrowableException;
 import java.nio.charset.StandardCharsets;
-
-/*-
- * #%L
- * lamebda-core
- * %%
- * Copyright (C) 2018 Morten Haraldsen (ethlo)
- * %%
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * #L%
- */
-
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,25 +15,58 @@ import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.util.IoUtil;
 import com.ethlo.lamebda.util.StringUtil;
 
+/*-
+ * #%L
+ * lamebda-core
+ * %%
+ * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * %%
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ * #L%
+ */
+
 public class FunctionManagerImpl implements FunctionManager
 {
-    protected static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
-    
+    private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
+
     private Map<String, ServerFunction> functions = new ConcurrentHashMap<>();
     private ClassResourceLoader loader;
-    
-    public FunctionManagerImpl(ClassResourceLoader loader)
+    private FunctionManagerConfig config;
+
+    public FunctionManagerImpl(ClassResourceLoader loader, final FunctionManagerConfig functionManagerConfig)
     {
         this.loader = loader;
-        loader.setChangeListener(n->addFunction(loader.loadClass(n.getName())));
+        this.config = functionManagerConfig;
+        loader.setChangeListener(n -> {
+            switch (n.getChangeType())
+            {
+                case CREATED:
+                case MODIFIED:
+                    addFunction(loader.loadClass(n.getName()));
+                    break;
+
+                case DELETED:
+                    unload(n.getName());
+            }
+        });
     }
-    
+
     private void addFunction(ServerFunction func)
     {
         final boolean exists = functions.put(func.getClass().getName(), func) != null;
         logger.info(exists ? "{} was modified" : "{} was loaded", func.getClass().getSimpleName());
     }
-    
+
     @PostConstruct
     protected void loadAll()
     {
@@ -66,8 +78,21 @@ public class FunctionManagerImpl implements FunctionManager
             }
             catch (Exception exc)
             {
-                logger.error("Error in gateway function {}: {}", f.getName(), exc.getMessage());
+                if (config.isUnloadOnFunctionError())
+                {
+                    unload(f.getName());
+                }
+                logger.error("Error in function {}: {}", f.getName(), exc.getMessage());
             }
+        }
+    }
+
+    private void unload(final String name)
+    {
+        final ServerFunction func = functions.remove(name);
+        if (func != null)
+        {
+            logger.info("{} was unloaded", name);
         }
     }
 
@@ -84,7 +109,7 @@ public class FunctionManagerImpl implements FunctionManager
                 response.write(docPage);
             }
         };
-        
+
         final SimpleServerFunction specFunc = new SimpleServerFunction("/doc/*.json")
         {
             @Override
@@ -103,26 +128,25 @@ public class FunctionManagerImpl implements FunctionManager
                 }
             }
         };
-        
+
         if (specFunc.handle(request, response) == FunctionResult.PROCESSED)
         {
             return;
         }
-        
+
         if (docFunc.handle(request, response) == FunctionResult.PROCESSED)
         {
             return;
         }
-        
-        final Iterator<ServerFunction> iter = functions.values().iterator();
-        while (iter.hasNext())
+
+        for (final ServerFunction serverFunction : functions.values())
         {
-            if (doHandle(request, response, iter.next()))
+            if (doHandle(request, response, serverFunction))
             {
                 return;
             }
         }
-        
+
         response.error(ErrorResponse.notFound("No function found to handle '" + request.path() + "'"));
     }
 
@@ -142,15 +166,15 @@ public class FunctionManagerImpl implements FunctionManager
             throw handleError(exc);
         }
     }
-    
+
     private RuntimeException handleError(final RuntimeException exc)
     {
-        Throwable cause = exc; 
+        Throwable cause = exc;
         if (exc instanceof UndeclaredThrowableException && exc.getCause() != null)
         {
             cause = exc.getCause();
         }
-        
+
         if (cause instanceof RuntimeException)
         {
             throw (RuntimeException) cause;
@@ -158,4 +182,8 @@ public class FunctionManagerImpl implements FunctionManager
         throw new RuntimeException(cause);
     }
 
+    public Map<String,ServerFunction> getFunctions()
+    {
+        return Collections.unmodifiableMap(functions);
+    }
 }

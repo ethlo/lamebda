@@ -44,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.ChangeType;
-import com.ethlo.lamebda.AbstractClassResourceLoader;
 import com.ethlo.lamebda.HandlerFunctionInfo;
 
 public class FileSystemClassResourceLoader extends AbstractClassResourceLoader

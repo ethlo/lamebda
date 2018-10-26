@@ -1,4 +1,4 @@
-package com.ethlo.lamebda.loaders;
+package com.ethlo.lamebda;
 
 /*-
  * #%L
@@ -20,10 +20,18 @@ package com.ethlo.lamebda.loaders;
  * #L%
  */
 
-import com.ethlo.lamebda.ServerFunction;
-
-@FunctionalInterface
-public interface FunctionPostProcesor
+public class FunctionManagerConfig
 {
-    ServerFunction process(ServerFunction function);
+    private boolean unloadOnRemoval = true;
+    private boolean unloadOnFunctionError = true;
+
+    public boolean isUnloadOnRemoval()
+    {
+        return unloadOnRemoval;
+    }
+
+    public boolean isUnloadOnFunctionError()
+    {
+        return unloadOnFunctionError;
+    }
 }

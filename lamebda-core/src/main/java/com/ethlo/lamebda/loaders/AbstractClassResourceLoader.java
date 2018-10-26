@@ -1,4 +1,4 @@
-package com.ethlo.lamebda;
+package com.ethlo.lamebda.loaders;
 
 /*-
  * #%L
@@ -26,7 +26,10 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ethlo.lamebda.loaders.FunctionPostProcesor;
+import com.ethlo.lamebda.ChangeType;
+import com.ethlo.lamebda.ClassResourceLoader;
+import com.ethlo.lamebda.FunctionModificationNotice;
+import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.StringUtil;
 
@@ -61,6 +64,7 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
         {
             final Class<?> clazz = classLoader.parseClass(load(name + ".groovy"));
             Assert.isTrue(name.equals(clazz.getSimpleName()), "Incorrect class name " + clazz.getName() + " in " + name);
+            logger.info("Loading {}", clazz.getSimpleName());
             return functionPostProcesor.process(ServerFunction.class.cast(clazz.newInstance()));
         }
         catch (InstantiationException | IllegalAccessException | IOException exc)

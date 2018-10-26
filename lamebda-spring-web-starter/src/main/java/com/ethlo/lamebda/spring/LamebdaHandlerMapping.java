@@ -47,7 +47,7 @@ public class LamebdaHandlerMapping extends RequestMappingHandlerMapping
     }
     
     @Override
-    protected HandlerMethod getHandlerInternal(HttpServletRequest request) throws Exception
+    protected HandlerMethod getHandlerInternal(HttpServletRequest request)
     {
         final String requestPath = request.getRequestURI().substring(request.getContextPath().length());
         if (requestPath.startsWith(requestPrefix))

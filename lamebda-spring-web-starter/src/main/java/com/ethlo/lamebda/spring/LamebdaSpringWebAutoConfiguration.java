@@ -40,6 +40,7 @@ import org.springframework.web.servlet.HandlerMapping;
 
 import com.ethlo.lamebda.ClassResourceLoader;
 import com.ethlo.lamebda.FunctionManager;
+import com.ethlo.lamebda.FunctionManagerConfig;
 import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcesor;
@@ -102,13 +103,21 @@ public class LamebdaSpringWebAutoConfiguration
         logger.info("Using file system class loader");
         return new FileSystemClassResourceLoader(functionPostProcesor, cfg.getDirectory());
     }
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConditionalOnBean(FunctionManagerConfig.class)
+    public FunctionManagerConfig functionManagerConfig()
+    {
+        return new FunctionManagerConfig();
+    }
     
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean(ClassResourceLoader.class)
-    public FunctionManager functionManager(ClassResourceLoader classResourceLoader)
+    public FunctionManager functionManager(ClassResourceLoader classResourceLoader, FunctionManagerConfig functionManagerConfig)
     {
-        return new FunctionManagerImpl(classResourceLoader);
+        return new FunctionManagerImpl(classResourceLoader, functionManagerConfig);
     }
 
     @Bean

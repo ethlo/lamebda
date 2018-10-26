@@ -41,4 +41,6 @@ public interface HttpResponse
     void error(int status, String message);
 
     void json(int status, Object body);
+
+    Object raw();
 }

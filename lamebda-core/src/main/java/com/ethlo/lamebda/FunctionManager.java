@@ -24,5 +24,4 @@ public interface FunctionManager
 {
 
     void handle(HttpRequest request, HttpResponse response);
-
 }
