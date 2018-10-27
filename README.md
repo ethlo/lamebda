@@ -41,7 +41,7 @@ class MyFunction extends SimpleServerFunction {
 
 This scripts responds to `GET` and `POST`, and the url mapping is based on the class name hyphenated, i.e. `/my-function`.
 
-# Usage with Spring Boot and Spring MVC
+### Usage with Spring Boot and Spring MVC
 
 ```xml
 <dependency>
