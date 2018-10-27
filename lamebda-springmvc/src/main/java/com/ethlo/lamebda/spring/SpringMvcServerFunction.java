@@ -20,6 +20,7 @@ package com.ethlo.lamebda.spring;
  * #L%
  */
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import javax.servlet.http.HttpServletRequest;
@@ -28,6 +29,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
@@ -47,15 +49,14 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
 
     public SpringMvcServerFunction()
     {
-        Arrays.asList(this.getClass().getMethods())
-                .stream()
-                .forEach(m -> {
-                    RequestMappingInfo mapping = getMappingForMethod(m, this.getClass());
-                    if (mapping != null)
-                    {
-                        registerMapping(mapping, this, m);
-                    }
-                });
+        for (Method m : ReflectionUtils.getUniqueDeclaredMethods(getClass()))
+        {
+            final RequestMappingInfo mapping = getMappingForMethod(m, this.getClass());
+            if (mapping != null)
+            {
+                registerMapping(mapping, this, m);
+            }
+        }
     }
 
     @Override

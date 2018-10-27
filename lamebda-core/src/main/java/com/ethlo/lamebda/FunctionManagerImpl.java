@@ -64,7 +64,7 @@ public class FunctionManagerImpl implements FunctionManager
     private void addFunction(ServerFunction func)
     {
         final boolean exists = functions.put(func.getClass().getName(), func) != null;
-        logger.info(exists ? "{} was modified" : "{} was loaded", func.getClass().getSimpleName());
+        logger.info(exists ? "{} was reloaded" : "{} was loaded", func.getClass().getSimpleName());
     }
 
     @PostConstruct
