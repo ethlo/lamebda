@@ -22,8 +22,13 @@ package com.ethlo.lamebda;
 
 public class FunctionManagerConfig
 {
-    private boolean unloadOnRemoval = true;
-    private boolean unloadOnFunctionError = true;
+    private final boolean unloadOnRemoval;
+    private final boolean unloadOnFunctionError;
+
+    public FunctionManagerConfig()
+    {
+        this(true, true);
+    }
 
     public boolean isUnloadOnRemoval()
     {
@@ -33,5 +38,11 @@ public class FunctionManagerConfig
     public boolean isUnloadOnFunctionError()
     {
         return unloadOnFunctionError;
+    }
+
+    public FunctionManagerConfig(final boolean unloadOnRemoval, final boolean unloadOnFunctionError)
+    {
+        this.unloadOnRemoval = unloadOnRemoval;
+        this.unloadOnFunctionError = unloadOnFunctionError;
     }
 }

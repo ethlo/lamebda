@@ -89,10 +89,13 @@ public class FunctionManagerImpl implements FunctionManager
 
     private void unload(final String name)
     {
-        final ServerFunction func = functions.remove(name);
-        if (func != null)
+        if (config.isUnloadOnRemoval())
         {
-            logger.info("{} was unloaded", name);
+            final ServerFunction func = functions.remove(name);
+            if (func != null)
+            {
+                logger.info("{} was unloaded", name);
+            }
         }
     }
 
