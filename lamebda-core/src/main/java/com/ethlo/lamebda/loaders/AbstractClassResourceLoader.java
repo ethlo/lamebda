@@ -64,7 +64,7 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
         {
             final Class<?> clazz = classLoader.parseClass(load(name + ".groovy"));
             Assert.isTrue(name.equals(clazz.getSimpleName()), "Incorrect class name " + clazz.getName() + " in " + name);
-            logger.info("Loading {}", clazz.getSimpleName());
+            logger.info("Loading '{}'", clazz.getSimpleName());
             return functionPostProcesor.process(ServerFunction.class.cast(clazz.newInstance()));
         }
         catch (InstantiationException | IllegalAccessException | IOException exc)
@@ -88,7 +88,7 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
         }
         catch (IOException exc)
         {
-            logger.warn("No API documentation file {} found for function {}", fileName, functionName);
+            logger.warn("No API documentation file '{}' found for function '{}'", fileName, functionName);
             return null;
         }
     }

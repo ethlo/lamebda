@@ -196,4 +196,10 @@ public class ServletHttpRequest implements HttpRequest
         final String characterEncoding = request.getCharacterEncoding();
         return characterEncoding != null ? Charset.forName(characterEncoding) : StandardCharsets.UTF_8;
     }
+
+    @Override
+    public String contentType()
+    {
+        return request.getContentType();
+    }
 }

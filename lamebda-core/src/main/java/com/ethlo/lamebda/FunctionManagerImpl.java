@@ -1,19 +1,20 @@
 package com.ethlo.lamebda;
 
 import java.lang.reflect.UndeclaredThrowableException;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.PostConstruct;
 
+import org.codehaus.groovy.control.CompilationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.error.ErrorResponse;
-import com.ethlo.lamebda.util.IoUtil;
-import com.ethlo.lamebda.util.StringUtil;
+import com.ethlo.lamebda.functions.ApiDocFunction;
+import com.ethlo.lamebda.functions.ApiSpecFunction;
+import com.ethlo.lamebda.functions.LastCompilationErrorFunction;
 
 /*-
  * #%L
@@ -52,7 +53,16 @@ public class FunctionManagerImpl implements FunctionManager
             {
                 case CREATED:
                 case MODIFIED:
-                    addFunction(loader.loadClass(n.getName()));
+                    try
+                    {
+                        final ServerFunction loaded = loader.loadClass(n.getName());
+                        addFunction(n.getName(), loaded);
+                    }
+                    catch (CompilationFailedException exc)
+                    {
+                        addFunction(n.getName(), new LastCompilationErrorFunction(n.getName(), exc));
+                        throw exc;
+                    }
                     break;
 
                 case DELETED:
@@ -61,10 +71,10 @@ public class FunctionManagerImpl implements FunctionManager
         });
     }
 
-    private void addFunction(ServerFunction func)
+    private void addFunction(String filename, ServerFunction func)
     {
         final boolean exists = functions.put(func.getClass().getName(), func) != null;
-        logger.info(exists ? "{} was reloaded" : "{} was loaded", func.getClass().getSimpleName());
+        logger.info(exists ? "'{}' was reloaded" : "'{}' was loaded", filename);
     }
 
     @PostConstruct
@@ -74,14 +84,10 @@ public class FunctionManagerImpl implements FunctionManager
         {
             try
             {
-                addFunction(loader.loadClass(f.getName()));
+                addFunction(f.getName(), loader.loadClass(f.getName()));
             }
             catch (Exception exc)
             {
-                if (config.isUnloadOnFunctionError())
-                {
-                    unload(f.getName());
-                }
                 logger.error("Error in function {}: {}", f.getName(), exc.getMessage());
             }
         }
@@ -94,7 +100,7 @@ public class FunctionManagerImpl implements FunctionManager
             final ServerFunction func = functions.remove(name);
             if (func != null)
             {
-                logger.info("{} was unloaded", name);
+                logger.info("'{}' was unloaded", name);
             }
         }
     }
@@ -102,52 +108,22 @@ public class FunctionManagerImpl implements FunctionManager
     @Override
     public void handle(HttpRequest request, HttpResponse response)
     {
-        final SimpleServerFunction docFunc = new SimpleServerFunction("/doc/*")
-        {
-            @Override
-            protected void get(HttpRequest request, HttpResponse response)
-            {
-                final String docPage = IoUtil.classPathResourceAsString("doc.html", StandardCharsets.UTF_8);
-                response.setContentType(HttpMimeType.HTML);
-                response.write(docPage);
-            }
-        };
-
-        final SimpleServerFunction specFunc = new SimpleServerFunction("/doc/*.json")
-        {
-            @Override
-            protected void get(HttpRequest request, HttpResponse response)
-            {
-                final String name = getPathVars("/doc/{function}.*", request).get("function");
-                final String functionName = StringUtil.hyphenToCamelCase(name);
-                final boolean functionExists = functions.containsKey(functionName);
-                if (functionExists)
-                {
-                    response.write(loader.loadApiSpec(functionName));
-                }
-                else
-                {
-                    response.error(HttpStatus.NOT_FOUND, "No API documentation file was found");
-                }
-            }
-        };
-
-        if (specFunc.handle(request, response) == FunctionResult.PROCESSED)
-        {
-            return;
-        }
-
-        if (docFunc.handle(request, response) == FunctionResult.PROCESSED)
-        {
-            return;
-        }
-
         for (final ServerFunction serverFunction : functions.values())
         {
             if (doHandle(request, response, serverFunction))
             {
                 return;
             }
+        }
+
+        if (new ApiSpecFunction(functions, loader).handle(request, response) == FunctionResult.PROCESSED)
+        {
+            return;
+        }
+
+        if (new ApiDocFunction().handle(request, response) == FunctionResult.PROCESSED)
+        {
+            return;
         }
 
         response.error(ErrorResponse.notFound("No function found to handle '" + request.path() + "'"));
@@ -185,7 +161,7 @@ public class FunctionManagerImpl implements FunctionManager
         throw new RuntimeException(cause);
     }
 
-    public Map<String,ServerFunction> getFunctions()
+    public Map<String, ServerFunction> getFunctions()
     {
         return Collections.unmodifiableMap(functions);
     }

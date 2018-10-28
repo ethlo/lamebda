@@ -98,4 +98,6 @@ public interface HttpRequest
      * @return
      */
     Charset charset();
+
+    String contentType();
 }

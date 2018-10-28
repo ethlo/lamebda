@@ -9,9 +9,9 @@ package com.ethlo.lamebda;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,10 +20,11 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,18 +32,34 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Map;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
+import com.ethlo.lamebda.test.MockHttpRequest;
+import com.ethlo.lamebda.test.MockHttpResponse;
 
-public class FunctionLoaderTest
+@SpringBootTest(classes = ServerFunctionTest.class)
+@EnableAutoConfiguration
+@RunWith(SpringRunner.class)
+public class ServerFunctionTest
 {
     private final File basepath = new File(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
     private FunctionManagerImpl functionManager;
 
-    public FunctionLoaderTest() throws IOException
+    @Autowired
+    private ApplicationContext applicationContext;
+
+    public ServerFunctionTest() throws IOException
     {
         if (basepath.exists())
         {
@@ -50,32 +67,10 @@ public class FunctionLoaderTest
         }
         assertThat(basepath.mkdirs()).isTrue();
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> f, basepath.getAbsolutePath()), new FunctionManagerConfig());
-    }
-
-    @Test
-    public void testLoadOnCreate() throws Exception
-    {
-        move("Correct.groovy");
-        ioWait();
-        final Map<String, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).containsExactly("Correct");
-    }
-
-    @Test
-    public void showCompilationError() throws Exception
-    {
-        move("Incorrect.groovy");
-    }
-
-    @Test
-    public void testLoadOnModification() throws Exception
-    {
-        move("Correct.groovy");
-        ioWait();
-        move("Correct.groovy");
-        ioWait();
-        return;
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> {
+            applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
+            return f;
+        }, basepath.getAbsolutePath()), new FunctionManagerConfig());
     }
 
     private void ioWait() throws InterruptedException
@@ -84,25 +79,18 @@ public class FunctionLoaderTest
     }
 
     @Test
-    public void testUnloadOnRemoval() throws Exception
+    public void testCompilcationErrorShownIfEnabled() throws Exception
     {
-        move("Correct.groovy");
+        move("Incorrect.groovy");
         ioWait();
-        remove("Correct.groovy");
-        ioWait();
-        final Map<String, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).doesNotContain("Correct");
-    }
 
-    @Test
-    public void testUnloadOnError() throws Exception
-    {
-        final Path target = move("Correct.groovy");
-        ioWait();
-        Files.copy(Paths.get("src/test/groovy/Incorrect.groovy"), target, StandardCopyOption.REPLACE_EXISTING);
-        ioWait();
-        final Map<String, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).doesNotContain("Correct");
+        final MockHttpRequest req = new MockHttpRequest();
+        final MockHttpResponse res = new MockHttpResponse();
+        req.path("/error/incorrect");
+        req.method("GET");
+        functionManager.handle(req, res);
+        assertThat(res.body()).contains("The return type of");
+
     }
 
     private Path move(final String name) throws IOException
