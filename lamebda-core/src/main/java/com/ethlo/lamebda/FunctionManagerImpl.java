@@ -55,18 +55,31 @@ public class FunctionManagerImpl implements FunctionManager
                 case MODIFIED:
                     try
                     {
+                        // Load the function from source
                         final ServerFunction loaded = loader.loadClass(n.getName());
+
+                        // Remove the last compilation error if any
+                        unload(n.getName());
+
+                        // Add the function back
                         addFunction(n.getName(), loaded);
                     }
                     catch (CompilationFailedException exc)
                     {
-                        addFunction(n.getName(), new LastCompilationErrorFunction(n.getName(), exc));
+                        if (config.isExposeCompilationError())
+                        {
+                            // Add an end-point under /error/{name} to know the compilation error
+                            addFunction(n.getName(), new LastCompilationErrorFunction(n.getName(), exc));
+                        }
                         throw exc;
                     }
                     break;
 
                 case DELETED:
-                    unload(n.getName());
+                    if (config.isUnloadOnRemoval())
+                    {
+                        unload(n.getName());
+                    }
             }
         });
     }
@@ -95,13 +108,10 @@ public class FunctionManagerImpl implements FunctionManager
 
     private void unload(final String name)
     {
-        if (config.isUnloadOnRemoval())
+        final ServerFunction func = functions.remove(name);
+        if (func != null)
         {
-            final ServerFunction func = functions.remove(name);
-            if (func != null)
-            {
-                logger.info("'{}' was unloaded", name);
-            }
+            logger.info("'{}' was unloaded", name);
         }
     }
 
