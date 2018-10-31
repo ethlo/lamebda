@@ -21,12 +21,14 @@ package com.ethlo.lamebda.spring;
  */
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -69,8 +71,13 @@ public class LamebdaSpringWebAutoConfiguration
     @ConditionalOnMissingBean
     public FunctionPostProcesor functionPostProcessor()
     {
+        final AutowireCapableBeanFactory bf = applicationContext.getAutowireCapableBeanFactory();
+        final AtomicInteger i = new AtomicInteger();
         return f -> {
-            applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
+            final String name = f.getClass().getSimpleName() + i.getAndIncrement();
+            bf.applyBeanPostProcessorsBeforeInitialization(f, name);
+            bf.autowireBean(f);
+            bf.applyBeanPostProcessorsAfterInitialization(f, name);
             return f;
         };
     }
@@ -106,7 +113,6 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean(FunctionManagerConfig.class)
     public FunctionManagerConfig functionManagerConfig()
     {
         return new FunctionManagerConfig();
