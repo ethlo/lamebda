@@ -28,5 +28,5 @@ public interface ServerFunction
      * @param response The outgoing response
      * @return The handling result, {@link FunctionResult#PROCESSED} if this method handled the request, otherwise {@link FunctionResult#SKIPPED}
      */
-    FunctionResult handle(HttpRequest request, HttpResponse response);
+    FunctionResult handle(HttpRequest request, HttpResponse response) throws Exception;
 }

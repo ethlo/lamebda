@@ -9,9 +9,9 @@ package com.ethlo.lamebda;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,35 +22,28 @@ package com.ethlo.lamebda;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.function.Consumer;
 
 public interface ClassResourceLoader
 {
-
     /**
      * Load the contents of the named class
+     *
      * @param name The class name
      * @return The contents of the specified name
      * @throws IOException If the class could not be found or loaded
      */
-    String load(String name) throws IOException;
+    String readSource(String name) throws IOException;
 
     /**
      * Return a list of all known functions
+     *
      * @param offset The number of items to skip
-     * @param size The number of items to return
-     * @return A list of {@link HandlerFunctionInfo}s
+     * @param size   The number of items to return
+     * @return A list of {@link ServerFunctionInfo}s
      */
-    List<HandlerFunctionInfo> findAll(long offset, int size);
+    List<ServerFunctionInfo> findAll(long offset, int size);
 
-    /**
-     * Set a listener that gets notified whenever the function's source changes
-     * @param l The listener
-     */
-    void setChangeListener(Consumer<FunctionModificationNotice> l);
+    ServerFunction load(String name);
 
-    ServerFunction loadClass(String name);
-
-    String loadApiSpec(String functionName);
-
+    Class<ServerFunction> parseClass(String name);
 }

@@ -40,6 +40,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.servlet.HandlerMapping;
 
+import com.ethlo.lamebda.ApiSpecLoader;
 import com.ethlo.lamebda.ClassResourceLoader;
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerConfig;
@@ -65,21 +66,6 @@ public class LamebdaSpringWebAutoConfiguration
     public void setRequestPath(String requestPath)
     {
         this.requestPath = requestPath;
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public FunctionPostProcesor functionPostProcessor()
-    {
-        final AutowireCapableBeanFactory bf = applicationContext.getAutowireCapableBeanFactory();
-        final AtomicInteger i = new AtomicInteger();
-        return f -> {
-            final String name = f.getClass().getSimpleName() + i.getAndIncrement();
-            bf.applyBeanPostProcessorsBeforeInitialization(f, name);
-            bf.autowireBean(f);
-            bf.applyBeanPostProcessorsAfterInitialization(f, name);
-            return f;
-        };
     }
 
     @Validated
@@ -121,9 +107,9 @@ public class LamebdaSpringWebAutoConfiguration
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean(ClassResourceLoader.class)
-    public FunctionManager functionManager(ClassResourceLoader classResourceLoader, FunctionManagerConfig functionManagerConfig)
+    public FunctionManager functionManager(ClassResourceLoader classResourceLoader, ApiSpecLoader apiSpecLoader, FunctionManagerConfig functionManagerConfig)
     {
-        return new FunctionManagerImpl(classResourceLoader, functionManagerConfig);
+        return new FunctionManagerImpl(classResourceLoader, apiSpecLoader, functionManagerConfig);
     }
 
     @Bean

@@ -20,11 +20,20 @@
 import com.ethlo.lamebda.HttpRequest
 import com.ethlo.lamebda.HttpResponse
 import com.ethlo.lamebda.HttpStatus
-import com.ethlo.lamebda.SimpleServerFunction;
+import com.ethlo.lamebda.SimpleServerFunction
+import org.springframework.beans.factory.InitializingBean
 
-class Correct extends SimpleServerFunction {
+import javax.annotation.PostConstruct;
+
+class Correct extends SimpleServerFunction implements InitializingBean {
     @Override
     void get(HttpRequest request, HttpResponse response) {
         response.json(HttpStatus.OK, [method: request.method, message: 'Hello world'])
+    }
+
+    @Override
+    void afterPropertiesSet() throws Exception
+    {
+        System.out.println("Yupp");
     }
 }

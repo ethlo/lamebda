@@ -66,7 +66,7 @@ public class ServerFunctionTest
         functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> {
             applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
             return f;
-        }, basepath.getAbsolutePath()), new FunctionManagerConfig());
+        }, basepath.getAbsolutePath()), null, new FunctionManagerConfig());
     }
 
     private void ioWait() throws InterruptedException

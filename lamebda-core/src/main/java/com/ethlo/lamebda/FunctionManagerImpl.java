@@ -39,49 +39,55 @@ import com.ethlo.lamebda.functions.LastCompilationErrorFunction;
 public class FunctionManagerImpl implements FunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
+    private final ApiSpecLoader apiSpecLoader;
 
     private Map<String, ServerFunction> functions = new ConcurrentHashMap<>();
-    private ClassResourceLoader loader;
+    private ClassResourceLoader classResourceLoader;
     private FunctionManagerConfig config;
 
-    public FunctionManagerImpl(ClassResourceLoader loader, final FunctionManagerConfig functionManagerConfig)
+    public FunctionManagerImpl(ClassResourceLoader classResourceLoader, ApiSpecLoader apiSpecLoader, final FunctionManagerConfig functionManagerConfig)
     {
-        this.loader = loader;
+        this.classResourceLoader = classResourceLoader;
+        this.apiSpecLoader = apiSpecLoader;
         this.config = functionManagerConfig;
-        loader.setChangeListener(n -> {
-            switch (n.getChangeType())
-            {
-                case CREATED:
-                case MODIFIED:
-                    try
-                    {
-                        // Load the function from source
-                        final ServerFunction loaded = loader.loadClass(n.getName());
 
-                        // Remove the last compilation error if any
-                        unload(n.getName());
-
-                        // Add the function back
-                        addFunction(n.getName(), loaded);
-                    }
-                    catch (CompilationFailedException exc)
-                    {
-                        if (config.isExposeCompilationError())
+        if (classResourceLoader instanceof SourceChangeAware)
+        {
+            ((SourceChangeAware) classResourceLoader).setChangeListener(n -> {
+                switch (n.getChangeType())
+                {
+                    case CREATED:
+                    case MODIFIED:
+                        try
                         {
-                            // Add an end-point under /error/{name} to know the compilation error
-                            addFunction(n.getName(), new LastCompilationErrorFunction(n.getName(), exc));
-                        }
-                        throw exc;
-                    }
-                    break;
+                            // Load the function from source
+                            final ServerFunction loaded = classResourceLoader.load(n.getName());
 
-                case DELETED:
-                    if (config.isUnloadOnRemoval())
-                    {
-                        unload(n.getName());
-                    }
-            }
-        });
+                            // Remove the last compilation error if any
+                            unload(n.getName());
+
+                            // Add the function back
+                            addFunction(n.getName(), loaded);
+                        }
+                        catch (CompilationFailedException exc)
+                        {
+                            if (config.isExposeCompilationError())
+                            {
+                                // Add an end-point under /error/{name} to know the compilation error
+                                addFunction(n.getName(), new LastCompilationErrorFunction(n.getName(), exc));
+                            }
+                            throw exc;
+                        }
+                        break;
+
+                    case DELETED:
+                        if (config.isUnloadOnRemoval())
+                        {
+                            unload(n.getName());
+                        }
+                }
+            });
+        }
     }
 
     private void addFunction(String filename, ServerFunction func)
@@ -93,11 +99,11 @@ public class FunctionManagerImpl implements FunctionManager
     @PostConstruct
     protected void loadAll()
     {
-        for (HandlerFunctionInfo f : loader.findAll(0, Integer.MAX_VALUE))
+        for (ServerFunctionInfo f : classResourceLoader.findAll(0, Integer.MAX_VALUE))
         {
             try
             {
-                addFunction(f.getName(), loader.loadClass(f.getName()));
+                addFunction(f.getName(), classResourceLoader.load(f.getName()));
             }
             catch (Exception exc)
             {
@@ -116,7 +122,7 @@ public class FunctionManagerImpl implements FunctionManager
     }
 
     @Override
-    public void handle(HttpRequest request, HttpResponse response)
+    public void handle(HttpRequest request, HttpResponse response) throws Exception
     {
         for (final ServerFunction serverFunction : functions.values())
         {
@@ -126,7 +132,7 @@ public class FunctionManagerImpl implements FunctionManager
             }
         }
 
-        if (new ApiSpecFunction(functions, loader).handle(request, response) == FunctionResult.PROCESSED)
+        if (new ApiSpecFunction(functions, apiSpecLoader).handle(request, response) == FunctionResult.PROCESSED)
         {
             return;
         }
@@ -139,7 +145,7 @@ public class FunctionManagerImpl implements FunctionManager
         response.error(ErrorResponse.notFound("No function found to handle '" + request.path() + "'"));
     }
 
-    private boolean doHandle(HttpRequest request, HttpResponse response, ServerFunction f)
+    private boolean doHandle(HttpRequest request, HttpResponse response, ServerFunction f) throws Exception
     {
         try
         {

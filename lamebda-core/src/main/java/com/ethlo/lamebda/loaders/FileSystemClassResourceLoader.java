@@ -44,7 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.ChangeType;
-import com.ethlo.lamebda.HandlerFunctionInfo;
+import com.ethlo.lamebda.ServerFunctionInfo;
 
 public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
 {
@@ -146,7 +146,7 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
     }
 
     @Override
-    public String load(String name) throws IOException
+    public String readSource(String name) throws IOException
     {
         try (BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(Paths.get(basePath, name).toFile()), StandardCharsets.UTF_8)))
         {
@@ -155,14 +155,14 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
     }
 
     @Override
-    public List<HandlerFunctionInfo> findAll(long offset, int size)
+    public List<ServerFunctionInfo> findAll(long offset, int size)
     {
         final String[] files = Paths.get(basePath).toFile().list((d,f)->f.endsWith(".groovy"));
         return Arrays.asList(files)
             .stream()
             .skip(offset)
             .limit(size)
-            .map(n->new HandlerFunctionInfo(getBaseName(n)))
+            .map(n->new ServerFunctionInfo(getBaseName(n)))
             .collect(Collectors.toList());
     }
 }

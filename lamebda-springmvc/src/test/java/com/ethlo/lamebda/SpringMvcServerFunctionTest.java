@@ -48,6 +48,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
 import com.ethlo.lamebda.servlet.ServletHttpRequest;
 import com.ethlo.lamebda.servlet.ServletHttpResponse;
+import com.ethlo.lamebda.spring.AutowireHelper;
 
 @SpringBootTest(classes = SpringMvcServerFunctionTest.class)
 @EnableAutoConfiguration
@@ -69,7 +70,7 @@ public class SpringMvcServerFunctionTest
         }
         assertThat(basepath.mkdirs()).isTrue();
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> f, basepath.getAbsolutePath()), null, new FunctionManagerConfig());
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(AutowireHelper.process(applicationContext), basepath.getAbsolutePath()), null, new FunctionManagerConfig());
     }
 
     private void ioWait() throws InterruptedException

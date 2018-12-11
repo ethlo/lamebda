@@ -75,9 +75,10 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
         }
         catch (final Exception e)
         {
-            logger.error("There was a problem processing lamebda request", e);
+            logger.error("There was a problem processing the Lamebda script", e);
             httpResponse.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unhandled error occurred while processing the request");
         }
+
         return FunctionResult.PROCESSED;
     }
 }

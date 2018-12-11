@@ -22,6 +22,7 @@ package com.ethlo.lamebda.functions;
 
 import java.util.Map;
 
+import com.ethlo.lamebda.ApiSpecLoader;
 import com.ethlo.lamebda.ClassResourceLoader;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
@@ -33,9 +34,9 @@ import com.ethlo.lamebda.util.StringUtil;
 public class ApiSpecFunction extends SimpleServerFunction
 {
     private final Map<String, ServerFunction> functions;
-    private final ClassResourceLoader loader;
+    private final ApiSpecLoader loader;
 
-    public ApiSpecFunction(Map<String, ServerFunction> functions, ClassResourceLoader loader)
+    public ApiSpecFunction(Map<String, ServerFunction> functions, ApiSpecLoader loader)
     {
         super("/doc/*.json");
         this.functions = functions;

@@ -50,7 +50,7 @@ public class FunctionLoaderTest
         }
         assertThat(basepath.mkdirs()).isTrue();
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> f, basepath.getAbsolutePath()), new FunctionManagerConfig());
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> f, basepath.getAbsolutePath()), null, new FunctionManagerConfig());
     }
 
     @Test

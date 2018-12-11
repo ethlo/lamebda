@@ -22,12 +22,12 @@ package com.ethlo.lamebda;
 
 import java.time.ZonedDateTime;
 
-public class HandlerFunctionInfo
+public class ServerFunctionInfo
 {
     private final String name;
     private ZonedDateTime lastModified;
     
-    public HandlerFunctionInfo(String name)
+    public ServerFunctionInfo(String name)
     {
         this.name = name;
     }
@@ -47,3 +47,4 @@ public class HandlerFunctionInfo
         return name;
     }
 }
+        

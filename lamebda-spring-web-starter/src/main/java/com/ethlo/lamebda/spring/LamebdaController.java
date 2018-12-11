@@ -50,7 +50,7 @@ public class LamebdaController
         this.mapper = mapper;
     }
 
-    public void handle(HttpServletRequest request, HttpServletResponse response)
+    public void handle(HttpServletRequest request, HttpServletResponse response) throws Exception
     {
         final String contextPath = request.getContextPath();
         final HttpRequest req = new ServletHttpRequest(contextPath + requestPath, request);

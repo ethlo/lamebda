@@ -74,8 +74,8 @@ public class MyLamebdaServlet implements HttpServlet
 {
     String contextPath = "/servlet"
     String sourceDir = "/my/scripts"
-    final ClassResourceLoader loader = new FileSystemClassResourceLoader(f->f, sourceDir);
-    return new FunctionManager(loader);
+    final ClassResourceLoader classResourceLoader = new FileSystemClassResourceLoader(f->f, sourceDir);
+    return new FunctionManager(classResourceLoader);
 
     @Override
     public void service(HttpServletrequest req, HttpServletResponse res)

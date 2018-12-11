@@ -26,25 +26,22 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ethlo.lamebda.ApiSpecLoader;
 import com.ethlo.lamebda.ChangeType;
 import com.ethlo.lamebda.ClassResourceLoader;
 import com.ethlo.lamebda.FunctionModificationNotice;
 import com.ethlo.lamebda.ServerFunction;
+import com.ethlo.lamebda.SourceChangeAware;
 import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.StringUtil;
 
 import groovy.lang.GroovyClassLoader;
 
-public abstract class AbstractClassResourceLoader implements ClassResourceLoader
+public abstract class AbstractClassResourceLoader implements ClassResourceLoader, SourceChangeAware, ApiSpecLoader
 {
     private static final Logger logger = LoggerFactory.getLogger(AbstractClassResourceLoader.class);
     private final FunctionPostProcesor functionPostProcesor;
     private Consumer<FunctionModificationNotice> changeListener;
-    
-    public AbstractClassResourceLoader()
-    {
-        this.functionPostProcesor = f->f;
-    }
     
     public AbstractClassResourceLoader(FunctionPostProcesor functionPostProcesor)
     {
@@ -58,18 +55,37 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     }
     
     @Override
-    public final ServerFunction loadClass(String name)
+    public ServerFunction load(String name)
+    {
+        final Class<ServerFunction> clazz = parseClass(name);
+        return functionPostProcesor.process(instantiate(clazz));
+    }
+
+    protected ServerFunction instantiate(Class<ServerFunction> clazz)
+    {
+        try
+        {
+            return ServerFunction.class.cast(clazz.newInstance());
+        }
+        catch (InstantiationException | IllegalAccessException exc)
+        {
+            throw new IllegalStateException("Cannot instantiate class " + clazz.getName(), exc);
+        }
+    }
+
+    @Override
+    public Class<ServerFunction> parseClass(String name)
     {
         try (final GroovyClassLoader classLoader = new GroovyClassLoader())
         {
-            final Class<?> clazz = classLoader.parseClass(load(name + ".groovy"));
+            final Class<?> clazz = classLoader.parseClass(readSource(name + ".groovy"));
             Assert.isTrue(name.equals(clazz.getSimpleName()), "Incorrect class name " + clazz.getName() + " in " + name);
-            logger.info("Loading '{}'", clazz.getSimpleName());
-            return functionPostProcesor.process(ServerFunction.class.cast(clazz.newInstance()));
+            Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
+            return (Class<ServerFunction>) clazz;
         }
-        catch (InstantiationException | IllegalAccessException | IOException exc)
+        catch (IOException exc)
         {
-            throw new IllegalStateException("Cannot load class " + name, exc);
+            throw new IllegalStateException("Cannot parse class " + name, exc);
         }
     }
 
@@ -84,7 +100,7 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
         final String fileName = StringUtil.hyphenToCamelCase(functionName) + ".json";
         try
         {
-            return load(fileName);
+            return readSource(fileName);
         }
         catch (IOException exc)
         {

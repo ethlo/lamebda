@@ -22,5 +22,5 @@ package com.ethlo.lamebda;
 
 public interface FunctionManager
 {
-    void handle(HttpRequest request, HttpResponse response);
+    void handle(HttpRequest request, HttpResponse response) throws Exception;
 }
