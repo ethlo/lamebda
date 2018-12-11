@@ -34,10 +34,7 @@ public class AutowireHelper
         final AutowireCapableBeanFactory bf = applicationContext.getAutowireCapableBeanFactory();
         final AtomicInteger i = new AtomicInteger();
         return f -> {
-            final String name = f.getClass().getSimpleName() + i.getAndIncrement();
-            bf.applyBeanPostProcessorsBeforeInitialization(f, name);
             bf.autowireBean(f);
-            bf.applyBeanPostProcessorsAfterInitialization(f, name);
             return f;
         };
     }
