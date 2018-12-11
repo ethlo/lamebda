@@ -71,6 +71,9 @@ public class FunctionManagerImpl implements FunctionManager
                         }
                         catch (CompilationFailedException exc)
                         {
+                            logger.info("Unloading function {} due to script compilation error", n.getName());
+                            unload(n.getName());
+
                             if (config.isExposeCompilationError())
                             {
                                 // Add an end-point under /error/{name} to know the compilation error

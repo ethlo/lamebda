@@ -54,6 +54,7 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
             final RequestMappingInfo mapping = getMappingForMethod(m, this.getClass());
             if (mapping != null)
             {
+                logger.info("Register mapping {}", mapping);
                 registerMapping(mapping, this, m);
             }
         }
