@@ -42,7 +42,8 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     private static final Logger logger = LoggerFactory.getLogger(AbstractClassResourceLoader.class);
     private final FunctionPostProcesor functionPostProcesor;
     private Consumer<FunctionModificationNotice> changeListener;
-    
+    protected final String extension = ".groovy";
+
     public AbstractClassResourceLoader(FunctionPostProcesor functionPostProcesor)
     {
         this.functionPostProcesor = Assert.notNull(functionPostProcesor, "functionPostProcesor cannot be null");
@@ -78,7 +79,7 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     {
         try (final GroovyClassLoader classLoader = new GroovyClassLoader())
         {
-            final Class<?> clazz = classLoader.parseClass(readSource(name + ".groovy"));
+            final Class<?> clazz = classLoader.parseClass(readSource(name + extension));
             Assert.isTrue(name.equals(clazz.getSimpleName()), "Incorrect class name " + clazz.getName() + " in " + name);
             Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
             return (Class<ServerFunction>) clazz;

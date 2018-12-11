@@ -68,6 +68,13 @@ public class LamebdaSpringWebAutoConfiguration
         this.requestPath = requestPath;
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public FunctionPostProcesor functionPostProcessor()
+    {
+        return AutowireHelper.process(applicationContext);
+    }
+
     @Validated
     @Component
     @ConditionalOnMissingBean(ClassResourceLoader.class)

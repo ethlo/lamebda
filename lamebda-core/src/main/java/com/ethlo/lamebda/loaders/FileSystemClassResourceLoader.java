@@ -140,9 +140,13 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
 
     private void fileChanged(Path path, Kind<?> k)
     {
-        final ChangeType changeType = ChangeType.from(k);
-        logger.debug("Notifying due to {} changed: {}", path, changeType);
-        functionChanged(getBaseName(path.getFileName().toString()), changeType);
+        final String filename = path.getFileName().toString();
+        if (filename.endsWith(extension))
+        {
+            final ChangeType changeType = ChangeType.from(k);
+            logger.debug("Notifying due to {} changed: {}", path, changeType);
+            functionChanged(getBaseName(filename), changeType);
+        }
     }
 
     @Override
@@ -157,7 +161,7 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
     @Override
     public List<ServerFunctionInfo> findAll(long offset, int size)
     {
-        final String[] files = Paths.get(basePath).toFile().list((d,f)->f.endsWith(".groovy"));
+        final String[] files = Paths.get(basePath).toFile().list((d,f)->f.endsWith(extension));
         return Arrays.asList(files)
             .stream()
             .skip(offset)
