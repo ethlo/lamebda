@@ -34,19 +34,16 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
-import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
 import com.ethlo.lamebda.servlet.ServletHttpRequest;
@@ -63,7 +60,8 @@ public class SpringMvcServerFunctionTest
     @Autowired
     private ApplicationContext applicationContext;
 
-    public SpringMvcServerFunctionTest() throws IOException
+    @Before
+    public void before() throws IOException
     {
         if (basepath.exists())
         {
@@ -71,10 +69,7 @@ public class SpringMvcServerFunctionTest
         }
         assertThat(basepath.mkdirs()).isTrue();
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> {
-            applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
-            return f;
-        }, basepath.getAbsolutePath()), new FunctionManagerConfig());
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> f, basepath.getAbsolutePath()), null, new FunctionManagerConfig());
     }
 
     private void ioWait() throws InterruptedException
