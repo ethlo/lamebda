@@ -83,6 +83,7 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
                     RequestMappingInfo mapping = getMappingForMethod(m, this.getClass());
                     if (mapping != null)
                     {
+                        unregisterMapping(mapping);
                         registerMapping(mapping, object, m);
                     }
                 });
@@ -101,25 +102,16 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
     }
 
     @Override
-    public FunctionResult handle(final HttpRequest httpRequest, final HttpResponse httpResponse)
+    public FunctionResult handle(final HttpRequest httpRequest, final HttpResponse httpResponse) throws Exception
     {
-        try
+        final HttpServletRequest rawRequest = (HttpServletRequest) httpRequest.raw();
+        final HttpServletResponse rawResponse = (HttpServletResponse) httpResponse.raw();
+        final HandlerExecutionChain handler = getHandler(rawRequest);
+        if (handler == null)
         {
-            final HttpServletRequest rawRequest = (HttpServletRequest) httpRequest.raw();
-            final HttpServletResponse rawResponse = (HttpServletResponse) httpResponse.raw();
-            final HandlerExecutionChain handler = getHandler(rawRequest);
-            if (handler == null)
-            {
-                return FunctionResult.SKIPPED;
-            }
-            adapter.handle(rawRequest, rawResponse, handler.getHandler());
+            return FunctionResult.SKIPPED;
         }
-        catch (final Exception e)
-        {
-            logger.error("There was a problem processing the Lamebda script", e);
-            httpResponse.error(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Unhandled error occurred while processing the request");
-        }
-
+        adapter.handle(rawRequest, rawResponse, handler.getHandler());
         return FunctionResult.PROCESSED;
     }
 }
