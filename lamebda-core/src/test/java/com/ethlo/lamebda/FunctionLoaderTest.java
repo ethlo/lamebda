@@ -50,7 +50,7 @@ public class FunctionLoaderTest
         }
         assertThat(basepath.mkdirs()).isTrue();
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> f, basepath.getAbsolutePath()), null, new FunctionManagerConfig());
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> f, basepath.getAbsolutePath()));
     }
 
     @Test
@@ -59,7 +59,7 @@ public class FunctionLoaderTest
         move("Correct.groovy");
         ioWait();
         final Map<String, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).containsExactly("Correct");
+        assertThat(functions.keySet()).containsExactly(Paths.get(basepath.getAbsolutePath(), "Correct.groovy").toString());
     }
 
     @Test
@@ -99,10 +99,11 @@ public class FunctionLoaderTest
     {
         final Path target = move("Correct.groovy");
         ioWait();
+        assertThat(functionManager.getFunctions().keySet()).contains(Paths.get(basepath.getAbsolutePath(), "Correct.groovy").toString());
+
         Files.copy(Paths.get("src/test/groovy/Incorrect.groovy"), target, StandardCopyOption.REPLACE_EXISTING);
         ioWait();
-        final Map<String, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).doesNotContain("Correct");
+        assertThat(functionManager.getFunctions().keySet()).doesNotContain("foo.bar.Correct");
     }
 
     private Path move(final String name) throws IOException

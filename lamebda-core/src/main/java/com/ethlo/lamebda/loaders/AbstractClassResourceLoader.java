@@ -9,9 +9,9 @@ package com.ethlo.lamebda.loaders;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,18 +26,15 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ethlo.lamebda.ApiSpecLoader;
 import com.ethlo.lamebda.ChangeType;
 import com.ethlo.lamebda.ClassResourceLoader;
 import com.ethlo.lamebda.FunctionModificationNotice;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.SourceChangeAware;
 import com.ethlo.lamebda.util.Assert;
-import com.ethlo.lamebda.util.StringUtil;
-
 import groovy.lang.GroovyClassLoader;
 
-public abstract class AbstractClassResourceLoader implements ClassResourceLoader, SourceChangeAware, ApiSpecLoader
+public abstract class AbstractClassResourceLoader implements ClassResourceLoader, SourceChangeAware
 {
     private static final Logger logger = LoggerFactory.getLogger(AbstractClassResourceLoader.class);
     private final FunctionPostProcesor functionPostProcesor;
@@ -48,17 +45,17 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     {
         this.functionPostProcesor = Assert.notNull(functionPostProcesor, "functionPostProcesor cannot be null");
     }
-    
+
     @Override
     public void setChangeListener(Consumer<FunctionModificationNotice> l)
     {
         this.changeListener = l;
     }
-    
+
     @Override
-    public ServerFunction load(String name)
+    public ServerFunction load(String sourcePath)
     {
-        final Class<ServerFunction> clazz = parseClass(name);
+        final Class<ServerFunction> clazz = parseClass(sourcePath);
         return functionPostProcesor.process(instantiate(clazz));
     }
 
@@ -75,38 +72,22 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     }
 
     @Override
-    public Class<ServerFunction> parseClass(String name)
+    public Class<ServerFunction> parseClass(String sourcePath)
     {
         try (final GroovyClassLoader classLoader = new GroovyClassLoader())
         {
-            final Class<?> clazz = classLoader.parseClass(readSource(name + extension));
-            Assert.isTrue(name.equals(clazz.getSimpleName()), "Incorrect class name " + clazz.getName() + " in " + name);
+            final Class<?> clazz = classLoader.parseClass(readSource(sourcePath));
             Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
             return (Class<ServerFunction>) clazz;
         }
         catch (IOException exc)
         {
-            throw new IllegalStateException("Cannot parse class " + name, exc);
+            throw new IllegalStateException("Cannot parse class " + sourcePath, exc);
         }
     }
 
-    protected void functionChanged(String name, ChangeType changeType)
+    protected void functionChanged(String sourcePath, ChangeType changeType)
     {
-        changeListener.accept(new FunctionModificationNotice(name, changeType));
-    }
-
-    @Override
-    public String loadApiSpec(String functionName)
-    {
-        final String fileName = StringUtil.hyphenToCamelCase(functionName) + ".json";
-        try
-        {
-            return readSource(fileName);
-        }
-        catch (IOException exc)
-        {
-            logger.warn("No API documentation file '{}' found for function '{}'", fileName, functionName);
-            return null;
-        }
+        changeListener.accept(new FunctionModificationNotice(sourcePath, changeType));
     }
 }

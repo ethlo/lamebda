@@ -9,9 +9,9 @@ package com.ethlo.lamebda.spring;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,15 +20,14 @@ package com.ethlo.lamebda.spring;
  * #L%
  */
 
+import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,24 +39,24 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.servlet.HandlerMapping;
 
-import com.ethlo.lamebda.ApiSpecLoader;
 import com.ethlo.lamebda.ClassResourceLoader;
 import com.ethlo.lamebda.FunctionManager;
-import com.ethlo.lamebda.FunctionManagerConfig;
 import com.ethlo.lamebda.FunctionManagerImpl;
+import com.ethlo.lamebda.functions.StaticResourceFunction;
 import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcesor;
+import com.ethlo.lamebda.util.Assert;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration
 @ConfigurationProperties("lamebda")
-@ConditionalOnProperty(prefix="lamebda", name="enabled")
+@ConditionalOnProperty(prefix = "lamebda", name = "enabled")
 public class LamebdaSpringWebAutoConfiguration
 {
     public static final String DEFAULT_PATH = "/lamebda";
-    
+
     private static final Logger logger = LoggerFactory.getLogger(LamebdaSpringWebAutoConfiguration.class);
-    
+
     private String requestPath = DEFAULT_PATH;
 
     @Autowired
@@ -95,7 +94,7 @@ public class LamebdaSpringWebAutoConfiguration
             this.directory = directory;
         }
     }
-    
+
     @Bean
     @ConditionalOnBean(FileSourceConfiguration.class)
     public ClassResourceLoader classResourceLoader(FunctionPostProcesor functionPostProcesor, FileSourceConfiguration cfg) throws IOException
@@ -106,17 +105,11 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Bean
     @ConditionalOnMissingBean
-    public FunctionManagerConfig functionManagerConfig()
-    {
-        return new FunctionManagerConfig();
-    }
-    
-    @Bean
-    @ConditionalOnMissingBean
     @ConditionalOnBean(ClassResourceLoader.class)
-    public FunctionManager functionManager(ClassResourceLoader classResourceLoader, ApiSpecLoader apiSpecLoader, FunctionManagerConfig functionManagerConfig)
+    public FunctionManager functionManager(ClassResourceLoader classResourceLoader, FileSourceConfiguration cfg)
     {
-        return new FunctionManagerImpl(classResourceLoader, apiSpecLoader, functionManagerConfig);
+        Assert.notNull(cfg.getDirectory(), "Directory must be set");
+        return new FunctionManagerImpl(classResourceLoader).addFunction("static-data", new StaticResourceFunction(new File(cfg.getDirectory(), "static")));
     }
 
     @Bean
@@ -125,7 +118,7 @@ public class LamebdaSpringWebAutoConfiguration
     {
         return new LamebdaController(functionManager, requestPath, mapper);
     }
-    
+
     @Bean
     @ConditionalOnBean(LamebdaController.class)
     public HandlerMapping lamebdaHandlerMapping(LamebdaController handler)

@@ -17,6 +17,8 @@
  * limitations under the License.
  * #L%
  */
+package foo.bar
+
 import com.ethlo.lamebda.HttpRequest
 import com.ethlo.lamebda.HttpResponse
 import com.ethlo.lamebda.HttpStatus

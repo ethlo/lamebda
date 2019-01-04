@@ -28,4 +28,43 @@ public class HttpMimeType
     public static final String JSON = "application/json";
     public static final String CSV = "application/csv";
     public static final String TEXT = "text/plain";
+    public static final String YAML = "text/vnd.yaml";
+    public static final String JPG = "image/jpg";
+    public static final String PNG = "image/png";
+    public static final String GIF = "image/gif";
+
+    public static final String APPLICATION = "application/octet-stream";
+
+    public static String fromExtension(String extension)
+    {
+        switch (extension.toLowerCase())
+        {
+            case "html":
+                return HTML;
+
+            case "json":
+                    return JSON;
+
+            case "csv":
+                return CSV;
+
+            case "txt":
+                return TEXT;
+
+            case "yaml":
+                return YAML;
+
+            case "jpg":
+                return JPG;
+
+            case "png":
+                return PNG;
+
+            case "gif":
+                return GIF;
+
+            default:
+                return APPLICATION;
+        }
+    }
 }

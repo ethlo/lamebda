@@ -12,9 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.error.ErrorResponse;
-import com.ethlo.lamebda.functions.ApiDocFunction;
-import com.ethlo.lamebda.functions.ApiSpecFunction;
-import com.ethlo.lamebda.functions.LastCompilationErrorFunction;
 
 /*-
  * #%L
@@ -39,17 +36,13 @@ import com.ethlo.lamebda.functions.LastCompilationErrorFunction;
 public class FunctionManagerImpl implements FunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
-    private final ApiSpecLoader apiSpecLoader;
 
     private Map<String, ServerFunction> functions = new ConcurrentHashMap<>();
     private ClassResourceLoader classResourceLoader;
-    private FunctionManagerConfig config;
 
-    public FunctionManagerImpl(ClassResourceLoader classResourceLoader, ApiSpecLoader apiSpecLoader, final FunctionManagerConfig functionManagerConfig)
+    public FunctionManagerImpl(ClassResourceLoader classResourceLoader)
     {
         this.classResourceLoader = classResourceLoader;
-        this.apiSpecLoader = apiSpecLoader;
-        this.config = functionManagerConfig;
 
         if (classResourceLoader instanceof SourceChangeAware)
         {
@@ -61,42 +54,34 @@ public class FunctionManagerImpl implements FunctionManager
                         try
                         {
                             // Load the function from source
-                            final ServerFunction loaded = classResourceLoader.load(n.getName());
+                            final ServerFunction loaded = classResourceLoader.load(n.getSourcePath());
 
                             // Remove the last compilation error if any
-                            unload(n.getName());
+                            unload(n.getSourcePath());
 
                             // Add the function back
-                            addFunction(n.getName(), loaded);
+                            addFunction(n.getSourcePath(), loaded);
                         }
                         catch (CompilationFailedException exc)
                         {
-                            logger.info("Unloading function {} due to script compilation error", n.getName());
-                            unload(n.getName());
-
-                            if (config.isExposeCompilationError())
-                            {
-                                // Add an end-point under /error/{name} to know the compilation error
-                                addFunction(n.getName(), new LastCompilationErrorFunction(n.getName(), exc));
-                            }
+                            logger.info("Unloading function {} due to script compilation error", n.getSourcePath());
+                            unload(n.getSourcePath());
                             throw exc;
                         }
                         break;
 
                     case DELETED:
-                        if (config.isUnloadOnRemoval())
-                        {
-                            unload(n.getName());
-                        }
+                        unload(n.getSourcePath());
                 }
             });
         }
     }
 
-    private void addFunction(String filename, ServerFunction func)
+    public FunctionManagerImpl addFunction(String filename, ServerFunction func)
     {
-        final boolean exists = functions.put(func.getClass().getName(), func) != null;
+        final boolean exists = functions.put(filename, func) != null;
         logger.info(exists ? "'{}' was reloaded" : "'{}' was loaded", filename);
+        return this;
     }
 
     @PostConstruct
@@ -106,21 +91,21 @@ public class FunctionManagerImpl implements FunctionManager
         {
             try
             {
-                addFunction(f.getName(), classResourceLoader.load(f.getName()));
+                addFunction(f.getSourcePath(), classResourceLoader.load(f.getSourcePath()));
             }
             catch (Exception exc)
             {
-                logger.error("Error in function {}: {}", f.getName(), exc.getMessage());
+                logger.error("Error in function {}: {}", f.getSourcePath(), exc.getMessage());
             }
         }
     }
 
-    private void unload(final String name)
+    private void unload(final String sourcePath)
     {
-        final ServerFunction func = functions.remove(name);
+        final ServerFunction func = functions.remove(sourcePath);
         if (func != null)
         {
-            logger.info("'{}' was unloaded", name);
+            logger.info("'{}' was unloaded", sourcePath);
         }
     }
 
@@ -133,16 +118,6 @@ public class FunctionManagerImpl implements FunctionManager
             {
                 return;
             }
-        }
-
-        if (new ApiSpecFunction(functions, apiSpecLoader).handle(request, response) == FunctionResult.PROCESSED)
-        {
-            return;
-        }
-
-        if (new ApiDocFunction().handle(request, response) == FunctionResult.PROCESSED)
-        {
-            return;
         }
 
         response.error(ErrorResponse.notFound("No function found to handle '" + request.path() + "'"));

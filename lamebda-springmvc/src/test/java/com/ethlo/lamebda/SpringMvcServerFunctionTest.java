@@ -70,7 +70,7 @@ public class SpringMvcServerFunctionTest
         }
         assertThat(basepath.mkdirs()).isTrue();
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(AutowireHelper.process(applicationContext), basepath.getAbsolutePath()), null, new FunctionManagerConfig());
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(AutowireHelper.process(applicationContext), basepath.getAbsolutePath()));
     }
 
     private void ioWait() throws InterruptedException
@@ -84,7 +84,7 @@ public class SpringMvcServerFunctionTest
         move("SpringMvc.groovy");
         ioWait();
         final Map<String, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).containsExactly("SpringMvc");
+        assertThat(functions.keySet()).containsExactly(Paths.get(basepath.getAbsolutePath(),"SpringMvc.groovy").toString());
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
         req.setRequestURI("/test/123");

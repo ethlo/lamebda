@@ -24,12 +24,12 @@ import java.time.ZonedDateTime;
 
 public class ServerFunctionInfo
 {
-    private final String name;
+    private final String sourcePath;
     private ZonedDateTime lastModified;
     
-    public ServerFunctionInfo(String name)
+    public ServerFunctionInfo(String sourcePath)
     {
-        this.name = name;
+        this.sourcePath = sourcePath;
     }
 
     public ZonedDateTime getLastModified()
@@ -42,9 +42,9 @@ public class ServerFunctionInfo
         this.lastModified = lastModified;
     }
 
-    public String getName()
+    public String getSourcePath()
     {
-        return name;
+        return sourcePath;
     }
 }
         

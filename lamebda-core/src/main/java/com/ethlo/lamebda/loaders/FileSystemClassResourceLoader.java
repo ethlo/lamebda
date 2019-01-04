@@ -122,11 +122,11 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
             {
                 try
                 {
-                    fileChanged(Paths.get(basePath, fileName), event.kind());
+                    fileChanged(basePath, fileName, event.kind());
                 }
                 catch (Exception exc)
                 {
-                    logger.warn("Unable to reload {}: {}", fileName, exc.getMessage(), exc);
+                    logger.warn("Unable to reload {}: {}", Paths.get(basePath, fileName), exc.getMessage(), exc);
                 }
             }
         }.start();
@@ -138,21 +138,20 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
         return idx > 0 ? f.substring(0, idx) : f;
     }
 
-    private void fileChanged(Path path, Kind<?> k)
+    private void fileChanged(String basePath, String filename, Kind<?> k)
     {
-        final String filename = path.getFileName().toString();
         if (filename.endsWith(extension))
         {
             final ChangeType changeType = ChangeType.from(k);
-            logger.debug("Notifying due to {} changed: {}", path, changeType);
-            functionChanged(getBaseName(filename), changeType);
+            logger.debug("Notifying due to {} changed: {}", Paths.get(basePath, filename), changeType);
+            functionChanged(Paths.get(basePath, filename).toString(), changeType);
         }
     }
 
     @Override
-    public String readSource(String name) throws IOException
+    public String readSource(String sourcePath) throws IOException
     {
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(Paths.get(basePath, name).toFile()), StandardCharsets.UTF_8)))
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(sourcePath), StandardCharsets.UTF_8)))
         {
             return r.lines().collect(Collectors.joining(System.lineSeparator()));
         }
@@ -166,7 +165,7 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
             .stream()
             .skip(offset)
             .limit(size)
-            .map(n->new ServerFunctionInfo(getBaseName(n)))
+            .map(n->new ServerFunctionInfo(Paths.get(basePath, n).toString()))
             .collect(Collectors.toList());
     }
 }

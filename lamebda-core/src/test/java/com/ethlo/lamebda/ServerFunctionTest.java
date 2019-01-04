@@ -40,6 +40,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import com.ethlo.lamebda.functions.StaticResourceFunction;
 import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
 import com.ethlo.lamebda.test.MockHttpRequest;
 import com.ethlo.lamebda.test.MockHttpResponse;
@@ -66,41 +67,20 @@ public class ServerFunctionTest
         functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> {
             applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
             return f;
-        }, basepath.getAbsolutePath()), null, new FunctionManagerConfig());
-    }
+        }, basepath.getAbsolutePath()));
 
-    private void ioWait() throws InterruptedException
-    {
-        Thread.sleep(2_000);
+        functionManager.addFunction("static-resource-handler", new StaticResourceFunction(new File(basepath, "static")));
     }
 
     @Test
-    public void testCompilcationErrorShownIfEnabled() throws Exception
+    public void testServingStaticResource() throws Exception
     {
-        move("Incorrect.groovy");
-        ioWait();
-
         final MockHttpRequest req = new MockHttpRequest();
         final MockHttpResponse res = new MockHttpResponse();
-        req.path("/error/incorrect");
+        req.path("/static/incorrect.html");
         req.method("GET");
         functionManager.handle(req, res);
-        assertThat(res.body()).contains("The return type of");
-
-    }
-
-    private Path move(final String name) throws IOException
-    {
-        return Files.copy(Paths.get("src/test/groovy", name), Paths.get(basepath.getCanonicalPath(), name), StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    private void remove(final String name) throws IOException
-    {
-        final Path p = Paths.get(basepath.getCanonicalPath(), name);
-        if (p.toFile().exists())
-        {
-            Files.delete(p);
-        }
+        assertThat(res.body()).contains("incorrect.html");
     }
 
     private void deleteDir(String dir) throws IOException
