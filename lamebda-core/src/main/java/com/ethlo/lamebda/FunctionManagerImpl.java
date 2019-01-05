@@ -1,5 +1,7 @@
 package com.ethlo.lamebda;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.Collections;
 import java.util.Map;
@@ -11,6 +13,8 @@ import org.codehaus.groovy.control.CompilationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ethlo.lamebda.context.FunctionConfiguration;
+import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.error.ErrorResponse;
 
 /*-
@@ -56,6 +60,8 @@ public class FunctionManagerImpl implements FunctionManager
                             // Load the function from source
                             final ServerFunction loaded = classResourceLoader.load(n.getSourcePath());
 
+                            internalPostProcess(classResourceLoader, loaded);
+
                             // Remove the last compilation error if any
                             unload(n.getSourcePath());
 
@@ -75,6 +81,42 @@ public class FunctionManagerImpl implements FunctionManager
                 }
             });
         }
+    }
+
+    private void internalPostProcess(final ClassResourceLoader classResourceLoader, final ServerFunction func)
+    {
+        if (func instanceof FunctionContextAware)
+        {
+            ((FunctionContextAware) func).setContext(loadContext(classResourceLoader, func));
+        }
+    }
+
+    private FunctionContext loadContext(final ClassResourceLoader classResourceLoader, final ServerFunction func)
+    {
+        final FunctionConfiguration config = new FunctionConfiguration();
+        final String filename = func.getClass().getCanonicalName().toLowerCase() + ".properties";
+        String cfgContent;
+        try
+        {
+            cfgContent = classResourceLoader.readRelativeSource(filename);
+        }
+        catch (IOException exc)
+        {
+            throw new RuntimeException(exc);
+        }
+
+        if (cfgContent != null)
+        {
+            try
+            {
+                config.load(new StringReader(cfgContent));
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeException("Unable to load property file " + filename, e);
+            }
+        }
+        return new FunctionContext(config);
     }
 
     public FunctionManagerImpl addFunction(String filename, ServerFunction func)

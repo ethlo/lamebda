@@ -23,9 +23,6 @@ package com.ethlo.lamebda.loaders;
 import java.io.IOException;
 import java.util.function.Consumer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.ethlo.lamebda.ChangeType;
 import com.ethlo.lamebda.ClassResourceLoader;
 import com.ethlo.lamebda.FunctionModificationNotice;
@@ -36,10 +33,8 @@ import groovy.lang.GroovyClassLoader;
 
 public abstract class AbstractClassResourceLoader implements ClassResourceLoader, SourceChangeAware
 {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractClassResourceLoader.class);
     private final FunctionPostProcesor functionPostProcesor;
     private Consumer<FunctionModificationNotice> changeListener;
-    protected final String extension = ".groovy";
 
     public AbstractClassResourceLoader(FunctionPostProcesor functionPostProcesor)
     {

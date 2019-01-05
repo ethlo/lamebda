@@ -49,7 +49,7 @@ import com.ethlo.lamebda.ServerFunctionInfo;
 public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
 {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemClassResourceLoader.class);
-    
+    private final static String EXTENSION = ".groovy";
     private final String basePath;
     private final WatchService watchService;
 
@@ -140,7 +140,7 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
 
     private void fileChanged(String basePath, String filename, Kind<?> k)
     {
-        if (filename.endsWith(extension))
+        if (filename.endsWith(EXTENSION))
         {
             final ChangeType changeType = ChangeType.from(k);
             logger.debug("Notifying due to {} changed: {}", Paths.get(basePath, filename), changeType);
@@ -160,12 +160,23 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
     @Override
     public List<ServerFunctionInfo> findAll(long offset, int size)
     {
-        final String[] files = Paths.get(basePath).toFile().list((d,f)->f.endsWith(extension));
+        final String[] files = Paths.get(basePath).toFile().list((d,f)->f.endsWith(EXTENSION));
         return Arrays.asList(files)
             .stream()
             .skip(offset)
             .limit(size)
             .map(n->new ServerFunctionInfo(Paths.get(basePath, n).toString()))
             .collect(Collectors.toList());
+    }
+
+    @Override
+    public String readRelativeSource(final String filename) throws IOException
+    {
+        final Path fullPath = Paths.get(basePath, filename);
+        if (fullPath.toFile().exists() && fullPath.toFile().canRead())
+        {
+            return readSource(fullPath.toString());
+        }
+        return null;
     }
 }

@@ -43,14 +43,18 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
+import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.FunctionResult;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.ServerFunction;
+import com.ethlo.lamebda.context.FunctionContext;
 
-public class SpringMvcServerFunction extends RequestMappingHandlerMapping implements ServerFunction
+public class SpringMvcServerFunction extends RequestMappingHandlerMapping implements ServerFunction, FunctionContextAware
 {
     protected final Logger logger = LoggerFactory.getLogger(getClass().getCanonicalName());
+
+    private FunctionContext context;
 
     @Autowired
     private RequestMappingHandlerAdapter adapter;
@@ -113,5 +117,16 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
         }
         adapter.handle(rawRequest, rawResponse, handler.getHandler());
         return FunctionResult.PROCESSED;
+    }
+
+    @Override
+    public void setContext(final FunctionContext context)
+    {
+        this.context = context;
+    }
+
+    public FunctionContext getContext()
+    {
+        return context;
     }
 }

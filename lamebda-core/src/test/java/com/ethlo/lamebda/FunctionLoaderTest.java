@@ -35,6 +35,8 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import com.ethlo.lamebda.context.FunctionConfiguration;
+import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
 
 public class FunctionLoaderTest
@@ -56,10 +58,24 @@ public class FunctionLoaderTest
     @Test
     public void testLoadOnCreate() throws Exception
     {
+        final String name = "foo.bar.correct.properties";
+        Files.copy(Paths.get("src/test/resources", name), Paths.get(basepath.getCanonicalPath(), name), StandardCopyOption.REPLACE_EXISTING);
+
         move("Correct.groovy");
         ioWait();
         final Map<String, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).containsExactly(Paths.get(basepath.getAbsolutePath(), "Correct.groovy").toString());
+
+        final String sourcePath = Paths.get(basepath.getAbsolutePath(), "Correct.groovy").toString();
+        assertThat(functions.keySet()).containsExactly(sourcePath);
+
+        final ServerFunction func = functions.get(sourcePath);
+        final FunctionContext context = ((SimpleServerFunction)func).getContext();
+        assertThat(context).isNotNull();
+        final FunctionConfiguration cfg = context.getConfiguration();
+        assertThat(cfg.getDateTime("start")).isNotNull();
+        assertThat(cfg.getInt("min")).isNotNull();
+        assertThat(cfg.getLong("max")).isNotNull();
+        assertThat(cfg.getString("title")).isNotNull();
     }
 
     @Test

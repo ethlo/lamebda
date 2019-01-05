@@ -3,6 +3,7 @@ package com.ethlo.lamebda;
 import java.util.Collections;
 import java.util.Map;
 
+import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.util.StringUtil;
 
@@ -26,10 +27,11 @@ import com.ethlo.lamebda.util.StringUtil;
  * #L%
  */
 
-public abstract class SimpleServerFunction implements ServerFunction
+public abstract class SimpleServerFunction implements ServerFunction, FunctionContextAware
 {
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
     private final String pattern;
+    private FunctionContext context;
 
     public SimpleServerFunction()
     {
@@ -151,5 +153,16 @@ public abstract class SimpleServerFunction implements ServerFunction
         {
             return Collections.emptyMap();
         }
+    }
+
+    @Override
+    public void setContext(FunctionContext context)
+    {
+        this.context = context;
+    }
+
+    public FunctionContext getContext()
+    {
+        return context;
     }
 }

@@ -1,12 +1,10 @@
-package com.ethlo.lamebda;
-
-import com.ethlo.lamebda.context.FunctionContext;
+package com.ethlo.lamebda.context;
 
 /*-
  * #%L
  * lamebda-core
  * %%
- * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,14 +19,18 @@ import com.ethlo.lamebda.context.FunctionContext;
  * limitations under the License.
  * #L%
  */
-@FunctionalInterface
-public interface ServerFunction
+
+public class FunctionContext
 {
-    /**
-     * Handle the request and write the contents to the response
-     * @param request The incoming HTTP request
-     * @param response The outgoing response
-     * @return The handling result, {@link FunctionResult#PROCESSED} if this method handled the request, otherwise {@link FunctionResult#SKIPPED}
-     */
-    FunctionResult handle(HttpRequest request, HttpResponse response) throws Exception;
+    private final FunctionConfiguration configuration;
+
+    public FunctionContext(FunctionConfiguration configuration)
+    {
+        this.configuration = configuration;
+    }
+
+    public FunctionConfiguration getConfiguration()
+    {
+        return configuration;
+    }
 }
