@@ -48,4 +48,6 @@ public interface ClassResourceLoader
     ServerFunction load(String name);
 
     Class<ServerFunction> parseClass(String name);
+
+    String readSourceIfReadable(String filename) throws IOException;
 }

@@ -21,6 +21,7 @@ package com.ethlo.lamebda.loaders;
  */
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -169,12 +170,12 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
     }
 
     @Override
-    public String readRelativeSource(final String filename) throws IOException
+    public String readSourceIfReadable(final String filename) throws IOException
     {
-        final Path fullPath = Paths.get(basePath, filename);
-        if (fullPath.toFile().exists() && fullPath.toFile().canRead())
+        final File path = new File(filename);
+        if (path.exists() && path.canRead())
         {
-            return readSource(fullPath.toString());
+            return readSource(path.toString());
         }
         return null;
     }

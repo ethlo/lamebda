@@ -99,7 +99,7 @@ public class FunctionManagerImpl implements FunctionManager
         String cfgContent;
         try
         {
-            cfgContent = classResourceLoader.readSource(cfgFilePath);
+            cfgContent = classResourceLoader.readSourceIfReadable(cfgFilePath);
         }
         catch (IOException exc)
         {

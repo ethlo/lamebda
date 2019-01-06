@@ -76,6 +76,7 @@ public class FunctionLoaderTest
         assertThat(cfg.getInt("min")).isNotNull();
         assertThat(cfg.getLong("max")).isNotNull();
         assertThat(cfg.getString("title")).isNotNull();
+        assertThat(cfg.getString("title2")).isNull();
     }
 
     @Test
@@ -91,7 +92,14 @@ public class FunctionLoaderTest
         ioWait();
         move("Correct.groovy");
         ioWait();
-        return;
+
+        final String sourcePath = Paths.get(basepath.getAbsolutePath(), "Correct.groovy").toString();
+        final Map<String, ServerFunction> functions = functionManager.getFunctions();
+        final ServerFunction func = functions.get(sourcePath);
+        final FunctionContext context = ((SimpleServerFunction)func).getContext();
+        assertThat(context).isNotNull();
+        assertThat(context.getConfiguration()).isNotNull();
+        assertThat(context.getConfiguration().getDateTime("foo")).isNull();
     }
 
     private void ioWait() throws InterruptedException
