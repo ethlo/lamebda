@@ -40,6 +40,7 @@ import com.ethlo.lamebda.error.ErrorResponse;
 public class FunctionManagerImpl implements FunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
+    private static final String PROPERTIES_EXTENSION = ".properties";
 
     private Map<String, ServerFunction> functions = new ConcurrentHashMap<>();
     private ClassResourceLoader classResourceLoader;
@@ -60,7 +61,7 @@ public class FunctionManagerImpl implements FunctionManager
                             // Load the function from source
                             final ServerFunction loaded = classResourceLoader.load(n.getSourcePath());
 
-                            internalPostProcess(classResourceLoader, loaded);
+                            internalPostProcess(classResourceLoader, loaded, n.getSourcePath());
 
                             // Remove the last compilation error if any
                             unload(n.getSourcePath());
@@ -83,22 +84,22 @@ public class FunctionManagerImpl implements FunctionManager
         }
     }
 
-    private void internalPostProcess(final ClassResourceLoader classResourceLoader, final ServerFunction func)
+    private void internalPostProcess(final ClassResourceLoader classResourceLoader, final ServerFunction func, final String sourcePath)
     {
         if (func instanceof FunctionContextAware)
         {
-            ((FunctionContextAware) func).setContext(loadContext(classResourceLoader, func));
+            ((FunctionContextAware) func).setContext(loadContext(classResourceLoader, func, sourcePath));
         }
     }
 
-    private FunctionContext loadContext(final ClassResourceLoader classResourceLoader, final ServerFunction func)
+    private FunctionContext loadContext(final ClassResourceLoader classResourceLoader, final ServerFunction func, final String sourcePath)
     {
         final FunctionConfiguration config = new FunctionConfiguration();
-        final String filename = func.getClass().getCanonicalName().toLowerCase() + ".properties";
+        final String cfgFilePath = sourcePath.replace(ClassResourceLoader.EXTENSION, PROPERTIES_EXTENSION);
         String cfgContent;
         try
         {
-            cfgContent = classResourceLoader.readRelativeSource(filename);
+            cfgContent = classResourceLoader.readSource(cfgFilePath);
         }
         catch (IOException exc)
         {
@@ -113,7 +114,7 @@ public class FunctionManagerImpl implements FunctionManager
             }
             catch (IOException e)
             {
-                throw new RuntimeException("Unable to load property file " + filename, e);
+                throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
             }
         }
         return new FunctionContext(config);

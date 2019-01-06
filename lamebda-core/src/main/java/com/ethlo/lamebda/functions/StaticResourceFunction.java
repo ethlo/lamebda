@@ -70,7 +70,8 @@ public class StaticResourceFunction extends SimpleServerFunction
             try
             {
                 response.setContentType(HttpMimeType.fromExtension(getExtension(requestedFile.getName())));
-                response.write(IoUtil.toByteArray(new FileInputStream(requestedFile)));
+                final byte[] content = IoUtil.toByteArray(new FileInputStream(requestedFile));
+                response.write(content);
             }
             catch (FileNotFoundException e)
             {

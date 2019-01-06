@@ -58,7 +58,7 @@ public class FunctionLoaderTest
     @Test
     public void testLoadOnCreate() throws Exception
     {
-        final String name = "foo.bar.correct.properties";
+        final String name = "Correct.properties";
         Files.copy(Paths.get("src/test/resources", name), Paths.get(basepath.getCanonicalPath(), name), StandardCopyOption.REPLACE_EXISTING);
 
         move("Correct.groovy");

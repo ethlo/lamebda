@@ -25,6 +25,8 @@ import java.util.List;
 
 public interface ClassResourceLoader
 {
+    String EXTENSION = ".groovy";
+
     /**
      * Load the contents of the named class
      *
@@ -46,6 +48,4 @@ public interface ClassResourceLoader
     ServerFunction load(String name);
 
     Class<ServerFunction> parseClass(String name);
-
-    String readRelativeSource(String filename) throws IOException;
 }

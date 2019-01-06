@@ -49,7 +49,6 @@ import com.ethlo.lamebda.ServerFunctionInfo;
 public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
 {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemClassResourceLoader.class);
-    private final static String EXTENSION = ".groovy";
     private final String basePath;
     private final WatchService watchService;
 
