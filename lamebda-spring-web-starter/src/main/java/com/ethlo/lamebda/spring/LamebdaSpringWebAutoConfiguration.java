@@ -44,7 +44,8 @@ import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.functions.StaticResourceFunction;
 import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
-import com.ethlo.lamebda.loaders.FunctionPostProcesor;
+import com.ethlo.lamebda.loaders.FunctionLoadPreNotification;
+import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.util.Assert;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -69,9 +70,17 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Bean
     @ConditionalOnMissingBean
-    public FunctionPostProcesor functionPostProcessor()
+    public FunctionPostProcessor functionPostProcessor()
     {
         return AutowireHelper.process(applicationContext);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public FunctionLoadPreNotification functionLoadPreNotification()
+    {
+        return ((classLoader, sourcePath) -> {
+        });
     }
 
     @Validated
@@ -97,10 +106,10 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Bean
     @ConditionalOnBean(FileSourceConfiguration.class)
-    public ClassResourceLoader classResourceLoader(FunctionPostProcesor functionPostProcesor, FileSourceConfiguration cfg) throws IOException
+    public ClassResourceLoader classResourceLoader(FunctionLoadPreNotification preNotification, FunctionPostProcessor functionPostProcessor, FileSourceConfiguration cfg) throws IOException
     {
         logger.info("Using file system class loader");
-        return new FileSystemClassResourceLoader(functionPostProcesor, cfg.getDirectory());
+        return new FileSystemClassResourceLoader(preNotification, functionPostProcessor, cfg.getDirectory());
     }
 
     @Bean

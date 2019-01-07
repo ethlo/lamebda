@@ -23,26 +23,16 @@ import com.ethlo.lamebda.HttpRequest
 import com.ethlo.lamebda.HttpResponse
 import com.ethlo.lamebda.HttpStatus
 import com.ethlo.lamebda.SimpleServerFunction
-import org.springframework.beans.factory.InitializingBean
+import lib.MyLib
 
-import javax.annotation.PostConstruct;
-import lib.MyLib;
+class Correct extends SimpleServerFunction {
 
-class Correct extends SimpleServerFunction implements InitializingBean {
-
-    Correct()
-    {
+    Correct() {
         new MyLib().helloWorld("John Smith")
     }
 
     @Override
     void get(HttpRequest request, HttpResponse response) {
         response.json(HttpStatus.OK, [method: request.method, message: 'Hello world'])
-    }
-
-    @Override
-    void afterPropertiesSet() throws Exception
-    {
-        System.out.println("Yupp");
     }
 }

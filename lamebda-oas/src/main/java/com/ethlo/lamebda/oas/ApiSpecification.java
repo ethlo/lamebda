@@ -1,10 +1,10 @@
-package com.ethlo.lamebda.loaders;
+package com.ethlo.lamebda.oas;
 
 /*-
  * #%L
- * lamebda-core
+ * lamebda-oas
  * %%
- * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,16 @@ package com.ethlo.lamebda.loaders;
  * #L%
  */
 
-import com.ethlo.lamebda.ServerFunction;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@FunctionalInterface
-public interface FunctionPostProcesor
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface ApiSpecification
 {
-    ServerFunction process(ServerFunction function);
+    String value();
 }

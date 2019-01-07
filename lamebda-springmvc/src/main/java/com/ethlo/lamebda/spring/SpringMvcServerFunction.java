@@ -92,6 +92,7 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
                     }
                 });
     }
+
     public SpringMvcServerFunction()
     {
         for (Method m : ReflectionUtils.getUniqueDeclaredMethods(getClass()))

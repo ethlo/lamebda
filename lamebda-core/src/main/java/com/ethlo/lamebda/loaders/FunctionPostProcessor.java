@@ -1,8 +1,10 @@
+package com.ethlo.lamebda.loaders;
+
 /*-
  * #%L
  * lamebda-core
  * %%
- * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +19,11 @@
  * limitations under the License.
  * #L%
  */
-package lib
 
-class MyLib {
-    void helloWorld(String name) {
-        println("Hello world, " + name)
-    }
+import com.ethlo.lamebda.ServerFunction;
+
+@FunctionalInterface
+public interface FunctionPostProcessor
+{
+    ServerFunction process(ServerFunction function);
 }

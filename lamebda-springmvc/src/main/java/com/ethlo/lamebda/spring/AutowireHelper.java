@@ -25,11 +25,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
 
-import com.ethlo.lamebda.loaders.FunctionPostProcesor;
+import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 
 public class AutowireHelper
 {
-    public static FunctionPostProcesor process(ApplicationContext applicationContext)
+    public static FunctionPostProcessor process(ApplicationContext applicationContext)
     {
         final AutowireCapableBeanFactory bf = applicationContext.getAutowireCapableBeanFactory();
         final AtomicInteger i = new AtomicInteger();

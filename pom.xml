@@ -27,8 +27,9 @@
 
 		<module>lamebda-spring-web-starter</module>
         <module>lamebda-springmvc</module>
+        <module>lamebda-oas</module>
 
-		<!--<module>lamebda-flux</module>-->
+        <!--<module>lamebda-flux</module>-->
 	</modules>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

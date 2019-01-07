@@ -22,8 +22,6 @@ package com.ethlo.lamebda.loaders;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.nio.file.Paths;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -42,12 +40,14 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
 {
     private static final Logger logger = LoggerFactory.getLogger(AbstractClassResourceLoader.class);
 
-    private final FunctionPostProcesor functionPostProcesor;
+    private final FunctionLoadPreNotification functionLoadPreNotification;
+    private final FunctionPostProcessor functionPostProcessor;
     private Consumer<FunctionModificationNotice> changeListener;
 
-    public AbstractClassResourceLoader(FunctionPostProcesor functionPostProcesor)
+    public AbstractClassResourceLoader(FunctionLoadPreNotification functionPreProcesor, FunctionPostProcessor functionPostProcessor)
     {
-        this.functionPostProcesor = Assert.notNull(functionPostProcesor, "functionPostProcesor cannot be null");
+        this.functionLoadPreNotification = Assert.notNull(functionPreProcesor, "functionPreProcesor cannot be null");
+        this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
     }
 
     @Override
@@ -60,7 +60,7 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     public ServerFunction load(String sourcePath)
     {
         final Class<ServerFunction> clazz = parseClass(sourcePath);
-        return functionPostProcesor.process(instantiate(clazz));
+        return functionPostProcessor.process(instantiate(clazz));
     }
 
     protected ServerFunction instantiate(Class<ServerFunction> clazz)
@@ -80,16 +80,8 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     {
         try (final GroovyClassLoader classLoader = new GroovyClassLoader())
         {
-            // Load specification of API
-            //classLoader.getResource("spec.yaml");
+            functionLoadPreNotification.process(classLoader, sourcePath);
 
-            // Generate request/response types
-            //clazz.getAnnotation()
-
-            // Load specification files
-            //classLoader.addClasspath("spec");
-
-            // Load libraries
             loadLibs(classLoader, sourcePath);
 
             final Class<?> clazz = classLoader.parseClass(readSource(sourcePath));
@@ -109,11 +101,19 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
         logger.debug("Using library classpath for script {}: {}", sourcePath, directory);
         if (directory.exists())
         {
-            final File[] files = directory.listFiles(f->f.getName().endsWith(EXTENSION));
+            classLoader.addURL(directory.toURI().toURL());
+            final File[] files = directory.listFiles(f -> f.getName().endsWith(EXTENSION));
             for (File file : files)
             {
                 logger.debug("Parsing library class {}", file.getName());
-                classLoader.parseClass(file);
+                try
+                {
+                    classLoader.loadClass(file.getName().replaceAll(".groovy", ""));
+                }
+                catch (ClassNotFoundException e)
+                {
+                    throw new RuntimeException(e);
+                }
             }
         }
     }

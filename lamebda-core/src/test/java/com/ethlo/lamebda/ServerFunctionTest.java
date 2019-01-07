@@ -24,13 +24,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.BasicFileAttributes;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,6 +37,7 @@ import com.ethlo.lamebda.functions.StaticResourceFunction;
 import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
 import com.ethlo.lamebda.test.MockHttpRequest;
 import com.ethlo.lamebda.test.MockHttpResponse;
+import com.ethlo.lamebda.util.IoUtil;
 
 @SpringBootTest(classes = ServerFunctionTest.class)
 @EnableAutoConfiguration
@@ -60,11 +54,12 @@ public class ServerFunctionTest
     {
         if (basepath.exists())
         {
-            deleteDir(basepath.getCanonicalPath());
+            IoUtil.deleteDirectory(basepath.getCanonicalPath());
         }
         assertThat(basepath.mkdirs()).isTrue();
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> {
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, s) -> {
+        }, f -> {
             applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
             return f;
         }, basepath.getAbsolutePath()));
@@ -81,26 +76,5 @@ public class ServerFunctionTest
         req.method("GET");
         functionManager.handle(req, res);
         assertThat(res.body()).contains("incorrect.html");
-    }
-
-    private void deleteDir(String dir) throws IOException
-    {
-        Path directory = Paths.get(dir);
-        Files.walkFileTree(directory, new SimpleFileVisitor<Path>()
-        {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
-            {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException
-            {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
     }
 }

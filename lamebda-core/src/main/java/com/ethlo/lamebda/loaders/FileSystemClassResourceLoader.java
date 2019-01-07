@@ -53,9 +53,9 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
     private final String basePath;
     private final WatchService watchService;
 
-    public FileSystemClassResourceLoader(FunctionPostProcesor functionPostProcesor, String basePath) throws IOException
+    public FileSystemClassResourceLoader(FunctionLoadPreNotification functionLoadPreNotification, FunctionPostProcessor functionPostProcessor, String basePath) throws IOException
     {
-        super(functionPostProcesor);
+        super(functionLoadPreNotification, functionPostProcessor);
         this.basePath = basePath;
         this.watchService = FileSystems.getDefault().newWatchService();
         final Path path = Paths.get(basePath);

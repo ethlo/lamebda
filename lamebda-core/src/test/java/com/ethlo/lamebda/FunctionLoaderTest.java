@@ -24,13 +24,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 
 import org.junit.Test;
@@ -38,6 +35,7 @@ import org.junit.Test;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
+import com.ethlo.lamebda.util.IoUtil;
 
 public class FunctionLoaderTest
 {
@@ -48,11 +46,12 @@ public class FunctionLoaderTest
     {
         if (basepath.exists())
         {
-            deleteDir(basepath.getCanonicalPath());
+            IoUtil.deleteDirectory(basepath.getCanonicalPath());
         }
         assertThat(basepath.mkdirs()).isTrue();
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader(f -> f, basepath.getAbsolutePath()));
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, s) -> {
+        }, f -> f, basepath.getAbsolutePath()));
     }
 
     @Test
@@ -69,7 +68,7 @@ public class FunctionLoaderTest
         assertThat(functions.keySet()).containsExactly(sourcePath);
 
         final ServerFunction func = functions.get(sourcePath);
-        final FunctionContext context = ((SimpleServerFunction)func).getContext();
+        final FunctionContext context = ((SimpleServerFunction) func).getContext();
         assertThat(context).isNotNull();
         final FunctionConfiguration cfg = context.getConfiguration();
         assertThat(cfg.getDateTime("start")).isNotNull();
@@ -103,7 +102,7 @@ public class FunctionLoaderTest
         final String sourcePath = Paths.get(basepath.getAbsolutePath(), "Correct.groovy").toString();
         final Map<String, ServerFunction> functions = functionManager.getFunctions();
         final ServerFunction func = functions.get(sourcePath);
-        final FunctionContext context = ((SimpleServerFunction)func).getContext();
+        final FunctionContext context = ((SimpleServerFunction) func).getContext();
         assertThat(context).isNotNull();
         assertThat(context.getConfiguration()).isNotNull();
         assertThat(context.getConfiguration().getDateTime("foo")).isNull();
@@ -150,26 +149,5 @@ public class FunctionLoaderTest
         {
             Files.delete(p);
         }
-    }
-
-    private void deleteDir(String dir) throws IOException
-    {
-        Path directory = Paths.get(dir);
-        Files.walkFileTree(directory, new SimpleFileVisitor<Path>()
-        {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
-            {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException
-            {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
     }
 }
