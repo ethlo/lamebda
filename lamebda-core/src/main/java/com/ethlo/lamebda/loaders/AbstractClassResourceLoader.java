@@ -20,8 +20,14 @@ package com.ethlo.lamebda.loaders;
  * #L%
  */
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Paths;
 import java.util.function.Consumer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.ChangeType;
 import com.ethlo.lamebda.ClassResourceLoader;
@@ -29,10 +35,13 @@ import com.ethlo.lamebda.FunctionModificationNotice;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.SourceChangeAware;
 import com.ethlo.lamebda.util.Assert;
+import com.ethlo.lamebda.util.FileNameUtil;
 import groovy.lang.GroovyClassLoader;
 
 public abstract class AbstractClassResourceLoader implements ClassResourceLoader, SourceChangeAware
 {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractClassResourceLoader.class);
+
     private final FunctionPostProcesor functionPostProcesor;
     private Consumer<FunctionModificationNotice> changeListener;
 
@@ -71,13 +80,41 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     {
         try (final GroovyClassLoader classLoader = new GroovyClassLoader())
         {
+            // Load specification of API
+            //classLoader.getResource("spec.yaml");
+
+            // Generate request/response types
+            //clazz.getAnnotation()
+
+            // Load specification files
+            //classLoader.addClasspath("spec");
+
+            // Load libraries
+            loadLibs(classLoader, sourcePath);
+
             final Class<?> clazz = classLoader.parseClass(readSource(sourcePath));
             Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
+
             return (Class<ServerFunction>) clazz;
         }
         catch (IOException exc)
         {
             throw new IllegalStateException("Cannot parse class " + sourcePath, exc);
+        }
+    }
+
+    private void loadLibs(GroovyClassLoader classLoader, final String sourcePath) throws IOException
+    {
+        final File directory = new File(FileNameUtil.getDirectory(sourcePath), "lib");
+        logger.debug("Using library classpath for script {}: {}", sourcePath, directory);
+        if (directory.exists())
+        {
+            final File[] files = directory.listFiles(f->f.getName().endsWith(EXTENSION));
+            for (File file : files)
+            {
+                logger.debug("Parsing library class {}", file.getName());
+                classLoader.parseClass(file);
+            }
         }
     }
 

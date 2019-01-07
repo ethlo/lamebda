@@ -79,6 +79,13 @@ public class FunctionLoaderTest
         assertThat(cfg.getString("title2")).isNull();
     }
 
+    private void addLib() throws IOException
+    {
+        final Path libTargetDir = Paths.get(basepath.getCanonicalPath(), "lib");
+        libTargetDir.toFile().mkdirs();
+        Files.copy(Paths.get("src/test/groovy/lib", "MyLib.groovy"), Paths.get(libTargetDir.toString(), "MyLib.groovy"), StandardCopyOption.REPLACE_EXISTING);
+    }
+
     @Test
     public void showCompilationError() throws Exception
     {
@@ -132,6 +139,7 @@ public class FunctionLoaderTest
 
     private Path move(final String name) throws IOException
     {
+        addLib();
         return Files.copy(Paths.get("src/test/groovy", name), Paths.get(basepath.getCanonicalPath(), name), StandardCopyOption.REPLACE_EXISTING);
     }
 
