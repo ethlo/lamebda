@@ -1,4 +1,4 @@
-package com.ethlo.lamebda;
+package com.ethlo.lamebda.loaders;
 
 /*-
  * #%L
@@ -23,8 +23,15 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 
-public interface ClassResourceLoader
+import com.ethlo.lamebda.ApiSpecificationModificationNotice;
+import com.ethlo.lamebda.ServerFunction;
+import com.ethlo.lamebda.ServerFunctionInfo;
+import groovy.lang.GroovyClassLoader;
+
+public interface LamebdaResourceLoader
 {
     String SCRIPT_EXTENSION = ".groovy";
 
@@ -46,9 +53,13 @@ public interface ClassResourceLoader
      */
     List<ServerFunctionInfo> findAll(long offset, int size);
 
-    ServerFunction load(Path sourcePath);
+    void setApiSpecificationChangeListener(Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener);
 
-    Class<ServerFunction> parseClass(Path sourcePath);
+    ServerFunction load(GroovyClassLoader classLoader, Path sourcePath);
+
+    Class<ServerFunction> parseClass(GroovyClassLoader classLoader, Path sourcePath);
 
     String readSourceIfReadable(Path path) throws IOException;
+
+    Optional<Path> getApiSpecification();
 }

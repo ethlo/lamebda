@@ -22,7 +22,6 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,7 +36,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.ethlo.lamebda.functions.StaticResourceFunction;
-import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
+import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.test.MockHttpRequest;
 import com.ethlo.lamebda.test.MockHttpResponse;
 import com.ethlo.lamebda.util.IoUtil;
@@ -61,7 +60,7 @@ public class ServerFunctionTest
         }
         Files.createDirectories(basepath);
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, s) -> s, f -> {
+        functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader((cl, s) -> s, f -> {
             applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
             return f;
         }, basepath));

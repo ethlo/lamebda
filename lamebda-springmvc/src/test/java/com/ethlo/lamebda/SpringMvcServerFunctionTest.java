@@ -44,7 +44,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
+import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.servlet.ServletHttpRequest;
 import com.ethlo.lamebda.servlet.ServletHttpResponse;
 import com.ethlo.lamebda.spring.AutowireHelper;
@@ -70,7 +70,7 @@ public class SpringMvcServerFunctionTest
         }
         Files.createDirectories(basepath);
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, s) -> s, AutowireHelper.process(applicationContext), basepath));
+        functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader((cl, s) -> s, AutowireHelper.process(applicationContext), basepath));
     }
 
     private void ioWait() throws InterruptedException

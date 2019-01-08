@@ -22,7 +22,6 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,7 +33,7 @@ import org.junit.Test;
 
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
-import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
+import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
 public class FunctionLoaderTest
@@ -50,7 +49,7 @@ public class FunctionLoaderTest
         }
         Files.createDirectories(basepath);
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, s) -> s
+        functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader((cl, s) -> s
         , f -> f, basepath));
     }
 

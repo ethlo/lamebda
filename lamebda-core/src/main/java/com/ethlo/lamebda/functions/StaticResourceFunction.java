@@ -20,9 +20,6 @@ package com.ethlo.lamebda.functions;
  * #L%
  */
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,31 +33,21 @@ import com.ethlo.lamebda.HttpStatus;
 import com.ethlo.lamebda.SimpleServerFunction;
 import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.util.FileNameUtil;
-import com.ethlo.lamebda.util.IoUtil;
 
-public class StaticResourceFunction extends SimpleServerFunction
+public class StaticResourceFunction extends SimpleServerFunction implements BuiltInServerFunction
 {
     private final Path resourceBasePath;
 
     public StaticResourceFunction(Path resourceBasePath)
     {
-        super("/static/*");
+        super("/static/**");
         this.resourceBasePath = resourceBasePath;
     }
 
     @Override
     public FunctionResult handle(HttpRequest request, HttpResponse response)
     {
-        final String requestedPath;
-        try
-        {
-            requestedPath = getPathVars("/static/{resourcePath}", request).get("resourcePath");
-        }
-        catch (IllegalArgumentException exc)
-        {
-            return FunctionResult.SKIPPED;
-        }
-
+        final String requestedPath = Paths.get(request.path().substring(8)).normalize().toString();
         final Path requestedFile = resourceBasePath.resolve(requestedPath).toAbsolutePath();
         if (isSubDirectory(resourceBasePath, requestedFile))
         {

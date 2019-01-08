@@ -1,4 +1,4 @@
-package com.ethlo.lamebda.oas;
+package com.ethlo.lamebda.compiler;
 
 /*-
  * #%L
@@ -9,9 +9,9 @@ package com.ethlo.lamebda.oas;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
@@ -39,7 +40,6 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,14 +68,14 @@ public class ModelCompiler
                 return;
             }
 
-            logger.info("Found " + sourceFiles.size() + " source files for potential processing");
-            logger.debug("Source files: " + Arrays.toString(sourceFiles.toArray()));
+            logger.info("Found {} files", sourceFiles.size());
+            logger.debug("Source files: {}", Arrays.toString(sourceFiles.toArray()));
             Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(sourceFiles);
 
             final URL[] classPathFiles = ((URLClassLoader) (Thread.currentThread().getContextClassLoader())).getURLs();
 
-            final String compileClassPath = StringUtils.join(classPathFiles, File.pathSeparator);
-            logger.debug("Classpath: " + compileClassPath);
+            final String compileClassPath = Arrays.stream(classPathFiles).map(url -> url.toString()).collect(Collectors.joining(File.pathSeparator));
+            logger.debug("Classpath: {}", compileClassPath);
 
             List<String> compilerOptions = buildCompilerOptions(compileClassPath);
 
@@ -101,7 +101,7 @@ public class ModelCompiler
 
     private Set<File> getSourceFiles()
     {
-        return new HashSet<>(Arrays.asList(sourceDir.listFiles(f->f.getName().endsWith(".java"))));
+        return new HashSet<>(Arrays.asList(sourceDir.listFiles(f -> f.getName().endsWith(".java"))));
     }
 
     private List<String> buildCompilerOptions(String compileClassPath)
@@ -130,10 +130,7 @@ public class ModelCompiler
         {
             opts.add("-" + compilerOption.getKey());
             String value = compilerOption.getValue();
-            if (StringUtils.isNotBlank(value))
-            {
-                opts.add(value);
-            }
+            opts.add(value);
         }
         return opts;
     }

@@ -20,7 +20,6 @@ package com.ethlo.lamebda.spring;
  * #L%
  */
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -41,11 +40,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.servlet.HandlerMapping;
 
-import com.ethlo.lamebda.ClassResourceLoader;
+import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.functions.StaticResourceFunction;
-import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
+import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.util.Assert;
@@ -86,7 +85,7 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Validated
     @Component
-    @ConditionalOnMissingBean(ClassResourceLoader.class)
+    @ConditionalOnMissingBean(LamebdaResourceLoader.class)
     @ConditionalOnProperty("lamebda.source.directory")
     @ConfigurationProperties("lamebda.source")
     public class FileSourceConfiguration
@@ -107,19 +106,19 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Bean
     @ConditionalOnBean(FileSourceConfiguration.class)
-    public ClassResourceLoader classResourceLoader(FunctionSourcePreProcessor preNotification, FunctionPostProcessor functionPostProcessor, FileSourceConfiguration cfg) throws IOException
+    public LamebdaResourceLoader classResourceLoader(FunctionSourcePreProcessor preNotification, FunctionPostProcessor functionPostProcessor, FileSourceConfiguration cfg) throws IOException
     {
         logger.info("Using file system class loader");
-        return new FileSystemClassResourceLoader(preNotification, functionPostProcessor, cfg.getDirectory());
+        return new FileSystemLamebdaResourceLoader(preNotification, functionPostProcessor, cfg.getDirectory());
     }
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean(ClassResourceLoader.class)
-    public FunctionManager functionManager(ClassResourceLoader classResourceLoader, FileSourceConfiguration cfg)
+    @ConditionalOnBean(LamebdaResourceLoader.class)
+    public FunctionManager functionManager(LamebdaResourceLoader lamebdaResourceLoader, FileSourceConfiguration cfg)
     {
         Assert.notNull(cfg.getDirectory(), "Directory must be set");
-        return new FunctionManagerImpl(classResourceLoader).addFunction(Paths.get("static-data"), new StaticResourceFunction(cfg.getDirectory().resolve("static")));
+        return new FunctionManagerImpl(lamebdaResourceLoader).addFunction(Paths.get("static-data"), new StaticResourceFunction(cfg.getDirectory().resolve("static")));
     }
 
     @Bean

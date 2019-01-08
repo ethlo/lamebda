@@ -3,10 +3,12 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.PostConstruct;
@@ -18,6 +20,11 @@ import org.slf4j.LoggerFactory;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.error.ErrorResponse;
+import com.ethlo.lamebda.functions.BuiltInServerFunction;
+import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
+import com.ethlo.lamebda.oas.ApiGenerator;
+import com.ethlo.lamebda.oas.ModelGenerator;
+import groovy.lang.GroovyClassLoader;
 
 /*-
  * #%L
@@ -43,65 +50,107 @@ public class FunctionManagerImpl implements FunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
     private static final String PROPERTIES_EXTENSION = ".properties";
+    private final GroovyClassLoader groovyClassLoader;
 
     private Map<Path, ServerFunction> functions = new ConcurrentHashMap<>();
-    private ClassResourceLoader classResourceLoader;
+    private LamebdaResourceLoader lamebdaResourceLoader;
 
-    public FunctionManagerImpl(ClassResourceLoader classResourceLoader)
+    public FunctionManagerImpl(LamebdaResourceLoader lamebdaResourceLoader)
     {
-        this.classResourceLoader = classResourceLoader;
+        this.lamebdaResourceLoader = lamebdaResourceLoader;
+        this.groovyClassLoader = new GroovyClassLoader();
 
-        if (classResourceLoader instanceof SourceChangeAware)
+        if (lamebdaResourceLoader instanceof SourceChangeAware)
         {
-            ((SourceChangeAware) classResourceLoader).setChangeListener(n -> {
+            ((SourceChangeAware) lamebdaResourceLoader).setFunctionChangeListener(n -> {
                 switch (n.getChangeType())
                 {
                     case CREATED:
                     case MODIFIED:
                         try
                         {
-                            // Load the function from source
-                            final ServerFunction loaded = classResourceLoader.load(n.getSourcePath());
-
-                            internalPostProcess(classResourceLoader, loaded, n.getSourcePath());
-
-                            // Remove the last compilation error if any
-                            unload(n.getSourcePath());
-
-                            // Add the function back
-                            addFunction(n.getSourcePath(), loaded);
+                            load(lamebdaResourceLoader, n.getPath());
                         }
                         catch (CompilationFailedException exc)
                         {
-                            logger.info("Unloading function {} due to script compilation error", n.getSourcePath());
-                            unload(n.getSourcePath());
+                            logger.info("Unloading function {} due to script compilation error", n.getPath());
+                            unload(n.getPath());
                             throw exc;
                         }
                         break;
 
                     case DELETED:
-                        unload(n.getSourcePath());
+                        unload(n.getPath());
                 }
+            });
+
+            // Listen for specification changes
+            lamebdaResourceLoader.setApiSpecificationChangeListener(n ->
+            {
+                logger.info("Specification file changed: {}", n.getPath());
+                processApiSpecification(n.getPath());
+                reloadFunctions(n.getPath());
             });
         }
     }
 
-    private void internalPostProcess(final ClassResourceLoader classResourceLoader, final ServerFunction func, final Path sourcePath)
+    private void load(final LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
     {
-        if (func instanceof FunctionContextAware)
+        // Load the function from source
+        final ServerFunction loaded = lamebdaResourceLoader.load(groovyClassLoader, sourcePath);
+
+        internalPostProcess(lamebdaResourceLoader, loaded, sourcePath);
+
+        // Remove the last compilation error if any
+        unload(sourcePath);
+
+        // Add the function back
+        addFunction(sourcePath, loaded);
+    }
+
+    private void processApiSpecification(Path specificationFile)
+    {
+        try
         {
-            ((FunctionContextAware) func).setContext(loadContext(classResourceLoader, func, sourcePath));
+            final URL classPathEntry = new ModelGenerator().generateModels(specificationFile);
+            new ApiGenerator().generateApiDocumentation(specificationFile);
+
+            groovyClassLoader.addURL(classPathEntry);
+        }
+        catch (IOException exc)
+        {
+            throw new RuntimeException("There was an error processing the API specification file " + specificationFile, exc);
         }
     }
 
-    private FunctionContext loadContext(final ClassResourceLoader classResourceLoader, final ServerFunction func, final Path sourcePath)
+    private void reloadFunctions(final Path path)
+    {
+        logger.info("Reloading functions due to API specification change: {}", path);
+        functions.forEach((p, func) -> {
+            if (! (func instanceof BuiltInServerFunction))
+            {
+                load(lamebdaResourceLoader, p);
+            }
+        });
+    }
+
+
+    private void internalPostProcess(final LamebdaResourceLoader lamebdaResourceLoader, final ServerFunction func, final Path sourcePath)
+    {
+        if (func instanceof FunctionContextAware)
+        {
+            ((FunctionContextAware) func).setContext(loadContext(lamebdaResourceLoader, func, sourcePath));
+        }
+    }
+
+    private FunctionContext loadContext(final LamebdaResourceLoader lamebdaResourceLoader, final ServerFunction func, final Path sourcePath)
     {
         final FunctionConfiguration config = new FunctionConfiguration();
-        final String cfgFilePath = sourcePath.toString().replace(ClassResourceLoader.SCRIPT_EXTENSION, PROPERTIES_EXTENSION);
+        final String cfgFilePath = sourcePath.toString().replace(LamebdaResourceLoader.SCRIPT_EXTENSION, PROPERTIES_EXTENSION);
         String cfgContent;
         try
         {
-            cfgContent = classResourceLoader.readSourceIfReadable(Paths.get(cfgFilePath));
+            cfgContent = lamebdaResourceLoader.readSourceIfReadable(Paths.get(cfgFilePath));
         }
         catch (IOException exc)
         {
@@ -132,11 +181,17 @@ public class FunctionManagerImpl implements FunctionManager
     @PostConstruct
     protected void loadAll()
     {
-        for (ServerFunctionInfo f : classResourceLoader.findAll(0, Integer.MAX_VALUE))
+        final Optional<Path> apiSpecification = lamebdaResourceLoader.getApiSpecification();
+        if (apiSpecification.isPresent())
+        {
+            processApiSpecification(apiSpecification.get());
+        }
+
+        for (ServerFunctionInfo f : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
         {
             try
             {
-                addFunction(f.getSourcePath(), classResourceLoader.load(f.getSourcePath()));
+                addFunction(f.getSourcePath(), lamebdaResourceLoader.load(groovyClassLoader, f.getSourcePath()));
             }
             catch (Exception exc)
             {

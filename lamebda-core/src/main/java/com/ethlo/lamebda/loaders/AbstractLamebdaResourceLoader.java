@@ -22,44 +22,52 @@ package com.ethlo.lamebda.loaders;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ethlo.lamebda.ChangeType;
-import com.ethlo.lamebda.ClassResourceLoader;
+import com.ethlo.lamebda.ApiSpecificationModificationNotice;
 import com.ethlo.lamebda.FunctionModificationNotice;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.SourceChangeAware;
+import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.util.Assert;
 import groovy.lang.GroovyClassLoader;
 
-public abstract class AbstractClassResourceLoader implements ClassResourceLoader, SourceChangeAware
+public abstract class AbstractLamebdaResourceLoader implements LamebdaResourceLoader, SourceChangeAware
 {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractClassResourceLoader.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractLamebdaResourceLoader.class);
 
     private final FunctionSourcePreProcessor functionSourcePreProcessor;
     private final FunctionPostProcessor functionPostProcessor;
-    private Consumer<FunctionModificationNotice> changeListener;
+    private Consumer<FunctionModificationNotice> functionChangeListener;
+    private Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener;
 
-    public AbstractClassResourceLoader(FunctionSourcePreProcessor functionPreProcesor, FunctionPostProcessor functionPostProcessor)
+    public AbstractLamebdaResourceLoader(FunctionSourcePreProcessor functionPreProcesor, FunctionPostProcessor functionPostProcessor)
     {
         this.functionSourcePreProcessor = Assert.notNull(functionPreProcesor, "functionSourcePreProcesor cannot be null");
         this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
     }
 
     @Override
-    public void setChangeListener(Consumer<FunctionModificationNotice> l)
+    public void setFunctionChangeListener(Consumer<FunctionModificationNotice> l)
     {
-        this.changeListener = l;
+        this.functionChangeListener = l;
     }
 
     @Override
-    public ServerFunction load(Path sourcePath)
+    public void setApiSpecificationChangeListener(Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener)
     {
-        final Class<ServerFunction> clazz = parseClass(sourcePath);
+        this.apiSpecificationChangeListener = apiSpecificationChangeListener;
+    }
+
+    @Override
+    public ServerFunction load(GroovyClassLoader classLoader, Path sourcePath)
+    {
+        final Class<ServerFunction> clazz = parseClass(classLoader, sourcePath);
         return functionPostProcessor.process(instantiate(clazz));
     }
 
@@ -76,14 +84,14 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     }
 
     @Override
-    public Class<ServerFunction> parseClass(Path sourcePath)
+    public Class<ServerFunction> parseClass(GroovyClassLoader classLoader, Path sourcePath)
     {
-        try (final GroovyClassLoader classLoader = new GroovyClassLoader())
+        try
         {
+            loadLibs(classLoader, sourcePath);
+
             final String source = readSource(sourcePath);
             final String modifiedSource = functionSourcePreProcessor.process(classLoader, source);
-
-            loadLibs(classLoader, sourcePath);
 
             final Class<?> clazz = classLoader.parseClass(modifiedSource != null ? modifiedSource : source);
             Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
@@ -98,12 +106,18 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
 
     private void loadLibs(GroovyClassLoader classLoader, final Path sourcePath) throws IOException
     {
-        final File directory = sourcePath.getParent().resolve("lib").toFile();
-        logger.debug("Using library classpath for script {}: {}", sourcePath, directory);
-        if (directory.exists())
+        if (! Files.exists(sourcePath))
         {
-            classLoader.addURL(directory.toURI().toURL());
-            final File[] files = directory.listFiles(f -> f.getName().endsWith(SCRIPT_EXTENSION));
+            return;
+        }
+
+        final Path directory = sourcePath.getParent().resolve("lib");
+
+        logger.debug("Using library classpath for script {}: {}", sourcePath, directory);
+        if (Files.exists(directory))
+        {
+            classLoader.addURL(directory.toUri().toURL());
+            final File[] files = directory.toFile().listFiles(f -> f.getName().endsWith(SCRIPT_EXTENSION));
             if (files != null)
             {
                 for (File file : files)
@@ -124,6 +138,17 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
 
     protected void functionChanged(Path sourcePath, ChangeType changeType)
     {
-        changeListener.accept(new FunctionModificationNotice(sourcePath, changeType));
+        if (functionChangeListener != null)
+        {
+            functionChangeListener.accept(new FunctionModificationNotice(changeType, sourcePath));
+        }
+    }
+
+    protected void apiSpecificationChanged(Path sourcePath, ChangeType changeType)
+    {
+        if (apiSpecificationChangeListener != null)
+        {
+            apiSpecificationChangeListener.accept(new ApiSpecificationModificationNotice(changeType, sourcePath));
+        }
     }
 }

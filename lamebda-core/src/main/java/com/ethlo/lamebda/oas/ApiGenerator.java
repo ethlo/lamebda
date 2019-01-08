@@ -22,9 +22,10 @@ package com.ethlo.lamebda.oas;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 import org.openapitools.codegen.ClientOptInput;
@@ -33,36 +34,33 @@ import org.openapitools.codegen.config.CodegenConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ethlo.lamebda.compiler.ModelCompiler;
+import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
-import groovy.lang.GroovyClassLoader;
 
-public class ModelGenerator
+public class ApiGenerator
 {
-    private static final Logger logger = LoggerFactory.getLogger(ModelGenerator.class);
+    private static final Logger logger = LoggerFactory.getLogger(ApiGenerator.class);
 
-    public void generateModels(final String specPath, final String sourcePath, final GroovyClassLoader classLoader) throws IOException
+    public void generateApiDocumentation(final Path specPath) throws IOException
     {
-        final File scriptsDir = new File(sourcePath).getParentFile();
         final Path targetBaseDir = Files.createTempDirectory("lamebda-oas-generator-tmp");
-
         final CodegenConfigurator configurator = new CodegenConfigurator();
-        configurator.setInputSpec(specPath);
-        configurator.setGeneratorName("jaxrs-spec");
+        configurator.setInputSpec(specPath.toString());
+        configurator.setGeneratorName("html");
         configurator.setOutputDir(targetBaseDir.toString());
         configurator.setModelPackage("spec");
         configurator.setValidateSpec(true);
-        configurator.addAdditionalProperty("useBeanValidation", true);
-        configurator.addAdditionalProperty("performBeanValidation", true);
-        configurator.addAdditionalProperty("useSwaggerAnnotations", false);
 
         final ClientOptInput clientOptInput = configurator.toClientOptInput();
         final List<File> results = new DefaultGenerator().opts(clientOptInput).generate();
-        logger.debug("Generated {} classes", results.size());
+        logger.debug("Generated {} files", results.size());
 
-        final Path modelsPath = targetBaseDir.resolve("src/gen/java/spec");
-        final Path targetDir = Paths.get(scriptsDir.getAbsolutePath(), "target");
-        new ModelCompiler(modelsPath.toFile(), targetDir.toFile()).compile();
-        classLoader.addURL(targetDir.toUri().toURL());
+        final Path apiDocPath = targetBaseDir;
+
+        final Path targetDir = specPath.getParent().getParent().resolve(FileSystemLamebdaResourceLoader.STATIC_DIR).resolve("oas");
+        Files.createDirectories(targetDir);
+        Files.copy(apiDocPath.resolve("index.html"), targetDir.resolve("index.html"), StandardCopyOption.REPLACE_EXISTING);
         IoUtil.deleteDirectory(targetBaseDir);
     }
 }

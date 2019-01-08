@@ -22,24 +22,13 @@ package com.ethlo.lamebda;
 
 import java.nio.file.Path;
 
-public class FunctionModificationNotice
+import com.ethlo.lamebda.io.ChangeType;
+import com.ethlo.lamebda.io.FileSystemEvent;
+
+public class FunctionModificationNotice extends FileSystemEvent
 {
-    private final ChangeType changeType;
-    private final Path sourcePath;
-
-    public FunctionModificationNotice(Path sourcePath, ChangeType changeType)
+    public FunctionModificationNotice(ChangeType changeType, Path sourcePath)
     {
-        this.sourcePath = sourcePath;
-        this.changeType = changeType;
-    }
-
-    public ChangeType getChangeType()
-    {
-        return changeType;
-    }
-
-    public Path getSourcePath()
-    {
-        return sourcePath;
+        super(changeType, sourcePath);
     }
 }

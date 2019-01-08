@@ -1,8 +1,8 @@
-package com.ethlo.lamebda.oas;
+package com.ethlo.lamebda.functions;
 
 /*-
  * #%L
- * lamebda-oas
+ * lamebda-core
  * %%
  * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
  * %%
@@ -20,16 +20,9 @@ package com.ethlo.lamebda.oas;
  * #L%
  */
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-@Target(ElementType.TYPE)
-@Retention(RetentionPolicy.RUNTIME)
-@Documented
-public @interface ApiSpecification
+/**
+ * Marker interface for signalling that this function is not part of the lifecycle of script functions
+ */
+public interface BuiltInServerFunction
 {
-    String value();
 }

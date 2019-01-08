@@ -1,4 +1,4 @@
-package com.ethlo.lamebda;
+package com.ethlo.lamebda.io;
 
 /*-
  * #%L
@@ -20,15 +20,28 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.util.function.Consumer;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent.Kind;
 
-public interface SourceChangeAware
+public enum ChangeType
 {
-    /**
-     * Set a listener that gets notified whenever the function's source changes
-     *
-     * @param l The listener
-     */
-    void setFunctionChangeListener(Consumer<FunctionModificationNotice> l);
-
+    CREATED, MODIFIED, DELETED;
+    
+    public static ChangeType from(Kind<?> k)
+    {
+        if (k == StandardWatchEventKinds.ENTRY_CREATE)
+        {
+            return ChangeType.CREATED;
+        }
+        else if (k == StandardWatchEventKinds.ENTRY_MODIFY)
+        {
+            return ChangeType.MODIFIED;
+        }
+        else if (k == StandardWatchEventKinds.ENTRY_DELETE)
+        {
+            return ChangeType.DELETED;
+        }
+        
+        throw new IllegalArgumentException("Unknown kind " + k); 
+    }
 }
