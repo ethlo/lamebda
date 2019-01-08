@@ -22,6 +22,7 @@ package com.ethlo.lamebda.loaders;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.function.Consumer;
 
 import org.slf4j.Logger;
@@ -33,20 +34,19 @@ import com.ethlo.lamebda.FunctionModificationNotice;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.SourceChangeAware;
 import com.ethlo.lamebda.util.Assert;
-import com.ethlo.lamebda.util.FileNameUtil;
 import groovy.lang.GroovyClassLoader;
 
 public abstract class AbstractClassResourceLoader implements ClassResourceLoader, SourceChangeAware
 {
     private static final Logger logger = LoggerFactory.getLogger(AbstractClassResourceLoader.class);
 
-    private final FunctionLoadPreNotification functionLoadPreNotification;
+    private final FunctionSourcePreProcessor functionSourcePreProcessor;
     private final FunctionPostProcessor functionPostProcessor;
     private Consumer<FunctionModificationNotice> changeListener;
 
-    public AbstractClassResourceLoader(FunctionLoadPreNotification functionPreProcesor, FunctionPostProcessor functionPostProcessor)
+    public AbstractClassResourceLoader(FunctionSourcePreProcessor functionPreProcesor, FunctionPostProcessor functionPostProcessor)
     {
-        this.functionLoadPreNotification = Assert.notNull(functionPreProcesor, "functionPreProcesor cannot be null");
+        this.functionSourcePreProcessor = Assert.notNull(functionPreProcesor, "functionSourcePreProcesor cannot be null");
         this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
     }
 
@@ -57,7 +57,7 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     }
 
     @Override
-    public ServerFunction load(String sourcePath)
+    public ServerFunction load(Path sourcePath)
     {
         final Class<ServerFunction> clazz = parseClass(sourcePath);
         return functionPostProcessor.process(instantiate(clazz));
@@ -76,15 +76,16 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
     }
 
     @Override
-    public Class<ServerFunction> parseClass(String sourcePath)
+    public Class<ServerFunction> parseClass(Path sourcePath)
     {
         try (final GroovyClassLoader classLoader = new GroovyClassLoader())
         {
-            functionLoadPreNotification.process(classLoader, sourcePath);
+            final String source = readSource(sourcePath);
+            final String modifiedSource = functionSourcePreProcessor.process(classLoader, source);
 
             loadLibs(classLoader, sourcePath);
 
-            final Class<?> clazz = classLoader.parseClass(readSource(sourcePath));
+            final Class<?> clazz = classLoader.parseClass(modifiedSource != null ? modifiedSource : source);
             Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
 
             return (Class<ServerFunction>) clazz;
@@ -95,30 +96,33 @@ public abstract class AbstractClassResourceLoader implements ClassResourceLoader
         }
     }
 
-    private void loadLibs(GroovyClassLoader classLoader, final String sourcePath) throws IOException
+    private void loadLibs(GroovyClassLoader classLoader, final Path sourcePath) throws IOException
     {
-        final File directory = new File(FileNameUtil.getDirectory(sourcePath), "lib");
+        final File directory = sourcePath.getParent().resolve("lib").toFile();
         logger.debug("Using library classpath for script {}: {}", sourcePath, directory);
         if (directory.exists())
         {
             classLoader.addURL(directory.toURI().toURL());
-            final File[] files = directory.listFiles(f -> f.getName().endsWith(EXTENSION));
-            for (File file : files)
+            final File[] files = directory.listFiles(f -> f.getName().endsWith(SCRIPT_EXTENSION));
+            if (files != null)
             {
-                logger.debug("Parsing library class {}", file.getName());
-                try
+                for (File file : files)
                 {
-                    classLoader.loadClass(file.getName().replaceAll(".groovy", ""));
-                }
-                catch (ClassNotFoundException e)
-                {
-                    throw new RuntimeException(e);
+                    logger.debug("Parsing library class {}", file.getName());
+                    try
+                    {
+                        classLoader.loadClass(file.getName().replaceAll(SCRIPT_EXTENSION, ""));
+                    }
+                    catch (ClassNotFoundException e)
+                    {
+                        throw new RuntimeException(e);
+                    }
                 }
             }
         }
     }
 
-    protected void functionChanged(String sourcePath, ChangeType changeType)
+    protected void functionChanged(Path sourcePath, ChangeType changeType)
     {
         changeListener.accept(new FunctionModificationNotice(sourcePath, changeType));
     }

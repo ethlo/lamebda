@@ -73,9 +73,8 @@ public class IoUtil
         throw new UncheckedIOException(new FileNotFoundException(path));
     }
 
-    public static void deleteDirectory(final String dir) throws IOException
+    public static void deleteDirectory(final Path directory) throws IOException
     {
-        Path directory = Paths.get(dir);
         Files.walkFileTree(directory, new SimpleFileVisitor<Path>()
         {
             @Override

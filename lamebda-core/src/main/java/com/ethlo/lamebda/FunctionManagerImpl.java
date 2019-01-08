@@ -3,6 +3,8 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,7 +44,7 @@ public class FunctionManagerImpl implements FunctionManager
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
     private static final String PROPERTIES_EXTENSION = ".properties";
 
-    private Map<String, ServerFunction> functions = new ConcurrentHashMap<>();
+    private Map<Path, ServerFunction> functions = new ConcurrentHashMap<>();
     private ClassResourceLoader classResourceLoader;
 
     public FunctionManagerImpl(ClassResourceLoader classResourceLoader)
@@ -84,7 +86,7 @@ public class FunctionManagerImpl implements FunctionManager
         }
     }
 
-    private void internalPostProcess(final ClassResourceLoader classResourceLoader, final ServerFunction func, final String sourcePath)
+    private void internalPostProcess(final ClassResourceLoader classResourceLoader, final ServerFunction func, final Path sourcePath)
     {
         if (func instanceof FunctionContextAware)
         {
@@ -92,14 +94,14 @@ public class FunctionManagerImpl implements FunctionManager
         }
     }
 
-    private FunctionContext loadContext(final ClassResourceLoader classResourceLoader, final ServerFunction func, final String sourcePath)
+    private FunctionContext loadContext(final ClassResourceLoader classResourceLoader, final ServerFunction func, final Path sourcePath)
     {
         final FunctionConfiguration config = new FunctionConfiguration();
-        final String cfgFilePath = sourcePath.replace(ClassResourceLoader.EXTENSION, PROPERTIES_EXTENSION);
+        final String cfgFilePath = sourcePath.toString().replace(ClassResourceLoader.SCRIPT_EXTENSION, PROPERTIES_EXTENSION);
         String cfgContent;
         try
         {
-            cfgContent = classResourceLoader.readSourceIfReadable(cfgFilePath);
+            cfgContent = classResourceLoader.readSourceIfReadable(Paths.get(cfgFilePath));
         }
         catch (IOException exc)
         {
@@ -120,10 +122,10 @@ public class FunctionManagerImpl implements FunctionManager
         return new FunctionContext(config);
     }
 
-    public FunctionManagerImpl addFunction(String filename, ServerFunction func)
+    public FunctionManagerImpl addFunction(Path sourcePath, ServerFunction func)
     {
-        final boolean exists = functions.put(filename, func) != null;
-        logger.info(exists ? "'{}' was reloaded" : "'{}' was loaded", filename);
+        final boolean exists = functions.put(sourcePath, func) != null;
+        logger.info(exists ? "'{}' was reloaded" : "'{}' was loaded", sourcePath);
         return this;
     }
 
@@ -143,7 +145,7 @@ public class FunctionManagerImpl implements FunctionManager
         }
     }
 
-    private void unload(final String sourcePath)
+    private void unload(final Path sourcePath)
     {
         final ServerFunction func = functions.remove(sourcePath);
         if (func != null)
@@ -198,7 +200,7 @@ public class FunctionManagerImpl implements FunctionManager
         throw new RuntimeException(cause);
     }
 
-    public Map<String, ServerFunction> getFunctions()
+    public Map<Path, ServerFunction> getFunctions()
     {
         return Collections.unmodifiableMap(functions);
     }

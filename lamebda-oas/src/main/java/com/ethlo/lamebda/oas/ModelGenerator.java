@@ -22,6 +22,7 @@ package com.ethlo.lamebda.oas;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -32,6 +33,7 @@ import org.openapitools.codegen.config.CodegenConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
 public class ModelGenerator
@@ -41,12 +43,12 @@ public class ModelGenerator
     public void generateModels(final String specPath, final String sourcePath, final GroovyClassLoader classLoader) throws IOException
     {
         final File scriptsDir = new File(sourcePath).getParentFile();
-        final String targetBaseDir = Paths.get(scriptsDir.getAbsolutePath(), "tmp").toString();
+        final Path targetBaseDir = Files.createTempDirectory("lamebda-oas-generator-tmp");
 
         final CodegenConfigurator configurator = new CodegenConfigurator();
         configurator.setInputSpec(specPath);
         configurator.setGeneratorName("jaxrs-spec");
-        configurator.setOutputDir(targetBaseDir);
+        configurator.setOutputDir(targetBaseDir.toString());
         configurator.setModelPackage("spec");
         configurator.setValidateSpec(true);
         configurator.addAdditionalProperty("useBeanValidation", true);
@@ -57,10 +59,10 @@ public class ModelGenerator
         final List<File> results = new DefaultGenerator().opts(clientOptInput).generate();
         logger.debug("Generated {} classes", results.size());
 
-        final Path modelsPath = Paths.get(targetBaseDir, "src/gen/java/spec");
-
+        final Path modelsPath = targetBaseDir.resolve("src/gen/java/spec");
         final Path targetDir = Paths.get(scriptsDir.getAbsolutePath(), "target");
         new ModelCompiler(modelsPath.toFile(), targetDir.toFile()).compile();
         classLoader.addURL(targetDir.toUri().toURL());
+        IoUtil.deleteDirectory(targetBaseDir);
     }
 }

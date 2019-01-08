@@ -29,6 +29,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardWatchEventKinds;
@@ -50,21 +51,22 @@ import com.ethlo.lamebda.ServerFunctionInfo;
 public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
 {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemClassResourceLoader.class);
-    private final String basePath;
+    private static final String API_SPECIFICATION_YAML = "oas.yaml";
+    private static final String API_SPECIFICATION_JSON = "oas.json";
+    private final Path basePath;
     private final WatchService watchService;
 
-    public FileSystemClassResourceLoader(FunctionLoadPreNotification functionLoadPreNotification, FunctionPostProcessor functionPostProcessor, String basePath) throws IOException
+    public FileSystemClassResourceLoader(FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor, Path basePath) throws IOException
     {
-        super(functionLoadPreNotification, functionPostProcessor);
+        super(functionSourcePreProcessor, functionPostProcessor);
         this.basePath = basePath;
         this.watchService = FileSystems.getDefault().newWatchService();
-        final Path path = Paths.get(basePath);
-        if (! path.toFile().exists())
+        if (!Files.exists(basePath))
         {
-            throw new FileNotFoundException("Cannot use " + path.toAbsolutePath() + " as source directory for functions, as it does not exist");
+            throw new FileNotFoundException("Cannot use " + basePath + " as source directory for functions, as it does not exist");
         }
-        logger.info("Using directory {} as source directory for handler functions", path.toAbsolutePath());
-        listenForChanges(path);
+        logger.info("Using directory {} as source directory for handler functions", basePath);
+        listenForChanges(basePath);
     }
 
     private Modifier getComSunNioFileSensitivityWatchEventModifierHigh()
@@ -126,7 +128,7 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
                 }
                 catch (Exception exc)
                 {
-                    logger.warn("Unable to reload {}: {}", Paths.get(basePath, fileName), exc.getMessage(), exc);
+                    logger.warn("Unable to reload {}: {}", basePath.resolve(fileName), exc.getMessage(), exc);
                 }
             }
         }.start();
@@ -138,44 +140,47 @@ public class FileSystemClassResourceLoader extends AbstractClassResourceLoader
         return idx > 0 ? f.substring(0, idx) : f;
     }
 
-    private void fileChanged(String basePath, String filename, Kind<?> k)
+    private void fileChanged(Path basePath, String filename, Kind<?> k)
     {
-        if (filename.endsWith(EXTENSION))
+        if (filename.endsWith(SCRIPT_EXTENSION))
         {
             final ChangeType changeType = ChangeType.from(k);
-            logger.debug("Notifying due to {} changed: {}", Paths.get(basePath, filename), changeType);
-            functionChanged(Paths.get(basePath, filename).toString(), changeType);
+            logger.debug("Notifying due to {} changed: {}", basePath.resolve(filename), changeType);
+            functionChanged(basePath.resolve(filename), changeType);
+        }
+        else if (filename.equals(API_SPECIFICATION_JSON) || filename.equals(API_SPECIFICATION_YAML))
+        {
+            // TODO: Recompile API models and trigger script reloads
+            //specificationChanged();
         }
     }
 
     @Override
-    public String readSource(String sourcePath) throws IOException
+    public String readSource(Path sourcePath) throws IOException
     {
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(sourcePath), StandardCharsets.UTF_8)))
-        {
-            return r.lines().collect(Collectors.joining(System.lineSeparator()));
-        }
+        return new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
     }
 
     @Override
     public List<ServerFunctionInfo> findAll(long offset, int size)
     {
-        final String[] files = Paths.get(basePath).toFile().list((d,f)->f.endsWith(EXTENSION));
+        // TODO: Walk hierarchy!
+
+        final String[] files = basePath.toFile().list((d,f)->f.endsWith(SCRIPT_EXTENSION));
         return Arrays.asList(files)
             .stream()
             .skip(offset)
             .limit(size)
-            .map(n->new ServerFunctionInfo(Paths.get(basePath, n).toString()))
+            .map(n->new ServerFunctionInfo(basePath.resolve(n)))
             .collect(Collectors.toList());
     }
 
     @Override
-    public String readSourceIfReadable(final String filename) throws IOException
+    public String readSourceIfReadable(final Path sourcePath) throws IOException
     {
-        final File path = new File(filename);
-        if (path.exists() && path.canRead())
+        if (Files.exists(sourcePath) && Files.isReadable(sourcePath))
         {
-            return readSource(path.toString());
+            return readSource(sourcePath);
         }
         return null;
     }

@@ -9,9 +9,9 @@ package com.ethlo.lamebda;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,14 +20,15 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import java.nio.file.Path;
 import java.time.ZonedDateTime;
 
 public class ServerFunctionInfo
 {
-    private final String sourcePath;
+    private final Path sourcePath;
     private ZonedDateTime lastModified;
-    
-    public ServerFunctionInfo(String sourcePath)
+
+    public ServerFunctionInfo(Path sourcePath)
     {
         this.sourcePath = sourcePath;
     }
@@ -42,7 +43,7 @@ public class ServerFunctionInfo
         this.lastModified = lastModified;
     }
 
-    public String getSourcePath()
+    public Path getSourcePath()
     {
         return sourcePath;
     }

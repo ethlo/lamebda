@@ -24,7 +24,7 @@ import com.ethlo.lamebda.ServerFunction;
 import groovy.lang.GroovyClassLoader;
 
 @FunctionalInterface
-public interface FunctionLoadPreNotification
+public interface FunctionSourcePreProcessor
 {
-    void process(GroovyClassLoader classLoader, String sourcePath);
+    String process(GroovyClassLoader classLoader, String sourcePath);
 }

@@ -9,9 +9,9 @@ package com.ethlo.lamebda;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,23 +20,25 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import java.nio.file.Path;
+
 public class FunctionModificationNotice
 {
     private final ChangeType changeType;
-    private final String sourcePath;
+    private final Path sourcePath;
 
-    public FunctionModificationNotice(String sourcePath, ChangeType changeType)
+    public FunctionModificationNotice(Path sourcePath, ChangeType changeType)
     {
         this.sourcePath = sourcePath;
         this.changeType = changeType;
     }
-    
+
     public ChangeType getChangeType()
     {
         return changeType;
     }
 
-    public String getSourcePath()
+    public Path getSourcePath()
     {
         return sourcePath;
     }

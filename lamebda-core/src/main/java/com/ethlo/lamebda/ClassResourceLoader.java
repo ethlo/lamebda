@@ -21,20 +21,21 @@ package com.ethlo.lamebda;
  */
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 
 public interface ClassResourceLoader
 {
-    String EXTENSION = ".groovy";
+    String SCRIPT_EXTENSION = ".groovy";
 
     /**
-     * Load the contents of the named class
+     * Load the contents of the class
      *
-     * @param name The class name
+     * @param sourcePath The path to the source file
      * @return The contents of the specified name
      * @throws IOException If the class could not be found or loaded
      */
-    String readSource(String name) throws IOException;
+    String readSource(Path sourcePath) throws IOException;
 
     /**
      * Return a list of all known functions
@@ -45,9 +46,9 @@ public interface ClassResourceLoader
      */
     List<ServerFunctionInfo> findAll(long offset, int size);
 
-    ServerFunction load(String name);
+    ServerFunction load(Path sourcePath);
 
-    Class<ServerFunction> parseClass(String name);
+    Class<ServerFunction> parseClass(Path sourcePath);
 
-    String readSourceIfReadable(String filename) throws IOException;
+    String readSourceIfReadable(Path path) throws IOException;
 }

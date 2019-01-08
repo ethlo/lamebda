@@ -20,7 +20,7 @@
 package lib
 
 class MyLib {
-    void helloWorld(String name) {
-        println("Hello world, " + name)
+    String helloWorld(String name) {
+        "Hello world, " + name
     }
 }

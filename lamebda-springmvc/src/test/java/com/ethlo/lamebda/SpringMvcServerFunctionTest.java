@@ -22,7 +22,6 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
@@ -49,13 +48,14 @@ import com.ethlo.lamebda.loaders.FileSystemClassResourceLoader;
 import com.ethlo.lamebda.servlet.ServletHttpRequest;
 import com.ethlo.lamebda.servlet.ServletHttpResponse;
 import com.ethlo.lamebda.spring.AutowireHelper;
+import com.ethlo.lamebda.util.IoUtil;
 
 @SpringBootTest(classes = SpringMvcServerFunctionTest.class)
 @EnableAutoConfiguration
 @RunWith(SpringRunner.class)
 public class SpringMvcServerFunctionTest
 {
-    private final File basepath = new File(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
+    private final Path basepath = Paths.get(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
     private FunctionManagerImpl functionManager;
 
     @Autowired
@@ -64,14 +64,13 @@ public class SpringMvcServerFunctionTest
     @Before
     public void before() throws IOException
     {
-        if (basepath.exists())
+        if (Files.exists(basepath))
         {
-            deleteDir(basepath.getCanonicalPath());
+            IoUtil.deleteDirectory(basepath);
         }
-        assertThat(basepath.mkdirs()).isTrue();
+        Files.createDirectories(basepath);
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, sourcePath) -> {
-        }, AutowireHelper.process(applicationContext), basepath.getAbsolutePath()));
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, s) -> s, AutowireHelper.process(applicationContext), basepath));
     }
 
     private void ioWait() throws InterruptedException
@@ -84,8 +83,8 @@ public class SpringMvcServerFunctionTest
     {
         move("SpringMvc.groovy");
         ioWait();
-        final Map<String, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).containsExactly(Paths.get(basepath.getAbsolutePath(), "SpringMvc.groovy").toString());
+        final Map<Path, ServerFunction> functions = functionManager.getFunctions();
+        assertThat(functions.keySet()).containsExactly(basepath.resolve("SpringMvc.groovy"));
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
         req.setRequestURI("/test/123");
@@ -98,12 +97,12 @@ public class SpringMvcServerFunctionTest
 
     private Path move(final String name) throws IOException
     {
-        return Files.copy(Paths.get("src/test/groovy", name), Paths.get(basepath.getCanonicalPath(), name), StandardCopyOption.REPLACE_EXISTING);
+        return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(name), StandardCopyOption.REPLACE_EXISTING);
     }
 
     private void remove(final String name) throws IOException
     {
-        final Path p = Paths.get(basepath.getCanonicalPath(), name);
+        final Path p = basepath.resolve(name);
         if (p.toFile().exists())
         {
             Files.delete(p);

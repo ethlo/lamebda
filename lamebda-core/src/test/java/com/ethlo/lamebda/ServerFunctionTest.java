@@ -24,6 +24,9 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,7 +47,7 @@ import com.ethlo.lamebda.util.IoUtil;
 @RunWith(SpringRunner.class)
 public class ServerFunctionTest
 {
-    private final File basepath = new File(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
+    private final Path basepath = Paths.get(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
     private FunctionManagerImpl functionManager;
 
     @Autowired
@@ -52,19 +55,18 @@ public class ServerFunctionTest
 
     public ServerFunctionTest() throws IOException
     {
-        if (basepath.exists())
+        if (Files.exists(basepath))
         {
-            IoUtil.deleteDirectory(basepath.getCanonicalPath());
+            IoUtil.deleteDirectory(basepath);
         }
-        assertThat(basepath.mkdirs()).isTrue();
+        Files.createDirectories(basepath);
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, s) -> {
-        }, f -> {
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, s) -> s, f -> {
             applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
             return f;
-        }, basepath.getAbsolutePath()));
+        }, basepath));
 
-        functionManager.addFunction("static-resource-handler", new StaticResourceFunction(new File(basepath, "static")));
+        functionManager.addFunction(Paths.get("static-resource-handler"), new StaticResourceFunction(basepath.resolve("static")));
     }
 
     @Test

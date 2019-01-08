@@ -39,32 +39,32 @@ import com.ethlo.lamebda.util.IoUtil;
 
 public class FunctionLoaderTest
 {
-    private final File basepath = new File(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
+    private final Path basepath = Paths.get(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
     private FunctionManagerImpl functionManager;
 
     public FunctionLoaderTest() throws IOException
     {
-        if (basepath.exists())
+        if (Files.exists(basepath))
         {
-            IoUtil.deleteDirectory(basepath.getCanonicalPath());
+            IoUtil.deleteDirectory(basepath);
         }
-        assertThat(basepath.mkdirs()).isTrue();
+        Files.createDirectories(basepath);
 
-        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, s) -> {
-        }, f -> f, basepath.getAbsolutePath()));
+        functionManager = new FunctionManagerImpl(new FileSystemClassResourceLoader((cl, s) -> s
+        , f -> f, basepath));
     }
 
     @Test
     public void testLoadOnCreate() throws Exception
     {
         final String name = "Correct.properties";
-        Files.copy(Paths.get("src/test/resources", name), Paths.get(basepath.getCanonicalPath(), name), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(Paths.get("src/test/resources", name), basepath.resolve(name), StandardCopyOption.REPLACE_EXISTING);
 
         move("Correct.groovy");
         ioWait();
-        final Map<String, ServerFunction> functions = functionManager.getFunctions();
+        final Map<Path, ServerFunction> functions = functionManager.getFunctions();
 
-        final String sourcePath = Paths.get(basepath.getAbsolutePath(), "Correct.groovy").toString();
+        final Path sourcePath = getSourcePath("Correct.groovy");
         assertThat(functions.keySet()).containsExactly(sourcePath);
 
         final ServerFunction func = functions.get(sourcePath);
@@ -80,7 +80,7 @@ public class FunctionLoaderTest
 
     private void addLib() throws IOException
     {
-        final Path libTargetDir = Paths.get(basepath.getCanonicalPath(), "lib");
+        final Path libTargetDir = basepath.resolve("lib");
         libTargetDir.toFile().mkdirs();
         Files.copy(Paths.get("src/test/groovy/lib", "MyLib.groovy"), Paths.get(libTargetDir.toString(), "MyLib.groovy"), StandardCopyOption.REPLACE_EXISTING);
     }
@@ -94,18 +94,24 @@ public class FunctionLoaderTest
     @Test
     public void testLoadOnModification() throws Exception
     {
-        move("Correct.groovy");
+        final String filename = "Correct.groovy";
+        move(filename);
         ioWait();
-        move("Correct.groovy");
+        move(filename);
         ioWait();
 
-        final String sourcePath = Paths.get(basepath.getAbsolutePath(), "Correct.groovy").toString();
-        final Map<String, ServerFunction> functions = functionManager.getFunctions();
+        final Path sourcePath = getSourcePath(filename);
+        final Map<Path, ServerFunction> functions = functionManager.getFunctions();
         final ServerFunction func = functions.get(sourcePath);
         final FunctionContext context = ((SimpleServerFunction) func).getContext();
         assertThat(context).isNotNull();
         assertThat(context.getConfiguration()).isNotNull();
         assertThat(context.getConfiguration().getDateTime("foo")).isNull();
+    }
+
+    private Path getSourcePath(final String filename)
+    {
+        return basepath.resolve(filename);
     }
 
     private void ioWait() throws InterruptedException
@@ -116,35 +122,46 @@ public class FunctionLoaderTest
     @Test
     public void testUnloadOnRemoval() throws Exception
     {
-        move("Correct.groovy");
+        final String filename = "Correct.groovy";
+        final Path sourcePath = getSourcePath(filename);
+
+        // Create file and wait for it to load
+        move(filename);
         ioWait();
-        remove("Correct.groovy");
+        assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
+
+        // Remove it and assert unloaded
+        remove(filename);
         ioWait();
-        final Map<String, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).doesNotContain("Correct");
+        assertThat(functionManager.getFunctions().keySet()).doesNotContain(sourcePath);
     }
 
     @Test
     public void testUnloadOnError() throws Exception
     {
+        final String filename = "Correct.groovy";
+        final Path sourcePath = getSourcePath(filename);
+
+        // Load correct script and verify loaded
         final Path target = move("Correct.groovy");
         ioWait();
-        assertThat(functionManager.getFunctions().keySet()).contains(Paths.get(basepath.getAbsolutePath(), "Correct.groovy").toString());
+        assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
 
+        // Replace content with incorrect script
         Files.copy(Paths.get("src/test/groovy/Incorrect.groovy"), target, StandardCopyOption.REPLACE_EXISTING);
         ioWait();
-        assertThat(functionManager.getFunctions().keySet()).doesNotContain("foo.bar.Correct");
+        assertThat(functionManager.getFunctions().keySet()).doesNotContain(sourcePath);
     }
 
     private Path move(final String name) throws IOException
     {
         addLib();
-        return Files.copy(Paths.get("src/test/groovy", name), Paths.get(basepath.getCanonicalPath(), name), StandardCopyOption.REPLACE_EXISTING);
+        return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(name), StandardCopyOption.REPLACE_EXISTING);
     }
 
     private void remove(final String name) throws IOException
     {
-        final Path p = Paths.get(basepath.getCanonicalPath(), name);
+        final Path p = basepath.resolve(name);
         if (p.toFile().exists())
         {
             Files.delete(p);

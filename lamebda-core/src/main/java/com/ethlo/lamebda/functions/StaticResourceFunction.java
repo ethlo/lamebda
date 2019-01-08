@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -39,9 +40,9 @@ import com.ethlo.lamebda.util.IoUtil;
 
 public class StaticResourceFunction extends SimpleServerFunction
 {
-    private final File resourceBasePath;
+    private final Path resourceBasePath;
 
-    public StaticResourceFunction(File resourceBasePath)
+    public StaticResourceFunction(Path resourceBasePath)
     {
         super("/static/*");
         this.resourceBasePath = resourceBasePath;
@@ -60,16 +61,16 @@ public class StaticResourceFunction extends SimpleServerFunction
             return FunctionResult.SKIPPED;
         }
 
-        final File requestedFile = Paths.get(resourceBasePath.getAbsolutePath(), requestedPath).toAbsolutePath().toFile();
+        final Path requestedFile = resourceBasePath.resolve(requestedPath).toAbsolutePath();
         if (isSubDirectory(resourceBasePath, requestedFile))
         {
             try
             {
-                response.setContentType(HttpMimeType.fromExtension(FileNameUtil.getExtension(requestedFile.getName())));
-                final byte[] content = IoUtil.toByteArray(new FileInputStream(requestedFile));
+                response.setContentType(HttpMimeType.fromExtension(FileNameUtil.getExtension(requestedFile.getFileName().toString())));
+                final byte[] content = Files.readAllBytes(requestedFile);
                 response.write(content);
             }
-            catch (FileNotFoundException e)
+            catch (IOException e)
             {
                 response.error(ErrorResponse.notFound(request.path()));
             }
@@ -81,26 +82,8 @@ public class StaticResourceFunction extends SimpleServerFunction
         return FunctionResult.PROCESSED;
     }
 
-    private boolean isSubDirectory(File base, File child)
+    private boolean isSubDirectory(Path base, Path child)
     {
-        try
-        {
-            base = base.getCanonicalFile();
-            child = child.getCanonicalFile();
-        }
-        catch (IOException exc)
-        {
-            throw new RuntimeException(exc);
-        }
-        File parentFile = child;
-        while (parentFile != null)
-        {
-            if (base.equals(parentFile))
-            {
-                return true;
-            }
-            parentFile = parentFile.getParentFile();
-        }
-        return false;
+        return child.toAbsolutePath().startsWith(base.toAbsolutePath());
     }
 }
