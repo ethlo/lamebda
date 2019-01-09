@@ -45,7 +45,7 @@ public class StaticResourceFunction extends SimpleServerFunction implements Buil
     }
 
     @Override
-    public FunctionResult handle(HttpRequest request, HttpResponse response)
+    public void doHandle(HttpRequest request, HttpResponse response)
     {
         final String requestedPath = Paths.get(request.path().substring(8)).normalize().toString();
         final Path requestedFile = resourceBasePath.resolve(requestedPath).toAbsolutePath();
@@ -66,7 +66,6 @@ public class StaticResourceFunction extends SimpleServerFunction implements Buil
         {
             response.error(HttpStatus.FORBIDDEN, "Nice try");
         }
-        return FunctionResult.PROCESSED;
     }
 
     private boolean isSubDirectory(Path base, Path child)

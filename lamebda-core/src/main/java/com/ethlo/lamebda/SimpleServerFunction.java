@@ -46,7 +46,7 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
 
 
     @Override
-    public FunctionResult handle(HttpRequest request, HttpResponse response)
+    public final FunctionResult handle(HttpRequest request, HttpResponse response)
     {
         if (! PATH_MATCHER.match(pattern, request.path()))
         {
