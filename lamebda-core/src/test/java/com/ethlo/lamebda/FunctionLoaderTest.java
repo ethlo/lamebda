@@ -64,11 +64,10 @@ public class FunctionLoaderTest
         deployConfig();
         deploySpec();
         ioWait();
-        deployFunc("Correct.groovy");
+        final Path sourcePath = deployFunc("Correct.groovy");
         ioWait();
         final Map<Path, ServerFunction> functions = functionManager.getFunctions();
 
-        final Path sourcePath = getSourcePath("Correct.groovy");
         assertThat(functions.keySet()).containsExactly(sourcePath);
 
         final ServerFunction func = functions.get(sourcePath);
@@ -92,13 +91,13 @@ public class FunctionLoaderTest
         moveResource("petstore-oas3.yaml", "specification", FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML);
     }
 
-    private void addLib() throws IOException
+    private void addShared() throws IOException
     {
-        final Path libTargetDir = basepath.resolve("lib");
+        final Path libTargetDir = basepath.resolve(FileSystemLamebdaResourceLoader.SHARED_DIRECTORY_NAME);
         final Path packageTargetDir = libTargetDir.resolve("mypackage");
         Files.createDirectories(packageTargetDir);
         Files.createDirectories(libTargetDir);
-        Files.copy(Paths.get("src/test/groovy/lib", "MyLib.groovy"), packageTargetDir.resolve("MyLib.groovy"), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(Paths.get("src/test/groovy/shared", "MyLib.groovy"), packageTargetDir.resolve("MyLib.groovy"), StandardCopyOption.REPLACE_EXISTING);
     }
 
     @Test
@@ -122,11 +121,6 @@ public class FunctionLoaderTest
         assertThat(context).isNotNull();
         assertThat(context.getConfiguration()).isNotNull();
         assertThat(context.getConfiguration().getDateTime("foo")).isNull();
-    }
-
-    private Path getSourcePath(final String filename)
-    {
-        return basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY_NAME).resolve(filename);
     }
 
     private void ioWait()
@@ -177,7 +171,7 @@ public class FunctionLoaderTest
 
     private Path deployFunc(final String name) throws IOException
     {
-        addLib();
+        addShared();
         final Path target = basepath.resolve(AbstractLamebdaResourceLoader.SCRIPT_DIRECTORY_NAME).resolve(name);
         Files.createDirectories(target.getParent());
         return Files.copy(Paths.get("src/test/groovy", name), target, StandardCopyOption.REPLACE_EXISTING);

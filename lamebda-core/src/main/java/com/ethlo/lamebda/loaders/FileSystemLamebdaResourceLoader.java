@@ -39,7 +39,6 @@ import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.FileSystemEvent;
 import com.ethlo.lamebda.util.IoUtil;
-import groovy.lang.GroovyClassLoader;
 
 public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoader
 {
@@ -49,7 +48,8 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
     public static final String API_SPECIFICATION_YAML = "oas.yaml";
     public static final String API_SPECIFICATION_JSON = "oas.json";
     public static final String SPECIFICATION_DIRECTORY_NAME = "specification";
-    private static final String LIB_DIRECTORY_NAME = "lib";
+    public static final String SHARED_DIRECTORY_NAME = "shared";
+    //private static final String SHARED_DIRECTORY_NAME = "shared";
 
     private final Path projectPath;
     private final Path scriptPath;
@@ -68,7 +68,7 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
         this.projectPath = projectPath;
         this.scriptPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SCRIPT_DIRECTORY_NAME));
         this.specificationPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SPECIFICATION_DIRECTORY_NAME));
-        this.libPath = IoUtil.ensureDirectoryExists(projectPath.resolve(LIB_DIRECTORY_NAME));
+        this.libPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SHARED_DIRECTORY_NAME));
 
         logger.info("Project directory: {}", projectPath);
         logger.info("HandlerFunction directory: {}", scriptPath);
