@@ -22,7 +22,6 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
+import com.ethlo.lamebda.loaders.AbstractLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
@@ -55,17 +55,15 @@ public class FunctionLoaderTest
         Files.createDirectories(basepath);
 
         functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader((cl, s) -> s
-        , f -> f, basepath));
+                , f -> f, basepath));
     }
 
     @Test
     public void testLoadOnCreate() throws Exception
     {
-        logger.info("Adding properties and API specification file");
-        moveResource("Correct.properties", "");
-        moveResource("petstore-oas3.yaml", "specification", FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML);
+        deployConfig();
+        deploySpec();
         ioWait();
-
         deployFunc("Correct.groovy");
         ioWait();
         final Map<Path, ServerFunction> functions = functionManager.getFunctions();
@@ -84,13 +82,23 @@ public class FunctionLoaderTest
         assertThat(cfg.getString("title2")).isNull();
     }
 
+    private void deployConfig() throws IOException
+    {
+        moveResource("config.properties", "");
+    }
+
+    private void deploySpec() throws IOException
+    {
+        moveResource("petstore-oas3.yaml", "specification", FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML);
+    }
+
     private void addLib() throws IOException
     {
         final Path libTargetDir = basepath.resolve("lib");
         final Path packageTargetDir = libTargetDir.resolve("mypackage");
         Files.createDirectories(packageTargetDir);
         Files.createDirectories(libTargetDir);
-        Files.copy(Paths.get("src/test/groovy/lib","MyLib.groovy"), packageTargetDir.resolve("MyLib.groovy"), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(Paths.get("src/test/groovy/lib", "MyLib.groovy"), packageTargetDir.resolve("MyLib.groovy"), StandardCopyOption.REPLACE_EXISTING);
     }
 
     @Test
@@ -102,13 +110,12 @@ public class FunctionLoaderTest
     @Test
     public void testLoadOnModification() throws Exception
     {
-        final String filename = "Correct.groovy";
-        deployFunc(filename);
+        deployConfig();
+        deploySpec();
         ioWait();
-        deployFunc(filename);
+        final Path sourcePath = deployFunc("Correct.groovy");
         ioWait();
 
-        final Path sourcePath = getSourcePath(filename);
         final Map<Path, ServerFunction> functions = functionManager.getFunctions();
         final ServerFunction func = functions.get(sourcePath);
         final FunctionContext context = ((SimpleServerFunction) func).getContext();
@@ -119,7 +126,7 @@ public class FunctionLoaderTest
 
     private Path getSourcePath(final String filename)
     {
-        return basepath.resolve(filename);
+        return basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY_NAME).resolve(filename);
     }
 
     private void ioWait()
@@ -137,16 +144,16 @@ public class FunctionLoaderTest
     @Test
     public void testUnloadOnRemoval() throws Exception
     {
-        final String filename = "Correct.groovy";
-        final Path sourcePath = getSourcePath(filename);
-
-        // Create file and wait for it to load
-        deployFunc(filename);
+        deployConfig();
+        deploySpec();
         ioWait();
+        final Path sourcePath = deployFunc("Correct.groovy");
+        ioWait();
+
         assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
 
         // Remove it and assert unloaded
-        remove(filename);
+        remove(sourcePath);
         ioWait();
         assertThat(functionManager.getFunctions().keySet()).doesNotContain(sourcePath);
     }
@@ -154,16 +161,16 @@ public class FunctionLoaderTest
     @Test
     public void testUnloadOnError() throws Exception
     {
-        final String filename = "Correct.groovy";
-        final Path sourcePath = getSourcePath(filename);
-
-        // Load correct script and verify loaded
-        final Path target = deployFunc("Correct.groovy");
+        deployConfig();
+        deploySpec();
         ioWait();
+        final Path sourcePath = deployFunc("Correct.groovy");
+        ioWait();
+
         assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
 
         // Replace content with incorrect script
-        Files.copy(Paths.get("src/test/groovy/Incorrect.groovy"), target, StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(Paths.get("src/test/groovy/Incorrect.groovy"), sourcePath, StandardCopyOption.REPLACE_EXISTING);
         ioWait();
         assertThat(functionManager.getFunctions().keySet()).doesNotContain(sourcePath);
     }
@@ -171,7 +178,9 @@ public class FunctionLoaderTest
     private Path deployFunc(final String name) throws IOException
     {
         addLib();
-        return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        final Path target = basepath.resolve(AbstractLamebdaResourceLoader.SCRIPT_DIRECTORY_NAME).resolve(name);
+        Files.createDirectories(target.getParent());
+        return Files.copy(Paths.get("src/test/groovy", name), target, StandardCopyOption.REPLACE_EXISTING);
     }
 
     private Path moveResource(final String name, String folder) throws IOException
@@ -182,18 +191,17 @@ public class FunctionLoaderTest
     private Path moveResource(final String name, String folder, String filename) throws IOException
     {
         final Path target = basepath.resolve(folder).resolve(filename);
-        Files.createDirectories(target);
+        Files.createDirectories(target.getParent());
         ioWait();
         return Files.copy(Paths.get("src/test/resources", name), target, StandardCopyOption.REPLACE_EXISTING);
     }
 
 
-    private void remove(final String name) throws IOException
+    private void remove(Path sourcePath) throws IOException
     {
-        final Path p = basepath.resolve(name);
-        if (p.toFile().exists())
+        if (Files.exists(sourcePath))
         {
-            Files.delete(p);
+            Files.delete(sourcePath);
         }
     }
 }

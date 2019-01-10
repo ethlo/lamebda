@@ -28,6 +28,8 @@
 		</encoder>
 	</appender>
 
+	<logger name="org.openapitools.codegen" level="ERROR" />
+
 	<root level="INFO">
 		<appender-ref ref="stdout" />
 	</root>

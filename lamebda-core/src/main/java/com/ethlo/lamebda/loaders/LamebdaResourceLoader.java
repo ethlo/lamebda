@@ -21,6 +21,7 @@ package com.ethlo.lamebda.loaders;
  */
 
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -33,8 +34,9 @@ import groovy.lang.GroovyClassLoader;
 
 public interface LamebdaResourceLoader
 {
+    String SCRIPT_DIRECTORY_NAME = "scripts";
     String SCRIPT_EXTENSION = ".groovy";
-    String JAVA_EXTENSION = ".java";
+    String PROPERTIES_EXTENSION = ".properties";
 
     /**
      * Load the contents of the class
@@ -63,4 +65,6 @@ public interface LamebdaResourceLoader
     String readSourceIfReadable(Path path) throws IOException;
 
     Optional<Path> getApiSpecification();
+
+    URL getLibraryClassPath();
 }

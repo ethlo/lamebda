@@ -22,11 +22,11 @@ package com.ethlo.lamebda.loaders;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.WatchService;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +38,8 @@ import org.slf4j.LoggerFactory;
 import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.FileSystemEvent;
+import com.ethlo.lamebda.util.IoUtil;
+import groovy.lang.GroovyClassLoader;
 
 public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoader
 {
@@ -46,27 +48,40 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
     public static final String STATIC_DIR = "static";
     public static final String API_SPECIFICATION_YAML = "oas.yaml";
     public static final String API_SPECIFICATION_JSON = "oas.json";
-    public static final String SPECIFICATION_DIR = "specification";
+    public static final String SPECIFICATION_DIRECTORY_NAME = "specification";
+    private static final String LIB_DIRECTORY_NAME = "lib";
 
-    private final Path basePath;
-    private final WatchService watchService;
+    private final Path projectPath;
+    private final Path scriptPath;
+    private final Path specificationPath;
+    private final Path libPath;
 
-    public FileSystemLamebdaResourceLoader(FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor, Path basePath) throws IOException
+    public FileSystemLamebdaResourceLoader(FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor, Path projectPath) throws IOException
     {
         super(functionSourcePreProcessor, functionPostProcessor);
-        this.basePath = basePath;
-        this.watchService = FileSystems.getDefault().newWatchService();
-        if (!Files.exists(basePath))
+
+        if (!Files.exists(projectPath))
         {
-            throw new FileNotFoundException("Cannot use " + basePath + " as source directory for functions, as it does not exist");
+            throw new FileNotFoundException("Cannot use " + projectPath + " as project directory");
         }
-        logger.info("Using directory {} as source directory for handler functions", basePath);
-        listenForChanges(basePath);
+
+        this.projectPath = projectPath;
+        this.scriptPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SCRIPT_DIRECTORY_NAME));
+        this.specificationPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SPECIFICATION_DIRECTORY_NAME));
+        this.libPath = IoUtil.ensureDirectoryExists(projectPath.resolve(LIB_DIRECTORY_NAME));
+
+        logger.info("Project directory: {}", projectPath);
+        logger.info("HandlerFunction directory: {}", scriptPath);
+        logger.info("Specification directory: {}", specificationPath);
+        logger.info("Library path: {}", libPath);
+
+        //listenForChanges(projectPath);
+        listenForChanges(scriptPath, specificationPath);
     }
 
-    private void listenForChanges(Path path) throws IOException
+    private void listenForChanges(Path... paths) throws IOException
     {
-        final WatchDir watchDir = new WatchDir(path, e -> {
+        final WatchDir watchDir = new WatchDir(e -> {
             logger.debug("{}", e);
 
             try
@@ -77,7 +92,7 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
             {
                 logger.warn("Error during file changed event processing: {}", exc.getMessage(), exc);
             }
-        });
+        }, paths);
 
         new Thread()
         {
@@ -85,7 +100,7 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
             public void run()
             {
                 setName("function-watcher");
-                logger.info("Watching {} recursively", path);
+                logger.info("Watching {} recursively", Arrays.asList(paths));
                 watchDir.processEvents();
             }
         }.start();
@@ -96,7 +111,7 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
         final String filename = event.getPath().getFileName().toString();
         final ChangeType changeType = event.getChangeType();
 
-        if (filename.endsWith(SCRIPT_EXTENSION) && event.getPath().getParent().equals(basePath))
+        if (filename.endsWith(SCRIPT_EXTENSION) && event.getPath().getParent().equals(scriptPath))
         {
             functionChanged(event.getPath(), changeType);
         }
@@ -117,12 +132,12 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
     {
         // TODO: Walk hierarchy!
 
-        final String[] files = basePath.toFile().list((d, f) -> f.endsWith(SCRIPT_EXTENSION));
+        final String[] files = projectPath.toFile().list((d, f) -> f.endsWith(SCRIPT_EXTENSION));
         return Arrays.asList(files)
                 .stream()
                 .skip(offset)
                 .limit(size)
-                .map(n -> new ServerFunctionInfo(basePath.resolve(n)))
+                .map(n -> new ServerFunctionInfo(projectPath.resolve(n)))
                 .collect(Collectors.toList());
     }
 
@@ -139,8 +154,8 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
     @Override
     public Optional<Path> getApiSpecification()
     {
-        final Path specPathYaml = basePath.resolve(SPECIFICATION_DIR).resolve(API_SPECIFICATION_YAML);
-        final Path specPathJson = basePath.resolve(SPECIFICATION_DIR).resolve(API_SPECIFICATION_JSON);
+        final Path specPathYaml = projectPath.resolve(SPECIFICATION_DIRECTORY_NAME).resolve(API_SPECIFICATION_YAML);
+        final Path specPathJson = projectPath.resolve(SPECIFICATION_DIRECTORY_NAME).resolve(API_SPECIFICATION_JSON);
         if (Files.exists(specPathYaml))
         {
             return Optional.of(specPathYaml);
@@ -150,5 +165,18 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
             return Optional.of(specPathJson);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public URL getLibraryClassPath()
+    {
+        try
+        {
+            return libPath.toUri().toURL();
+        }
+        catch (MalformedURLException e)
+        {
+            throw new IllegalArgumentException(e);
+        }
     }
 }

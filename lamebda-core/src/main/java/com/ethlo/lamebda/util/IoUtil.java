@@ -47,7 +47,7 @@ public class IoUtil
         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
         int nRead;
         byte[] data = new byte[1024];
-        
+
         try
         {
             while ((nRead = in.read(data, 0, data.length)) != -1)
@@ -116,7 +116,7 @@ public class IoUtil
             {
                 Path rel = src.relativize(path);
                 final Path target = dest.resolve(rel);
-                Files.copy(path, target);
+                Files.copy(path, target, StandardCopyOption.REPLACE_EXISTING);
                 return super.visitFile(path, basicFileAttributes);
             }
         });
@@ -152,5 +152,11 @@ public class IoUtil
         {
             throw new IllegalArgumentException("Cannot find file " + src);
         }
+    }
+
+    public static Path ensureDirectoryExists(final Path path) throws IOException
+    {
+        Files.createDirectories(path);
+        return path;
     }
 }

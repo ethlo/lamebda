@@ -5,7 +5,6 @@ import java.io.StringReader;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.URL;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +20,7 @@ import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
+import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.oas.ApiGenerator;
 import com.ethlo.lamebda.oas.ModelGenerator;
@@ -49,7 +49,6 @@ import groovy.lang.GroovyClassLoader;
 public class FunctionManagerImpl implements FunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
-    private static final String PROPERTIES_EXTENSION = ".properties";
     private final GroovyClassLoader groovyClassLoader;
 
     private Map<Path, ServerFunction> functions = new ConcurrentHashMap<>();
@@ -59,6 +58,7 @@ public class FunctionManagerImpl implements FunctionManager
     {
         this.lamebdaResourceLoader = lamebdaResourceLoader;
         this.groovyClassLoader = new GroovyClassLoader();
+        groovyClassLoader.addURL(lamebdaResourceLoader.getLibraryClassPath());
 
         if (lamebdaResourceLoader instanceof SourceChangeAware)
         {
@@ -88,8 +88,11 @@ public class FunctionManagerImpl implements FunctionManager
             lamebdaResourceLoader.setApiSpecificationChangeListener(n ->
             {
                 logger.info("Specification file changed: {}", n.getPath());
-                processApiSpecification(n.getPath());
-                reloadFunctions(n.getPath());
+                if (n.getChangeType() != ChangeType.DELETED)
+                {
+                    processApiSpecification(n.getPath());
+                    reloadFunctions(n.getPath());
+                }
             });
         }
     }
@@ -128,7 +131,7 @@ public class FunctionManagerImpl implements FunctionManager
     {
         logger.info("Reloading functions due to API specification change: {}", path);
         functions.forEach((p, func) -> {
-            if (! (func instanceof BuiltInServerFunction))
+            if (!(func instanceof BuiltInServerFunction))
             {
                 load(lamebdaResourceLoader, p);
             }
@@ -147,26 +150,31 @@ public class FunctionManagerImpl implements FunctionManager
     private FunctionContext loadContext(final LamebdaResourceLoader lamebdaResourceLoader, final ServerFunction func, final Path sourcePath)
     {
         final FunctionConfiguration config = new FunctionConfiguration();
-        final String cfgFilePath = sourcePath.toString().replace(LamebdaResourceLoader.SCRIPT_EXTENSION, PROPERTIES_EXTENSION);
-        String cfgContent;
-        try
-        {
-            cfgContent = lamebdaResourceLoader.readSourceIfReadable(Paths.get(cfgFilePath));
-        }
-        catch (IOException exc)
-        {
-            throw new RuntimeException(exc);
-        }
 
-        if (cfgContent != null)
+        final PropertyFile propertyFile = func.getClass().getAnnotation(PropertyFile.class);
+        if (propertyFile != null)
         {
+            final Path cfgFilePath = sourcePath.getParent().getParent().resolve(propertyFile.value());
+            String cfgContent;
             try
             {
-                config.load(new StringReader(cfgContent));
+                cfgContent = lamebdaResourceLoader.readSourceIfReadable(cfgFilePath);
             }
-            catch (IOException e)
+            catch (IOException exc)
             {
-                throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
+                throw new RuntimeException(exc);
+            }
+
+            if (cfgContent != null)
+            {
+                try
+                {
+                    config.load(new StringReader(cfgContent));
+                }
+                catch (IOException e)
+                {
+                    throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
+                }
             }
         }
         config.put(FunctionContext.SCRIPT_SOURCE_PROPERTY_NAME, sourcePath);

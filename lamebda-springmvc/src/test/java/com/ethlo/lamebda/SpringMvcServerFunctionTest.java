@@ -81,10 +81,10 @@ public class SpringMvcServerFunctionTest
     @Test
     public void testInvokeSpringMvc() throws Exception
     {
-        move("SpringMvc.groovy");
+        final Path sourcePath = move("SpringMvc.groovy");
         ioWait();
         final Map<Path, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).containsExactly(basepath.resolve("SpringMvc.groovy"));
+        assertThat(functions.keySet()).containsExactly(sourcePath);
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
         req.setRequestURI("/test/123");
@@ -97,7 +97,7 @@ public class SpringMvcServerFunctionTest
 
     private Path move(final String name) throws IOException
     {
-        return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY_NAME).resolve(name), StandardCopyOption.REPLACE_EXISTING);
     }
 
     private void remove(final String name) throws IOException

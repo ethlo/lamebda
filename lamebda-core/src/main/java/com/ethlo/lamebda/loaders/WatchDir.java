@@ -108,12 +108,15 @@ public class WatchDir
         });
     }
 
-    public WatchDir(Path dir, Consumer<FileSystemEvent> listener) throws IOException
+    public WatchDir(Consumer<FileSystemEvent> listener, Path... dirs) throws IOException
     {
         this.watcher = FileSystems.getDefault().newWatchService();
         this.keys = new HashMap<>();
         this.listener = listener;
-        registerAll(dir);
+        for (Path dir : dirs)
+        {
+            registerAll(dir);
+        }
     }
 
     /**

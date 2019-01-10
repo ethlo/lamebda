@@ -22,10 +22,12 @@ package foo.bar
 import com.ethlo.lamebda.HttpRequest
 import com.ethlo.lamebda.HttpResponse
 import com.ethlo.lamebda.HttpStatus
+import com.ethlo.lamebda.PropertyFile
 import com.ethlo.lamebda.SimpleServerFunction
 import mypackage.*
 import spec.*
 
+@PropertyFile("config.properties")
 class Correct extends SimpleServerFunction {
 
     Correct() {

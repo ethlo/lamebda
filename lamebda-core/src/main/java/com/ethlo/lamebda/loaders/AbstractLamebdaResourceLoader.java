@@ -88,8 +88,6 @@ public abstract class AbstractLamebdaResourceLoader implements LamebdaResourceLo
     {
         try
         {
-            loadLibs(classLoader, sourcePath);
-
             final String source = readSource(sourcePath);
             final String modifiedSource = functionSourcePreProcessor.process(classLoader, source);
 
@@ -101,22 +99,6 @@ public abstract class AbstractLamebdaResourceLoader implements LamebdaResourceLo
         catch (IOException exc)
         {
             throw new IllegalStateException("Cannot parse class " + sourcePath, exc);
-        }
-    }
-
-    private void loadLibs(GroovyClassLoader classLoader, final Path sourcePath) throws IOException
-    {
-        if (! Files.exists(sourcePath))
-        {
-            return;
-        }
-
-        final Path directory = sourcePath.getParent().resolve("lib");
-
-        logger.debug("Using library classpath for script {}: {}", sourcePath, directory);
-        if (Files.exists(directory))
-        {
-            classLoader.addURL(directory.toUri().toURL());
         }
     }
 
