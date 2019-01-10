@@ -51,6 +51,8 @@ public class WatchDir
 {
     private static final Logger logger = LoggerFactory.getLogger(WatchDir.class);
 
+    private static WatchEvent.Modifier modifier = getComSunNioFileSensitivityWatchEventModifierHigh();
+
     private final WatchService watcher;
     private final Map<WatchKey, Path> keys;
     private final Consumer<FileSystemEvent> listener;
@@ -67,7 +69,7 @@ public class WatchDir
         keys.put(key, dir);
     }
 
-    private WatchEvent.Modifier getComSunNioFileSensitivityWatchEventModifierHigh()
+    private static WatchEvent.Modifier getComSunNioFileSensitivityWatchEventModifierHigh()
     {
         try
         {
@@ -81,17 +83,15 @@ public class WatchDir
         }
     }
 
-
     private WatchKey register(Path dir) throws IOException
     {
-        final WatchEvent.Modifier high = getComSunNioFileSensitivityWatchEventModifierHigh();
-        if (high == null)
+        if (modifier == null)
         {
             return dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
         }
         else
         {
-            return dir.register(watcher, new WatchEvent.Kind<?>[]{ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY}, high);
+            return dir.register(watcher, new WatchEvent.Kind<?>[]{ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY}, modifier);
         }
     }
 
@@ -154,7 +154,9 @@ public class WatchDir
                 final Path name = ev.context();
                 final Path child = dir.resolve(name);
 
-                listener.accept(new FileSystemEvent(ChangeType.from(event.kind()), child));
+                final FileSystemEvent e = new FileSystemEvent(ChangeType.from(event.kind()), child);
+                logger.debug("File system changed: {}", e);
+                listener.accept(e);
 
                 // if directory is created, and watching recursively, then
                 // register it and its sub-directories
@@ -164,6 +166,7 @@ public class WatchDir
                     {
                         if (Files.isDirectory(child, NOFOLLOW_LINKS))
                         {
+                            logger.debug("Watching new directory {}", child);
                             registerAll(child);
                         }
                     }

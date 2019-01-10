@@ -117,22 +117,6 @@ public abstract class AbstractLamebdaResourceLoader implements LamebdaResourceLo
         if (Files.exists(directory))
         {
             classLoader.addURL(directory.toUri().toURL());
-            final File[] files = directory.toFile().listFiles(f -> f.getName().endsWith(SCRIPT_EXTENSION));
-            if (files != null)
-            {
-                for (File file : files)
-                {
-                    logger.debug("Parsing library class {}", file.getName());
-                    try
-                    {
-                        classLoader.loadClass(file.getName().replaceAll(SCRIPT_EXTENSION, ""));
-                    }
-                    catch (ClassNotFoundException e)
-                    {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
         }
     }
 

@@ -34,6 +34,7 @@ import groovy.lang.GroovyClassLoader;
 public interface LamebdaResourceLoader
 {
     String SCRIPT_EXTENSION = ".groovy";
+    String JAVA_EXTENSION = ".java";
 
     /**
      * Load the contents of the class

@@ -116,6 +116,7 @@ public class FunctionManagerImpl implements FunctionManager
             new ApiGenerator().generateApiDocumentation(specificationFile);
 
             groovyClassLoader.addURL(classPathEntry);
+            logger.info("Adding model classpath {}", classPathEntry);
         }
         catch (IOException exc)
         {
@@ -168,6 +169,7 @@ public class FunctionManagerImpl implements FunctionManager
                 throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
             }
         }
+        config.put(FunctionContext.SCRIPT_SOURCE_PROPERTY_NAME, sourcePath);
         return new FunctionContext(config);
     }
 

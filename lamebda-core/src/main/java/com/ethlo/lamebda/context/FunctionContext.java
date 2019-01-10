@@ -20,8 +20,13 @@ package com.ethlo.lamebda.context;
  * #L%
  */
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 public class FunctionContext
 {
+    public static String SCRIPT_SOURCE_PROPERTY_NAME = "__scriptsource__";
+
     private final FunctionConfiguration configuration;
 
     public FunctionContext(FunctionConfiguration configuration)
@@ -32,5 +37,11 @@ public class FunctionContext
     public FunctionConfiguration getConfiguration()
     {
         return configuration;
+    }
+
+    public Path resolvePath(Path path)
+    {
+        final Path scriptSource = (Path)this.configuration.get(SCRIPT_SOURCE_PROPERTY_NAME);
+        return scriptSource.getParent().resolve(path);
     }
 }

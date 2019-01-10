@@ -9,9 +9,9 @@ package com.ethlo.lamebda.util;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -88,8 +88,33 @@ public class FileNameUtil
         return filename.substring(index + 1);
     }
 
-    public static String getDirectory(String path)
-    {
-        return new File(path).getParent();
+    //-----------------------------------------------------------------------
+    /**
+     * Removes the extension from a filename.
+     * <p>
+     * This method returns the textual part of the filename before the last dot.
+     * There must be no directory separator after the dot.
+     * <pre>
+     * foo.txt    --> foo
+     * a\b\c.jpg  --> a\b\c
+     * a\b\c      --> a\b\c
+     * a.b\c      --> a.b\c
+     * </pre>
+     * <p>
+     * The output will be the same irrespective of the machine that the code is running on.
+     *
+     * @param filename  the filename to query, null returns null
+     * @return the filename minus the extension
+     */
+    public static String removeExtension(String filename) {
+        if (filename == null) {
+            return null;
+        }
+        int index = indexOfExtension(filename);
+        if (index == -1) {
+            return filename;
+        } else {
+            return filename.substring(0, index);
+        }
     }
 }

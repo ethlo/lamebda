@@ -22,6 +22,7 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.awt.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,6 +31,8 @@ import java.nio.file.StandardCopyOption;
 import java.util.Map;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
@@ -38,6 +41,8 @@ import com.ethlo.lamebda.util.IoUtil;
 
 public class FunctionLoaderTest
 {
+    private static final Logger logger = LoggerFactory.getLogger(FunctionLoaderTest.class);
+
     private final Path basepath = Paths.get(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
     private FunctionManagerImpl functionManager;
 
@@ -56,10 +61,12 @@ public class FunctionLoaderTest
     @Test
     public void testLoadOnCreate() throws Exception
     {
-        final String name = "Correct.properties";
-        Files.copy(Paths.get("src/test/resources", name), basepath.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        logger.info("Adding properties and API specification file");
+        moveResource("Correct.properties", "");
+        moveResource("petstore-oas3.yaml", "specification", FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML);
+        ioWait();
 
-        move("Correct.groovy");
+        deployFunc("Correct.groovy");
         ioWait();
         final Map<Path, ServerFunction> functions = functionManager.getFunctions();
 
@@ -80,23 +87,25 @@ public class FunctionLoaderTest
     private void addLib() throws IOException
     {
         final Path libTargetDir = basepath.resolve("lib");
-        libTargetDir.toFile().mkdirs();
-        Files.copy(Paths.get("src/test/groovy/lib", "MyLib.groovy"), Paths.get(libTargetDir.toString(), "MyLib.groovy"), StandardCopyOption.REPLACE_EXISTING);
+        final Path packageTargetDir = libTargetDir.resolve("mypackage");
+        Files.createDirectories(packageTargetDir);
+        Files.createDirectories(libTargetDir);
+        Files.copy(Paths.get("src/test/groovy/lib","MyLib.groovy"), packageTargetDir.resolve("MyLib.groovy"), StandardCopyOption.REPLACE_EXISTING);
     }
 
     @Test
     public void showCompilationError() throws Exception
     {
-        move("Incorrect.groovy");
+        deployFunc("Incorrect.groovy");
     }
 
     @Test
     public void testLoadOnModification() throws Exception
     {
         final String filename = "Correct.groovy";
-        move(filename);
+        deployFunc(filename);
         ioWait();
-        move(filename);
+        deployFunc(filename);
         ioWait();
 
         final Path sourcePath = getSourcePath(filename);
@@ -113,9 +122,16 @@ public class FunctionLoaderTest
         return basepath.resolve(filename);
     }
 
-    private void ioWait() throws InterruptedException
+    private void ioWait()
     {
-        Thread.sleep(2_000);
+        try
+        {
+            Thread.sleep(2_000);
+        }
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Test
@@ -125,7 +141,7 @@ public class FunctionLoaderTest
         final Path sourcePath = getSourcePath(filename);
 
         // Create file and wait for it to load
-        move(filename);
+        deployFunc(filename);
         ioWait();
         assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
 
@@ -142,7 +158,7 @@ public class FunctionLoaderTest
         final Path sourcePath = getSourcePath(filename);
 
         // Load correct script and verify loaded
-        final Path target = move("Correct.groovy");
+        final Path target = deployFunc("Correct.groovy");
         ioWait();
         assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
 
@@ -152,11 +168,25 @@ public class FunctionLoaderTest
         assertThat(functionManager.getFunctions().keySet()).doesNotContain(sourcePath);
     }
 
-    private Path move(final String name) throws IOException
+    private Path deployFunc(final String name) throws IOException
     {
         addLib();
         return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(name), StandardCopyOption.REPLACE_EXISTING);
     }
+
+    private Path moveResource(final String name, String folder) throws IOException
+    {
+        return moveResource(name, folder, name);
+    }
+
+    private Path moveResource(final String name, String folder, String filename) throws IOException
+    {
+        final Path target = basepath.resolve(folder).resolve(filename);
+        Files.createDirectories(target);
+        ioWait();
+        return Files.copy(Paths.get("src/test/resources", name), target, StandardCopyOption.REPLACE_EXISTING);
+    }
+
 
     private void remove(final String name) throws IOException
     {

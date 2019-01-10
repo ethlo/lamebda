@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package lib
+package mypackage
 
 class MyLib {
     String helloWorld(String name) {

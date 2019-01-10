@@ -23,12 +23,14 @@ import com.ethlo.lamebda.HttpRequest
 import com.ethlo.lamebda.HttpResponse
 import com.ethlo.lamebda.HttpStatus
 import com.ethlo.lamebda.SimpleServerFunction
-import lib.MyLib
+import mypackage.*
+import spec.*
 
 class Correct extends SimpleServerFunction {
 
     Correct() {
         new MyLib().helloWorld("John Smith")
+        def pet = new Pet()
     }
 
     @Override
