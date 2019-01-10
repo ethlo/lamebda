@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
-import com.ethlo.lamebda.loaders.AbstractLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
@@ -172,7 +171,7 @@ public class FunctionLoaderTest
     private Path deployFunc(final String name) throws IOException
     {
         addShared();
-        final Path target = basepath.resolve(AbstractLamebdaResourceLoader.SCRIPT_DIRECTORY_NAME).resolve(name);
+        final Path target = basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY_NAME).resolve(name);
         Files.createDirectories(target.getParent());
         return Files.copy(Paths.get("src/test/groovy", name), target, StandardCopyOption.REPLACE_EXISTING);
     }

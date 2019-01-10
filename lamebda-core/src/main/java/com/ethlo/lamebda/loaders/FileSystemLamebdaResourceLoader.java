@@ -22,6 +22,7 @@ package com.ethlo.lamebda.loaders;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -30,35 +31,52 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ethlo.lamebda.ApiSpecificationModificationNotice;
+import com.ethlo.lamebda.FunctionModificationNotice;
+import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
+import com.ethlo.lamebda.SourceChangeAware;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.FileSystemEvent;
+import com.ethlo.lamebda.io.WatchDir;
+import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.IoUtil;
+import groovy.lang.GroovyClassLoader;
 
-public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoader
+public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, SourceChangeAware
 {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemLamebdaResourceLoader.class);
 
     public static final String STATIC_DIR = "static";
     public static final String API_SPECIFICATION_YAML = "oas.yaml";
     public static final String API_SPECIFICATION_JSON = "oas.json";
+
+    public static final String SCRIPT_DIRECTORY_NAME = "scripts";
     public static final String SPECIFICATION_DIRECTORY_NAME = "specification";
     public static final String SHARED_DIRECTORY_NAME = "shared";
-    //private static final String SHARED_DIRECTORY_NAME = "shared";
+    public static final String LIB_DIRECTORY_NAME = "lib";
 
     private final Path projectPath;
     private final Path scriptPath;
     private final Path specificationPath;
+    private final Path sharedPath;
     private final Path libPath;
+
+    private final FunctionSourcePreProcessor functionSourcePreProcessor;
+    private final FunctionPostProcessor functionPostProcessor;
+    private Consumer<FunctionModificationNotice> functionChangeListener;
+    private Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener;
 
     public FileSystemLamebdaResourceLoader(FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor, Path projectPath) throws IOException
     {
-        super(functionSourcePreProcessor, functionPostProcessor);
+        this.functionSourcePreProcessor = Assert.notNull(functionSourcePreProcessor, "functionSourcePreProcesor cannot be null");
+        this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
 
         if (!Files.exists(projectPath))
         {
@@ -68,15 +86,82 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
         this.projectPath = projectPath;
         this.scriptPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SCRIPT_DIRECTORY_NAME));
         this.specificationPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SPECIFICATION_DIRECTORY_NAME));
-        this.libPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SHARED_DIRECTORY_NAME));
+        this.sharedPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SHARED_DIRECTORY_NAME));
+        this.libPath = IoUtil.ensureDirectoryExists(projectPath.resolve(LIB_DIRECTORY_NAME));
 
         logger.info("Project directory: {}", projectPath);
         logger.info("HandlerFunction directory: {}", scriptPath);
         logger.info("Specification directory: {}", specificationPath);
+        logger.info("Shared path: {}", sharedPath);
         logger.info("Library path: {}", libPath);
 
-        //listenForChanges(projectPath);
         listenForChanges(scriptPath, specificationPath);
+    }
+
+    @Override
+    public void setFunctionChangeListener(Consumer<FunctionModificationNotice> l)
+    {
+        this.functionChangeListener = l;
+    }
+
+    @Override
+    public void setApiSpecificationChangeListener(Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener)
+    {
+        this.apiSpecificationChangeListener = apiSpecificationChangeListener;
+    }
+
+    @Override
+    public ServerFunction load(GroovyClassLoader classLoader, Path sourcePath)
+    {
+        final Class<ServerFunction> clazz = parseClass(classLoader, sourcePath);
+        return functionPostProcessor.process(instantiate(clazz));
+    }
+
+    protected ServerFunction instantiate(Class<ServerFunction> clazz)
+    {
+        try
+        {
+            return ServerFunction.class.cast(clazz.newInstance());
+        }
+        catch (InstantiationException | IllegalAccessException exc)
+        {
+            throw new IllegalStateException("Cannot instantiate class " + clazz.getName(), exc);
+        }
+    }
+
+    @Override
+    public Class<ServerFunction> parseClass(GroovyClassLoader classLoader, Path sourcePath)
+    {
+        try
+        {
+            final String source = readSource(sourcePath);
+            final String modifiedSource = functionSourcePreProcessor.process(classLoader, source);
+
+            final Class<?> clazz = classLoader.parseClass(modifiedSource != null ? modifiedSource : source);
+            Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
+
+            return (Class<ServerFunction>) clazz;
+        }
+        catch (IOException exc)
+        {
+            throw new IllegalStateException("Cannot parse class " + sourcePath, exc);
+        }
+    }
+
+    private void functionChanged(Path sourcePath, ChangeType changeType)
+    {
+        if (functionChangeListener != null)
+        {
+            functionChangeListener.accept(new FunctionModificationNotice(changeType, sourcePath));
+        }
+    }
+
+    private void apiSpecificationChanged(Path sourcePath, ChangeType changeType)
+    {
+        if (apiSpecificationChangeListener != null)
+        {
+            apiSpecificationChangeListener.accept(new ApiSpecificationModificationNotice(changeType, sourcePath));
+        }
     }
 
     private void listenForChanges(Path... paths) throws IOException
@@ -130,15 +215,18 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
     @Override
     public List<ServerFunctionInfo> findAll(long offset, int size)
     {
-        // TODO: Walk hierarchy!
-
-        final String[] files = projectPath.toFile().list((d, f) -> f.endsWith(SCRIPT_EXTENSION));
-        return Arrays.asList(files)
-                .stream()
-                .skip(offset)
-                .limit(size)
-                .map(n -> new ServerFunctionInfo(projectPath.resolve(n)))
-                .collect(Collectors.toList());
+        try
+        {
+            return Files.list(scriptPath).filter(f -> f.endsWith(SCRIPT_EXTENSION))
+                    .skip(offset)
+                    .limit(size)
+                    .map(n -> new ServerFunctionInfo(n))
+                    .collect(Collectors.toList());
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
@@ -172,7 +260,7 @@ public class FileSystemLamebdaResourceLoader extends AbstractLamebdaResourceLoad
     {
         try
         {
-            return libPath.toUri().toURL();
+            return sharedPath.toUri().toURL();
         }
         catch (MalformedURLException e)
         {
