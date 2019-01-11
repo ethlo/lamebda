@@ -17,13 +17,8 @@
  * limitations under the License.
  * #L%
  */
-package foo.bar
 
-import com.ethlo.lamebda.HttpRequest
-import com.ethlo.lamebda.HttpResponse
-import com.ethlo.lamebda.HttpStatus
-import com.ethlo.lamebda.PropertyFile
-import com.ethlo.lamebda.SimpleServerFunction
+import com.ethlo.lamebda.*
 import mypackage.*
 import spec.*
 

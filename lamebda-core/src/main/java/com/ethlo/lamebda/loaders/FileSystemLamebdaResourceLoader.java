@@ -155,12 +155,21 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
             final Class<?> clazz = classLoader.parseClass(modifiedSource != null ? modifiedSource : source);
             Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
 
+            final String actualClassName = clazz.getCanonicalName();
+            final String expectedClassName = toClassName(sourcePath);
+            Assert.isTrue(actualClassName.equals(expectedClassName), "Unexpected class name '" + actualClassName + "' in file " + sourcePath + ". Expected " + expectedClassName);
+
             return (Class<ServerFunction>) clazz;
         }
         catch (IOException exc)
         {
             throw new IllegalStateException("Cannot parse class " + sourcePath, exc);
         }
+    }
+
+    private String toClassName(final Path sourcePath)
+    {
+        return scriptPath.relativize(sourcePath).toString().replace('/', '.').replace("." + SCRIPT_EXTENSION, "");
     }
 
     private void functionChanged(Path sourcePath, ChangeType changeType)
@@ -208,7 +217,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
 
     private void fileChanged(FileSystemEvent event)
     {
-        logger.info("{}", event);
         final String filename = event.getPath().getFileName().toString();
         final ChangeType changeType = event.getChangeType();
 

@@ -126,7 +126,7 @@ public class FunctionLoaderTest
     {
         try
         {
-            Thread.sleep(2_000);
+            Thread.sleep(2_200);
         }
         catch (InterruptedException e)
         {
