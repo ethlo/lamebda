@@ -24,6 +24,7 @@ import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.oas.ApiGenerator;
 import com.ethlo.lamebda.oas.ModelGenerator;
+import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
 /*-
@@ -58,7 +59,11 @@ public class FunctionManagerImpl implements FunctionManager
     {
         this.lamebdaResourceLoader = lamebdaResourceLoader;
         this.groovyClassLoader = new GroovyClassLoader();
-        groovyClassLoader.addURL(lamebdaResourceLoader.getLibraryClassPath());
+        groovyClassLoader.addURL(lamebdaResourceLoader.getSharedClassPath());
+        lamebdaResourceLoader.getLibUrls().forEach(url -> {
+            logger.info("Adding classpath URL {}", url);
+            groovyClassLoader.addURL(url);
+        });
 
         if (lamebdaResourceLoader instanceof SourceChangeAware)
         {
@@ -92,6 +97,15 @@ public class FunctionManagerImpl implements FunctionManager
                 {
                     processApiSpecification(n.getPath());
                     reloadFunctions(n.getPath());
+                }
+            });
+
+            // Listen for lib folder changes
+            lamebdaResourceLoader.setApiSpecificationChangeListener(n ->
+            {
+                if (n.getChangeType() != ChangeType.CREATED)
+                {
+                    groovyClassLoader.addURL(IoUtil.toURL(n.getPath()));
                 }
             });
         }

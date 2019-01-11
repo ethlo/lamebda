@@ -27,8 +27,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -46,6 +48,7 @@ import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.FileSystemEvent;
 import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.util.Assert;
+import com.ethlo.lamebda.util.FileNameUtil;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
@@ -53,14 +56,18 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
 {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemLamebdaResourceLoader.class);
 
-    public static final String STATIC_DIR = "static";
     public static final String API_SPECIFICATION_YAML = "oas.yaml";
     public static final String API_SPECIFICATION_JSON = "oas.json";
 
+    public static final String SCRIPT_EXTENSION = "groovy";
+    private static final String JAR_EXTENSION = "jar";
+
     public static final String SCRIPT_DIRECTORY_NAME = "scripts";
+    public static final String STATIC_DIR = "static";
     public static final String SPECIFICATION_DIRECTORY_NAME = "specification";
     public static final String SHARED_DIRECTORY_NAME = "shared";
     public static final String LIB_DIRECTORY_NAME = "lib";
+
 
     private final Path projectPath;
     private final Path scriptPath;
@@ -70,8 +77,10 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
 
     private final FunctionSourcePreProcessor functionSourcePreProcessor;
     private final FunctionPostProcessor functionPostProcessor;
+
     private Consumer<FunctionModificationNotice> functionChangeListener;
     private Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener;
+    private Consumer<FileSystemEvent> libChangeListener;
 
     public FileSystemLamebdaResourceLoader(FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor, Path projectPath) throws IOException
     {
@@ -108,6 +117,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
     public void setApiSpecificationChangeListener(Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener)
     {
         this.apiSpecificationChangeListener = apiSpecificationChangeListener;
+    }
+
+    @Override
+    public void setLibChangeListener(Consumer<FileSystemEvent> listener)
+    {
+        this.libChangeListener = listener;
     }
 
     @Override
@@ -196,13 +211,25 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         final String filename = event.getPath().getFileName().toString();
         final ChangeType changeType = event.getChangeType();
 
-        if (filename.endsWith(SCRIPT_EXTENSION) && event.getPath().getParent().equals(scriptPath))
+        if (FileNameUtil.getExtension(filename).equals(SCRIPT_EXTENSION) && event.getPath().getParent().equals(scriptPath))
         {
             functionChanged(event.getPath(), changeType);
+        }
+        else if (FileNameUtil.getExtension(filename).equals(JAR_EXTENSION) && event.getPath().getParent().equals(libPath))
+        {
+            libChanged(event.getPath(), changeType);
         }
         else if (filename.equals(API_SPECIFICATION_JSON) || filename.equals(API_SPECIFICATION_YAML))
         {
             apiSpecificationChanged(event.getPath(), changeType);
+        }
+    }
+
+    private void libChanged(final Path path, final ChangeType changeType)
+    {
+        if (libChangeListener != null)
+        {
+            libChangeListener.accept(new FunctionModificationNotice(changeType, path));
         }
     }
 
@@ -217,7 +244,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
     {
         try
         {
-            return Files.list(scriptPath).filter(f -> f.endsWith(SCRIPT_EXTENSION))
+            return Files.list(scriptPath).filter(f -> FileNameUtil.getExtension(f.getFileName().toString()).equals(SCRIPT_EXTENSION))
                     .skip(offset)
                     .limit(size)
                     .map(n -> new ServerFunctionInfo(n))
@@ -256,7 +283,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
     }
 
     @Override
-    public URL getLibraryClassPath()
+    public URL getSharedClassPath()
     {
         try
         {
@@ -265,6 +292,24 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         catch (MalformedURLException e)
         {
             throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public List<URL> getLibUrls()
+    {
+        if (!Files.exists(libPath, LinkOption.NOFOLLOW_LINKS))
+        {
+            return Collections.emptyList();
+        }
+
+        try
+        {
+            return Files.list(this.libPath).filter(p -> FileNameUtil.getExtension(p.getFileName().toString()).equals(JAR_EXTENSION)).map(IoUtil::toURL).collect(Collectors.toList());
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
         }
     }
 }

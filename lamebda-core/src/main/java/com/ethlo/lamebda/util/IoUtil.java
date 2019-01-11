@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -158,5 +160,17 @@ public class IoUtil
     {
         Files.createDirectories(path);
         return path;
+    }
+
+    public static URL toURL(final Path path)
+    {
+        try
+        {
+            return path.toUri().toURL();
+        }
+        catch (MalformedURLException e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 }

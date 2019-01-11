@@ -30,14 +30,12 @@ import java.util.function.Consumer;
 import com.ethlo.lamebda.ApiSpecificationModificationNotice;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
+import com.ethlo.lamebda.io.FileSystemEvent;
+import com.google.common.collect.Multimap;
 import groovy.lang.GroovyClassLoader;
 
 public interface LamebdaResourceLoader
 {
-    String SCRIPT_DIRECTORY_NAME = "scripts";
-    String SCRIPT_EXTENSION = ".groovy";
-    String PROPERTIES_EXTENSION = ".properties";
-
     /**
      * Load the contents of the class
      *
@@ -58,6 +56,8 @@ public interface LamebdaResourceLoader
 
     void setApiSpecificationChangeListener(Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener);
 
+    void setLibChangeListener(Consumer<FileSystemEvent> listener);
+
     ServerFunction load(GroovyClassLoader classLoader, Path sourcePath);
 
     Class<ServerFunction> parseClass(GroovyClassLoader classLoader, Path sourcePath);
@@ -66,5 +66,7 @@ public interface LamebdaResourceLoader
 
     Optional<Path> getApiSpecification();
 
-    URL getLibraryClassPath();
+    URL getSharedClassPath();
+
+    List<URL> getLibUrls();
 }
