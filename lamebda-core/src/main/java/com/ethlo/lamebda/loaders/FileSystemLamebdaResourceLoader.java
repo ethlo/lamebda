@@ -104,7 +104,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         logger.info("Shared path: {}", sharedPath);
         logger.info("Library path: {}", libPath);
 
-        listenForChanges(scriptPath, specificationPath);
+        listenForChanges(scriptPath, specificationPath, libPath);
     }
 
     @Override
@@ -200,7 +200,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
             public void run()
             {
                 setName("function-watcher");
-                logger.info("Watching {} recursively", Arrays.asList(paths));
+                logger.info("Watching {} for changes", Arrays.asList(paths));
                 watchDir.processEvents();
             }
         }.start();
@@ -208,6 +208,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
 
     private void fileChanged(FileSystemEvent event)
     {
+        logger.info("{}", event);
         final String filename = event.getPath().getFileName().toString();
         final ChangeType changeType = event.getChangeType();
 

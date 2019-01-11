@@ -101,9 +101,9 @@ public class FunctionManagerImpl implements FunctionManager
             });
 
             // Listen for lib folder changes
-            lamebdaResourceLoader.setApiSpecificationChangeListener(n ->
+            lamebdaResourceLoader.setLibChangeListener(n ->
             {
-                if (n.getChangeType() != ChangeType.CREATED)
+                if (n.getChangeType() == ChangeType.CREATED)
                 {
                     groovyClassLoader.addURL(IoUtil.toURL(n.getPath()));
                 }
