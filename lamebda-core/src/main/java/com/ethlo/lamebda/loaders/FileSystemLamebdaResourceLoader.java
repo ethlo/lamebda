@@ -56,18 +56,18 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
 {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemLamebdaResourceLoader.class);
 
-    public static final String API_SPECIFICATION_YAML = "oas.yaml";
-    public static final String API_SPECIFICATION_JSON = "oas.json";
+    public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
+    public static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
+    public static final String DEFAULT_CONFIG_FILENAME = "config.properties";
 
     public static final String SCRIPT_EXTENSION = "groovy";
     private static final String JAR_EXTENSION = "jar";
 
-    public static final String SCRIPT_DIRECTORY_NAME = "scripts";
-    public static final String STATIC_DIR = "static";
-    public static final String SPECIFICATION_DIRECTORY_NAME = "specification";
-    public static final String SHARED_DIRECTORY_NAME = "shared";
-    public static final String LIB_DIRECTORY_NAME = "lib";
-
+    public static final String SCRIPT_DIRECTORY = "scripts";
+    public static final String STATIC_DIRECTORY = "static";
+    public static final String SPECIFICATION_DIRECTORY = "specification";
+    public static final String SHARED_DIRECTORY = "shared";
+    public static final String LIB_DIRECTORY = "lib";
 
     private final Path projectPath;
     private final Path scriptPath;
@@ -93,10 +93,10 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         }
 
         this.projectPath = projectPath;
-        this.scriptPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SCRIPT_DIRECTORY_NAME));
-        this.specificationPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SPECIFICATION_DIRECTORY_NAME));
-        this.sharedPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SHARED_DIRECTORY_NAME));
-        this.libPath = IoUtil.ensureDirectoryExists(projectPath.resolve(LIB_DIRECTORY_NAME));
+        this.scriptPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SCRIPT_DIRECTORY));
+        this.specificationPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SPECIFICATION_DIRECTORY));
+        this.sharedPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SHARED_DIRECTORY));
+        this.libPath = IoUtil.ensureDirectoryExists(projectPath.resolve(LIB_DIRECTORY));
 
         logger.info("Project directory: {}", projectPath);
         logger.info("HandlerFunction directory: {}", scriptPath);
@@ -228,7 +228,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         {
             libChanged(event.getPath(), changeType);
         }
-        else if (filename.equals(API_SPECIFICATION_JSON) || filename.equals(API_SPECIFICATION_YAML))
+        else if (filename.equals(API_SPECIFICATION_JSON_FILENAME) || filename.equals(API_SPECIFICATION_YAML_FILENAME))
         {
             apiSpecificationChanged(event.getPath(), changeType);
         }
@@ -278,8 +278,8 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
     @Override
     public Optional<Path> getApiSpecification()
     {
-        final Path specPathYaml = projectPath.resolve(SPECIFICATION_DIRECTORY_NAME).resolve(API_SPECIFICATION_YAML);
-        final Path specPathJson = projectPath.resolve(SPECIFICATION_DIRECTORY_NAME).resolve(API_SPECIFICATION_JSON);
+        final Path specPathYaml = projectPath.resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_YAML_FILENAME);
+        final Path specPathJson = projectPath.resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_JSON_FILENAME);
         if (Files.exists(specPathYaml))
         {
             return Optional.of(specPathYaml);

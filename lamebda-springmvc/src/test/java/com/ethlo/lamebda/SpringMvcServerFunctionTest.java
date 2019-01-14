@@ -97,7 +97,7 @@ public class SpringMvcServerFunctionTest
 
     private Path move(final String name) throws IOException
     {
-        return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY_NAME).resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve(name), StandardCopyOption.REPLACE_EXISTING);
     }
 
     private void remove(final String name) throws IOException

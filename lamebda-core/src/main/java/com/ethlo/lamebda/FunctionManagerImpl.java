@@ -21,6 +21,7 @@ import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.io.ChangeType;
+import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.oas.ApiGenerator;
 import com.ethlo.lamebda.oas.ModelGenerator;
@@ -166,29 +167,27 @@ public class FunctionManagerImpl implements FunctionManager
         final FunctionConfiguration config = new FunctionConfiguration();
 
         final PropertyFile propertyFile = func.getClass().getAnnotation(PropertyFile.class);
-        if (propertyFile != null)
+        final Path basePath = sourcePath.getParent().getParent();
+        final Path cfgFilePath = propertyFile != null ? basePath.resolve(propertyFile.value()) : basePath.resolve(FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME);
+        String cfgContent;
+        try
         {
-            final Path cfgFilePath = sourcePath.getParent().getParent().resolve(propertyFile.value());
-            String cfgContent;
+            cfgContent = lamebdaResourceLoader.readSourceIfReadable(cfgFilePath);
+        }
+        catch (IOException exc)
+        {
+            throw new RuntimeException(exc);
+        }
+
+        if (cfgContent != null)
+        {
             try
             {
-                cfgContent = lamebdaResourceLoader.readSourceIfReadable(cfgFilePath);
+                config.load(new StringReader(cfgContent));
             }
-            catch (IOException exc)
+            catch (IOException e)
             {
-                throw new RuntimeException(exc);
-            }
-
-            if (cfgContent != null)
-            {
-                try
-                {
-                    config.load(new StringReader(cfgContent));
-                }
-                catch (IOException e)
-                {
-                    throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
-                }
+                throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
             }
         }
         config.put(FunctionContext.SCRIPT_SOURCE_PROPERTY_NAME, sourcePath);

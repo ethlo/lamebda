@@ -56,7 +56,7 @@ public class ApiGenerator
 
         final Path apiDocPath = targetBaseDir;
 
-        final Path targetDir = specPath.getParent().getParent().resolve(FileSystemLamebdaResourceLoader.STATIC_DIR).resolve("oas");
+        final Path targetDir = specPath.getParent().getParent().resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY).resolve("oas");
         Files.createDirectories(targetDir);
         Files.copy(apiDocPath.resolve("index.html"), targetDir.resolve("index.html"), StandardCopyOption.REPLACE_EXISTING);
         IoUtil.deleteDirectory(targetBaseDir);

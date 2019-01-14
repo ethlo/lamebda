@@ -25,19 +25,24 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.oas.ModelGenerator;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
+import picocli.CommandLine.Unmatched;
 
 public class Main
 {
+    @Unmatched
+    private List<String> unmatched;
+
     @Option(names = "-m", description = "Create models")
     private boolean isCreateModels = true;
 
     @Option(names = {"-f", "--file"}, description = "the OAS specification file")
-    private Path specificationFile = Paths.get(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY_NAME, FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML);
+    private Path specificationFile = Paths.get(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY, FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
 
     public static void main(String[] args) throws Exception
     {
