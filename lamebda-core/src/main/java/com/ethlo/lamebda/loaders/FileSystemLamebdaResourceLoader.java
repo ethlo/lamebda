@@ -99,10 +99,10 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         this.libPath = IoUtil.ensureDirectoryExists(projectPath.resolve(LIB_DIRECTORY));
 
         logger.info("Project directory: {}", projectPath);
-        logger.info("HandlerFunction directory: {}", scriptPath);
-        logger.info("Specification directory: {}", specificationPath);
-        logger.info("Shared path: {}", sharedPath);
-        logger.info("Library path: {}", libPath);
+        logger.debug("HandlerFunction directory: {}", scriptPath);
+        logger.debug("Specification directory: {}", specificationPath);
+        logger.debug("Shared path: {}", sharedPath);
+        logger.debug("Library path: {}", libPath);
 
         listenForChanges(scriptPath, specificationPath, libPath);
     }

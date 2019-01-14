@@ -79,7 +79,7 @@ public class FunctionManagerImpl implements FunctionManager
                         }
                         catch (CompilationFailedException exc)
                         {
-                            logger.info("Unloading function {} due to script compilation error", n.getPath());
+                            logger.warn("Unloading function {} due to script compilation error", n.getPath());
                             unload(n.getPath());
                             throw exc;
                         }
@@ -110,6 +110,8 @@ public class FunctionManagerImpl implements FunctionManager
                 }
             });
         }
+
+        initialize();
     }
 
     private void load(final LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
@@ -201,8 +203,7 @@ public class FunctionManagerImpl implements FunctionManager
         return this;
     }
 
-    @PostConstruct
-    protected void loadAll()
+    private void initialize()
     {
         final Optional<Path> apiSpecification = lamebdaResourceLoader.getApiSpecification();
         if (apiSpecification.isPresent())
@@ -233,17 +234,17 @@ public class FunctionManagerImpl implements FunctionManager
     }
 
     @Override
-    public void handle(HttpRequest request, HttpResponse response) throws Exception
+    public boolean handle(HttpRequest request, HttpResponse response) throws Exception
     {
         for (final ServerFunction serverFunction : functions.values())
         {
-            if (doHandle(request, response, serverFunction))
+            final boolean handled = doHandle(request, response, serverFunction);
+            if (handled)
             {
-                return;
+                return true;
             }
         }
-
-        response.error(ErrorResponse.notFound("No function found to handle '" + request.path() + "'"));
+        return false;
     }
 
     private boolean doHandle(HttpRequest request, HttpResponse response, ServerFunction f) throws Exception

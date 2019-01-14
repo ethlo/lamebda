@@ -65,7 +65,7 @@ public class ServerFunctionTest
             return f;
         }, basepath));
 
-        functionManager.addFunction(Paths.get("static-resource-handler"), new StaticResourceFunction(basepath.resolve("static")));
+        functionManager.addFunction(Paths.get("static-resource-handler"), new StaticResourceFunction("", basepath.resolve("static")));
     }
 
     @Test

@@ -57,7 +57,10 @@ public class LamebdaController
         final HttpResponse res = new ServletHttpResponse(response);
         try
         {
-            functionManager.handle(req, res);
+            if (! functionManager.handle(req, res))
+            {
+                res.error(ErrorResponse.notFound("No function found to handle '" + req.path() + "'"));
+            }
         }
         catch (ClientException exc)
         {

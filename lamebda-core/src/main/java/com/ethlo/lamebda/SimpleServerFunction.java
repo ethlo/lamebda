@@ -30,7 +30,7 @@ import com.ethlo.lamebda.util.StringUtil;
 public abstract class SimpleServerFunction implements ServerFunction, FunctionContextAware
 {
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
-    private final String pattern;
+    protected final String pattern;
     private FunctionContext context;
 
     public SimpleServerFunction()
@@ -43,7 +43,6 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
     {
         this.pattern = pattern;
     }
-
 
     @Override
     public final FunctionResult handle(HttpRequest request, HttpResponse response)

@@ -28,7 +28,7 @@
 		</encoder>
 	</appender>
 
-	<logger name="org.openapitools.codegen" level="ERROR" />
+	<logger name="org.openapitools.codegen" level="INFO" />
 
 	<root level="INFO">
 		<appender-ref ref="stdout" />

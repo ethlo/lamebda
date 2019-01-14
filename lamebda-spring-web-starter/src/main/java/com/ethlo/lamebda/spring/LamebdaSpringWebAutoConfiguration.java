@@ -21,8 +21,12 @@ package com.ethlo.lamebda.spring;
  */
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
@@ -40,14 +44,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.servlet.HandlerMapping;
 
-import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerImpl;
+import com.ethlo.lamebda.FunctionResult;
+import com.ethlo.lamebda.HttpRequest;
+import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.functions.StaticResourceFunction;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
-import com.ethlo.lamebda.util.Assert;
+import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
+import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration
@@ -105,27 +111,43 @@ public class LamebdaSpringWebAutoConfiguration
     }
 
     @Bean
-    @ConditionalOnBean(FileSourceConfiguration.class)
-    public LamebdaResourceLoader classResourceLoader(FunctionSourcePreProcessor preNotification, FunctionPostProcessor functionPostProcessor, FileSourceConfiguration cfg) throws IOException
-    {
-        logger.info("Using file system class loader");
-        return new FileSystemLamebdaResourceLoader(preNotification, functionPostProcessor, cfg.getDirectory());
-    }
-
-    @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnBean(LamebdaResourceLoader.class)
-    public FunctionManager functionManager(LamebdaResourceLoader lamebdaResourceLoader, FileSourceConfiguration cfg)
+    @ConditionalOnBean(FileSourceConfiguration.class)
+    public List<FunctionManager> functionManager(FunctionSourcePreProcessor preNotification, FunctionPostProcessor functionPostProcessor, FileSourceConfiguration cfg) throws IOException
     {
-        Assert.notNull(cfg.getDirectory(), "Directory must be set");
-        return new FunctionManagerImpl(lamebdaResourceLoader).addFunction(Paths.get("static-data"), new StaticResourceFunction(cfg.getDirectory().resolve("static")));
+        return Files.list(cfg.getDirectory())
+                .filter(p-> !p.getFileName().toString().startsWith(".") && Files.isDirectory(p))
+                .map(projectDir -> initProject(projectDir, preNotification, functionPostProcessor))
+                .collect(Collectors.toList());
     }
 
-    @Bean
-    @ConditionalOnBean(FunctionManager.class)
-    public LamebdaController lamebdaController(FunctionManager functionManager, ObjectMapper mapper)
+    private FunctionManager initProject(final Path projectDir, final FunctionSourcePreProcessor preNotification, final FunctionPostProcessor functionPostProcessor)
     {
-        return new LamebdaController(functionManager, requestPath, mapper);
+        try
+        {
+            final FileSystemLamebdaResourceLoader lamebdaResourceLoader = new FileSystemLamebdaResourceLoader(preNotification, functionPostProcessor, projectDir);
+            return new FunctionManagerImpl(lamebdaResourceLoader).addFunction(Paths.get("static-data"), new StaticResourceFunction(projectDir.getFileName().toString(), projectDir.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY)));
+        }
+        catch (IOException exc)
+        {
+            throw new UncheckedIOException(exc);
+        }
+    }
+
+
+    @Bean
+    public LamebdaController lamebdaController(List<FunctionManager> functionManagers, ObjectMapper mapper)
+    {
+        return new LamebdaController((request, response) -> {
+            for (FunctionManager functionManager : functionManagers)
+            {
+                if (functionManager.handle(request, response))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }, requestPath, mapper);
     }
 
     @Bean

@@ -38,16 +38,16 @@ public class StaticResourceFunction extends SimpleServerFunction implements Buil
 {
     private final Path resourceBasePath;
 
-    public StaticResourceFunction(Path resourceBasePath)
+    public StaticResourceFunction(String projectFolder, Path resourceBasePath)
     {
-        super("/static/**");
+        super("/" + projectFolder + "/static/**");
         this.resourceBasePath = resourceBasePath;
     }
 
     @Override
     public void doHandle(HttpRequest request, HttpResponse response)
     {
-        final String requestedPath = Paths.get(request.path().substring(8)).normalize().toString();
+        final String requestedPath = Paths.get(request.path()).normalize().toString().substring(pattern.length() - 2);
         final Path requestedFile = resourceBasePath.resolve(requestedPath).toAbsolutePath();
         if (isSubDirectory(resourceBasePath, requestedFile))
         {
