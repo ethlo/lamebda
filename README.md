@@ -1,6 +1,5 @@
 # Lamebda
-
-[![Maven Central](https://img.shields.io/maven-central/v/com.ethlo.lamebda/lamebda.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22 com.ethlo.lamebda%22%20a%3A%22lamebda%22)
+[![Maven Central](https://img.shields.io/maven-central/v/com.ethlo.lamebda/lamebda.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.ethlo.lamebda%22%20AND%20a:%22lamebda%22)
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](LICENSE)
 [![Build Status](https://travis-ci.org/ethlo/lamebda.svg?branch=master)](https://travis-ci.org/ethlo/lamebda)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/598913bc1fe9405c82be73d9a4f105c8)](https://www.codacy.com/app/ethlo/lamebda?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ethlo/lamebda&amp;utm_campaign=Badge_Grade)
