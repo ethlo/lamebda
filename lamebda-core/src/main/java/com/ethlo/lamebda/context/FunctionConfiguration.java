@@ -23,6 +23,7 @@ package com.ethlo.lamebda.context;
 import java.time.OffsetDateTime;
 import java.time.temporal.Temporal;
 import java.util.Properties;
+import java.util.function.Function;
 
 import com.ethlo.time.ITU;
 
@@ -31,29 +32,39 @@ public class FunctionConfiguration extends Properties
     public Integer getInt(String key)
     {
         final String s = getString(key);
-        return s != null ? Integer.parseInt(s) : null;
+        return assertNotNull(key, s, Integer.class, i->Integer.parseInt(s));
     }
 
     public Long getLong(String key)
     {
         final String s = getString(key);
-        return s != null ? Long.parseLong(s) : null;
+        return assertNotNull(key, s, Long.class, i->Long.parseLong(s));
     }
 
     public OffsetDateTime getDateTime(String key)
     {
         final String s = getString(key);
-        return s != null ? ITU.parseDateTime(s) : null;
+        return assertNotNull(key, s, OffsetDateTime.class, i->ITU.parseDateTime(s));
     }
 
     public Temporal getDate(String key)
     {
         final String s = getString(key);
-        return s != null ? ITU.parseLenient(s) : null;
+        return assertNotNull(key, s, Temporal.class, i->ITU.parseLenient(s));
     }
 
     public String getString(String key)
     {
-        return (String)get(key);
+        final String s = getProperty(key);
+        return assertNotNull(key, s, String.class, i->s);
+    }
+
+    private <S, T> T assertNotNull(final String key, final S s, final Class<T> type, Function<S,T> converter)
+    {
+        if (s == null)
+        {
+            throw new IllegalArgumentException("No value for configuration key " + key);
+        }
+        return converter.apply(s);
     }
 }
