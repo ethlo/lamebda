@@ -22,6 +22,7 @@ package com.ethlo.lamebda.loaders;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.StringReader;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -29,6 +30,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -40,10 +43,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.ApiSpecificationModificationNotice;
+import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.FunctionModificationNotice;
+import com.ethlo.lamebda.PropertyFile;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.SourceChangeAware;
+import com.ethlo.lamebda.context.FunctionConfiguration;
+import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.FileSystemEvent;
 import com.ethlo.lamebda.io.WatchDir;
@@ -129,10 +136,53 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
     public ServerFunction load(GroovyClassLoader classLoader, Path sourcePath)
     {
         final Class<ServerFunction> clazz = parseClass(classLoader, sourcePath);
-        return functionPostProcessor.process(instantiate(clazz));
+        final ServerFunction instance = instantiate(clazz);
+        internalPostProcess(this, instance, sourcePath);
+        return functionPostProcessor.process(instance);
     }
 
-    protected ServerFunction instantiate(Class<ServerFunction> clazz)
+    private void internalPostProcess(final LamebdaResourceLoader lamebdaResourceLoader, final ServerFunction func, final Path sourcePath)
+    {
+        if (func instanceof FunctionContextAware)
+        {
+            ((FunctionContextAware) func).setContext(loadContext(lamebdaResourceLoader, func, sourcePath));
+        }
+    }
+
+    private FunctionContext loadContext(final LamebdaResourceLoader lamebdaResourceLoader, final ServerFunction func, final Path sourcePath)
+    {
+        final FunctionConfiguration config = new FunctionConfiguration();
+
+        final PropertyFile propertyFile = func.getClass().getAnnotation(PropertyFile.class);
+        final Path basePath = sourcePath.getParent().getParent();
+        final Path cfgFilePath = propertyFile != null ? basePath.resolve(propertyFile.value()) : basePath.resolve(FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME);
+        String cfgContent;
+        try
+        {
+            cfgContent = lamebdaResourceLoader.readSourceIfReadable(cfgFilePath);
+        }
+        catch (IOException exc)
+        {
+            throw new RuntimeException(exc);
+        }
+
+        if (cfgContent != null)
+        {
+            try
+            {
+                config.load(new StringReader(cfgContent));
+            }
+            catch (IOException e)
+            {
+                throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
+            }
+        }
+        config.put(FunctionContext.SCRIPT_SOURCE_PROPERTY_NAME, sourcePath);
+        return new FunctionContext(config);
+    }
+
+
+    private ServerFunction instantiate(Class<ServerFunction> clazz)
     {
         try
         {
@@ -256,7 +306,19 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
             return Files.list(scriptPath).filter(f -> FileNameUtil.getExtension(f.getFileName().toString()).equals(SCRIPT_EXTENSION))
                     .skip(offset)
                     .limit(size)
-                    .map(n -> new ServerFunctionInfo(n))
+                    .map(n ->
+                    {
+                        final ServerFunctionInfo info = new ServerFunctionInfo(n);
+                        try
+                        {
+                            info.setLastModified(OffsetDateTime.ofInstant(Files.getLastModifiedTime(n).toInstant(), ZoneOffset.UTC));
+                        }
+                        catch (IOException e)
+                        {
+                            logger.warn("Cannot get last modified time of {}: {}", n, e);
+                        }
+                        return info;
+                    })
                     .collect(Collectors.toList());
         }
         catch (IOException e)
@@ -320,5 +382,11 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @Override
+    public Path getRootPath()
+    {
+        return this.projectPath;
     }
 }

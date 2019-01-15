@@ -33,6 +33,8 @@ import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.error.ErrorResponse;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 public class ServletHttpResponse implements HttpResponse
 {
@@ -40,6 +42,8 @@ public class ServletHttpResponse implements HttpResponse
     static
     {
         OM.setSerializationInclusion(Include.NON_NULL);
+        OM.registerModule(new JavaTimeModule());
+        OM.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
     
     private final HttpServletResponse response;

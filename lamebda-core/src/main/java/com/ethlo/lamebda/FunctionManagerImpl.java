@@ -1,25 +1,24 @@
 package com.ethlo.lamebda;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.annotation.PostConstruct;
-
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ethlo.lamebda.context.FunctionConfiguration;
-import com.ethlo.lamebda.context.FunctionContext;
-import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
+import com.ethlo.lamebda.functions.SingleResourceFunction;
+import com.ethlo.lamebda.functions.StaticResourceFunction;
+import com.ethlo.lamebda.functions.StatusFunction;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
@@ -52,17 +51,21 @@ public class FunctionManagerImpl implements FunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
     private final GroovyClassLoader groovyClassLoader;
+    private final String projectName;
 
     private Map<Path, ServerFunction> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
 
     public FunctionManagerImpl(LamebdaResourceLoader lamebdaResourceLoader)
     {
+        this.projectName = lamebdaResourceLoader.getRootPath().getFileName().toString();
         this.lamebdaResourceLoader = lamebdaResourceLoader;
         this.groovyClassLoader = new GroovyClassLoader();
+
         groovyClassLoader.addURL(lamebdaResourceLoader.getSharedClassPath());
+
         lamebdaResourceLoader.getLibUrls().forEach(url -> {
-            logger.info("Adding classpath URL {}", url);
+            logger.info("Adding lib classpath URL {}", url);
             groovyClassLoader.addURL(url);
         });
 
@@ -112,19 +115,20 @@ public class FunctionManagerImpl implements FunctionManager
         }
 
         initialize();
+
+        addBuiltinFunctions(lamebdaResourceLoader.getRootPath());
+    }
+
+    private void addBuiltinFunctions(Path projectDir)
+    {
+        addFunction(Paths.get("static-data"), new StaticResourceFunction(projectDir.getFileName().toString(), projectDir.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY)));
+        addFunction(Paths.get("status-info"), new StatusFunction(projectDir, projectName, lamebdaResourceLoader, this));
+        addFunction(Paths.get("info-page"), new SingleResourceFunction("/" + projectName + "/", HttpMimeType.HTML, IoUtil.classPathResource("info.html")));
     }
 
     private void load(final LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
     {
-        // Load the function from source
         final ServerFunction loaded = lamebdaResourceLoader.load(groovyClassLoader, sourcePath);
-
-        internalPostProcess(lamebdaResourceLoader, loaded, sourcePath);
-
-        // Remove the last compilation error if any
-        unload(sourcePath);
-
-        // Add the function back
         addFunction(sourcePath, loaded);
     }
 
@@ -133,8 +137,11 @@ public class FunctionManagerImpl implements FunctionManager
         try
         {
             final URL classPathEntry = new ModelGenerator().generateModels(specificationFile);
-            new ApiGenerator().generateApiDocumentation(specificationFile);
-
+            final Path targetFile = Files.createTempFile("oas-tmp", ".html");
+            new ApiGenerator().generateApiDocumentation(specificationFile, targetFile);
+            addFunction(Paths.get("api"), new SingleResourceFunction("/" + projectName + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile)));
+            addFunction(Paths.get("api-human-readable"), new SingleResourceFunction("/" + projectName + "/api/", HttpMimeType.HTML, IoUtil.toByteArray(targetFile)));
+            Files.deleteIfExists(targetFile);
             groovyClassLoader.addURL(classPathEntry);
             logger.info("Adding model classpath {}", classPathEntry);
         }
@@ -153,47 +160,6 @@ public class FunctionManagerImpl implements FunctionManager
                 load(lamebdaResourceLoader, p);
             }
         });
-    }
-
-
-    private void internalPostProcess(final LamebdaResourceLoader lamebdaResourceLoader, final ServerFunction func, final Path sourcePath)
-    {
-        if (func instanceof FunctionContextAware)
-        {
-            ((FunctionContextAware) func).setContext(loadContext(lamebdaResourceLoader, func, sourcePath));
-        }
-    }
-
-    private FunctionContext loadContext(final LamebdaResourceLoader lamebdaResourceLoader, final ServerFunction func, final Path sourcePath)
-    {
-        final FunctionConfiguration config = new FunctionConfiguration();
-
-        final PropertyFile propertyFile = func.getClass().getAnnotation(PropertyFile.class);
-        final Path basePath = sourcePath.getParent().getParent();
-        final Path cfgFilePath = propertyFile != null ? basePath.resolve(propertyFile.value()) : basePath.resolve(FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME);
-        String cfgContent;
-        try
-        {
-            cfgContent = lamebdaResourceLoader.readSourceIfReadable(cfgFilePath);
-        }
-        catch (IOException exc)
-        {
-            throw new RuntimeException(exc);
-        }
-
-        if (cfgContent != null)
-        {
-            try
-            {
-                config.load(new StringReader(cfgContent));
-            }
-            catch (IOException e)
-            {
-                throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
-            }
-        }
-        config.put(FunctionContext.SCRIPT_SOURCE_PROPERTY_NAME, sourcePath);
-        return new FunctionContext(config);
     }
 
     public FunctionManagerImpl addFunction(Path sourcePath, ServerFunction func)

@@ -69,4 +69,6 @@ public interface LamebdaResourceLoader
     URL getSharedClassPath();
 
     List<URL> getLibUrls();
+
+    Path getRootPath();
 }

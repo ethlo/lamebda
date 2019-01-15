@@ -47,13 +47,17 @@ import org.springframework.web.servlet.HandlerMapping;
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.FunctionResult;
+import com.ethlo.lamebda.HttpMimeType;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
+import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.functions.StaticResourceFunction;
+import com.ethlo.lamebda.functions.StatusFunction;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
+import com.ethlo.lamebda.util.IoUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration
@@ -123,17 +127,17 @@ public class LamebdaSpringWebAutoConfiguration
 
     private FunctionManager initProject(final Path projectDir, final FunctionSourcePreProcessor preNotification, final FunctionPostProcessor functionPostProcessor)
     {
+        final String projectName = projectDir.getFileName().toString();
         try
         {
             final FileSystemLamebdaResourceLoader lamebdaResourceLoader = new FileSystemLamebdaResourceLoader(preNotification, functionPostProcessor, projectDir);
-            return new FunctionManagerImpl(lamebdaResourceLoader).addFunction(Paths.get("static-data"), new StaticResourceFunction(projectDir.getFileName().toString(), projectDir.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY)));
+            return new FunctionManagerImpl(lamebdaResourceLoader);
         }
         catch (IOException exc)
         {
             throw new UncheckedIOException(exc);
         }
     }
-
 
     @Bean
     public LamebdaController lamebdaController(List<FunctionManager> functionManagers, ObjectMapper mapper)

@@ -84,7 +84,7 @@ public class SpringMvcServerFunctionTest
         final Path sourcePath = move("SpringMvc.groovy");
         ioWait();
         final Map<Path, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).containsExactly(sourcePath);
+        assertThat(functions.keySet()).contains(sourcePath);
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
         req.setRequestURI("/test/123");

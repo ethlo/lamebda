@@ -1,4 +1,4 @@
-package com.ethlo.lamebda;
+package com.ethlo.lamebda.functions;
 
 /*-
  * #%L
@@ -21,31 +21,28 @@ package com.ethlo.lamebda;
  */
 
 import java.nio.file.Path;
-import java.time.OffsetDateTime;
 
-public class ServerFunctionInfo
+import com.ethlo.lamebda.HttpRequest;
+import com.ethlo.lamebda.HttpResponse;
+import com.ethlo.lamebda.SimpleServerFunction;
+import com.ethlo.lamebda.util.IoUtil;
+
+public class FileSingleResourceFunction extends SimpleServerFunction implements BuiltInServerFunction
 {
-    private final Path sourcePath;
-    private OffsetDateTime lastModified;
+    private Path file;
+    private final String mimeType;
 
-    public ServerFunctionInfo(Path sourcePath)
+    public FileSingleResourceFunction(String url, String mimeType, Path file)
     {
-        this.sourcePath = sourcePath;
+        super(url);
+        this.mimeType = mimeType;
+        this.file = file;
     }
 
-    public OffsetDateTime getLastModified()
+    @Override
+    public void doHandle(HttpRequest request, HttpResponse response)
     {
-        return lastModified;
-    }
-
-    public void setLastModified(OffsetDateTime lastModified)
-    {
-        this.lastModified = lastModified;
-    }
-
-    public Path getSourcePath()
-    {
-        return sourcePath;
+        response.setContentType(mimeType);
+        response.write(IoUtil.toByteArray(file));
     }
 }
-        

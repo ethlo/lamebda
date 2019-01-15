@@ -40,7 +40,7 @@ public class ApiGenerator
 {
     private static final Logger logger = LoggerFactory.getLogger(ApiGenerator.class);
 
-    public void generateApiDocumentation(final Path specPath) throws IOException
+    public void generateApiDocumentation(final Path specPath, Path targetFile) throws IOException
     {
         final Path targetBaseDir = Files.createTempDirectory("lamebda-oas-generator-tmp");
         final CodegenConfigurator configurator = new CodegenConfigurator();
@@ -56,9 +56,9 @@ public class ApiGenerator
 
         final Path apiDocPath = targetBaseDir;
 
-        final Path targetDir = specPath.getParent().getParent().resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY).resolve("oas");
+        final Path targetDir = targetFile.getParent();
         Files.createDirectories(targetDir);
-        Files.copy(apiDocPath.resolve("index.html"), targetDir.resolve("index.html"), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(apiDocPath.resolve("index.html"), targetFile, StandardCopyOption.REPLACE_EXISTING);
         IoUtil.deleteDirectory(targetBaseDir);
     }
 }

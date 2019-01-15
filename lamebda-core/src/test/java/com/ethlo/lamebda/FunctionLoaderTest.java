@@ -67,7 +67,7 @@ public class FunctionLoaderTest
         ioWait();
         final Map<Path, ServerFunction> functions = functionManager.getFunctions();
 
-        assertThat(functions.keySet()).containsExactly(sourcePath);
+        assertThat(functions.keySet()).contains(sourcePath);
 
         final ServerFunction func = functions.get(sourcePath);
         final FunctionContext context = ((SimpleServerFunction) func).getContext();
@@ -77,7 +77,7 @@ public class FunctionLoaderTest
         assertThat(cfg.getInt("min")).isNotNull();
         assertThat(cfg.getLong("max")).isNotNull();
         assertThat(cfg.getString("title")).isNotNull();
-        assertThat(cfg.getString("title2")).isNull();
+        assertThat(cfg.getProperty("title2")).isNull();
     }
 
     private void deployConfig() throws IOException
@@ -119,7 +119,7 @@ public class FunctionLoaderTest
         final FunctionContext context = ((SimpleServerFunction) func).getContext();
         assertThat(context).isNotNull();
         assertThat(context.getConfiguration()).isNotNull();
-        assertThat(context.getConfiguration().getDateTime("foo")).isNull();
+        assertThat(context.getConfiguration().getProperty("foo")).isNull();
     }
 
     private void ioWait()

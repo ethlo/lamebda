@@ -9,9 +9,9 @@ package com.ethlo.lamebda.util;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,12 +20,10 @@ package com.ethlo.lamebda.util;
  * #L%
  */
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -33,17 +31,16 @@ import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 
-import org.apache.commons.io.FilenameUtils;
-
 public class IoUtil
 {
-    private IoUtil(){}
-    
+    private IoUtil()
+    {
+    }
+
     public static byte[] toByteArray(final InputStream in)
     {
         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -64,7 +61,7 @@ public class IoUtil
         }
         return buffer.toByteArray();
     }
-    
+
     public static String toString(InputStream in, Charset charset)
     {
         return new String(toByteArray(in), charset);
@@ -72,17 +69,12 @@ public class IoUtil
 
     public static String classPathResourceAsString(String path, Charset charset)
     {
-        final InputStream in = IoUtil.class.getClassLoader().getResourceAsStream(path);
-        if (in != null)
-        {
-            return toString(in, charset);
-        }
-        throw new UncheckedIOException(new FileNotFoundException(path));
+        return new String(classPathResource(path), charset);
     }
 
     public static void deleteDirectory(final Path directory) throws IOException
     {
-        if (! Files.exists(directory) || !Files.isDirectory(directory))
+        if (!Files.exists(directory) || !Files.isDirectory(directory))
         {
             return;
         }
@@ -104,7 +96,8 @@ public class IoUtil
         });
     }
 
-    public static void copyFolder(Path src, Path dest) throws IOException {
+    public static void copyFolder(Path src, Path dest) throws IOException
+    {
         Files.createDirectories(dest);
         Files.walkFileTree(src, new SimpleFileVisitor<Path>()
         {
@@ -171,6 +164,28 @@ public class IoUtil
         catch (MalformedURLException e)
         {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] classPathResource(final String path)
+    {
+        final InputStream in = IoUtil.class.getClassLoader().getResourceAsStream(path);
+        if (in != null)
+        {
+            return toByteArray(in);
+        }
+        throw new UncheckedIOException(new FileNotFoundException(path));
+    }
+
+    public static byte[] toByteArray(final Path file)
+    {
+        try
+        {
+            return Files.readAllBytes(file);
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
         }
     }
 }
