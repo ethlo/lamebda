@@ -20,6 +20,7 @@ package com.ethlo.lamebda.util;
  * #L%
  */
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -27,6 +28,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -35,8 +37,15 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import jdk.nashorn.internal.runtime.logging.DebugLogger;
+
 public class IoUtil
 {
+    private static Logger logger = LoggerFactory.getLogger(IoUtil.class);
+
     private IoUtil()
     {
     }
@@ -138,15 +147,8 @@ public class IoUtil
 
     public static void copyClasspathResource(final String src, final Path target) throws IOException
     {
-        final InputStream in = ClassLoader.getSystemResourceAsStream(src);
-        if (in != null)
-        {
-            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-        }
-        else
-        {
-            throw new IllegalArgumentException("Cannot find file " + src);
-        }
+        final byte[] data = classPathResource(src);
+        Files.copy(new ByteArrayInputStream(data), target, StandardCopyOption.REPLACE_EXISTING);
     }
 
     public static Path ensureDirectoryExists(final Path path) throws IOException
@@ -169,12 +171,14 @@ public class IoUtil
 
     public static byte[] classPathResource(final String path)
     {
-        final InputStream in = IoUtil.class.getClassLoader().getResourceAsStream(path);
+        final String correctedPath = (! path.startsWith("/")) ? "/" + path : path;
+        final InputStream in = IoUtil.class.getResourceAsStream(correctedPath);
         if (in != null)
         {
             return toByteArray(in);
         }
-        throw new UncheckedIOException(new FileNotFoundException(path));
+        logger.info("Classpath URLs: {}", ((URLClassLoader)IoUtil.class.getClassLoader()).getURLs());
+        throw new UncheckedIOException(new FileNotFoundException(correctedPath));
     }
 
     public static byte[] toByteArray(final Path file)

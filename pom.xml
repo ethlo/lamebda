@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.ethlo.lamebda</groupId>
 	<artifactId>lamebda</artifactId>
-	<version>0.5.0-SNAPSHOT</version>
+	<version>0.5.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Lamebda</name>
 	<description>Simple HTTP handler supporting dynamic loading of HTTP handler functions</description>
@@ -26,7 +26,8 @@
 		<module>lamebda-servlet</module>
 		<module>lamebda-spring-web-starter</module>
         <module>lamebda-springmvc</module>
-	</modules>
+        <module>lamebda-server</module>
+    </modules>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.target>1.8</maven.compiler.target>

@@ -123,7 +123,7 @@ public class FunctionManagerImpl implements FunctionManager
     {
         addFunction(Paths.get("static-data"), new StaticResourceFunction(projectDir.getFileName().toString(), projectDir.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY)));
         addFunction(Paths.get("status-info"), new StatusFunction(projectDir, projectName, lamebdaResourceLoader, this));
-        addFunction(Paths.get("info-page"), new SingleResourceFunction("/" + projectName + "/", HttpMimeType.HTML, IoUtil.classPathResource("info.html")));
+        addFunction(Paths.get("info-page"), new SingleResourceFunction("/" + projectName + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/info.html")));
     }
 
     private void load(final LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
