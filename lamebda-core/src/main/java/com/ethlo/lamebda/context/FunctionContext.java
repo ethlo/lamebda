@@ -25,13 +25,17 @@ import java.nio.file.Paths;
 
 public class FunctionContext
 {
-    public static String SCRIPT_SOURCE_PROPERTY_NAME = "__scriptsource__";
-
     private final FunctionConfiguration configuration;
+    private final Path sourcePath;
+    private final String projectName;
+    private final String contextPath;
 
-    public FunctionContext(FunctionConfiguration configuration)
+    public FunctionContext(final String contextPath, final String projectName, final Path sourcePath, FunctionConfiguration configuration)
     {
+        this.contextPath = contextPath;
         this.configuration = configuration;
+        this.sourcePath = sourcePath;
+        this.projectName = projectName;
     }
 
     public FunctionConfiguration getConfiguration()
@@ -39,9 +43,18 @@ public class FunctionContext
         return configuration;
     }
 
-    public Path resolvePath(Path path)
+    public String getProjectName()
     {
-        final Path scriptSource = (Path)this.configuration.get(SCRIPT_SOURCE_PROPERTY_NAME);
-        return scriptSource.getParent().resolve(path);
+        return projectName;
+    }
+
+    public Path getSourcePath()
+    {
+        return sourcePath;
+    }
+
+    public String getContextPath()
+    {
+        return this.contextPath;
     }
 }

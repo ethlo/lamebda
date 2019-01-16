@@ -84,15 +84,17 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
 
     private final FunctionSourcePreProcessor functionSourcePreProcessor;
     private final FunctionPostProcessor functionPostProcessor;
+    private String contextPath;
 
     private Consumer<FunctionModificationNotice> functionChangeListener;
     private Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener;
     private Consumer<FileSystemEvent> libChangeListener;
 
-    public FileSystemLamebdaResourceLoader(FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor, Path projectPath) throws IOException
+    public FileSystemLamebdaResourceLoader(FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor, Path projectPath, String contextPath) throws IOException
     {
         this.functionSourcePreProcessor = Assert.notNull(functionSourcePreProcessor, "functionSourcePreProcesor cannot be null");
         this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
+        this.contextPath = contextPath;
 
         if (!Files.exists(projectPath))
         {
@@ -177,8 +179,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
                 throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
             }
         }
-        config.put(FunctionContext.SCRIPT_SOURCE_PROPERTY_NAME, sourcePath);
-        return new FunctionContext(config);
+        return new FunctionContext(contextPath, projectPath.getFileName().toString(), sourcePath, config);
     }
 
 

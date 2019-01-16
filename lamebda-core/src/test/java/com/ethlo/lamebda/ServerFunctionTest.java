@@ -63,7 +63,7 @@ public class ServerFunctionTest
         functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader((cl, s) -> s, f -> {
             applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
             return f;
-        }, basepath));
+        }, basepath, "gateway"));
 
         functionManager.addFunction(Paths.get("static-resource-handler"), new StaticResourceFunction("", basepath.resolve("static")));
     }

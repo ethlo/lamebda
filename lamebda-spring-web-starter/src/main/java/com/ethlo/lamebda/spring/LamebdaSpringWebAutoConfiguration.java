@@ -121,16 +121,16 @@ public class LamebdaSpringWebAutoConfiguration
     {
         return Files.list(cfg.getDirectory())
                 .filter(p-> !p.getFileName().toString().startsWith(".") && Files.isDirectory(p))
-                .map(projectDir -> initProject(projectDir, preNotification, functionPostProcessor))
+                .map(projectDir -> initProject(requestPath, projectDir, preNotification, functionPostProcessor))
                 .collect(Collectors.toList());
     }
 
-    private FunctionManager initProject(final Path projectDir, final FunctionSourcePreProcessor preNotification, final FunctionPostProcessor functionPostProcessor)
+    private FunctionManager initProject(String contextPath, final Path projectDir, final FunctionSourcePreProcessor preNotification, final FunctionPostProcessor functionPostProcessor)
     {
         final String projectName = projectDir.getFileName().toString();
         try
         {
-            final FileSystemLamebdaResourceLoader lamebdaResourceLoader = new FileSystemLamebdaResourceLoader(preNotification, functionPostProcessor, projectDir);
+            final FileSystemLamebdaResourceLoader lamebdaResourceLoader = new FileSystemLamebdaResourceLoader(preNotification, functionPostProcessor, projectDir, contextPath);
             return new FunctionManagerImpl(lamebdaResourceLoader);
         }
         catch (IOException exc)

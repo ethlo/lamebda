@@ -76,7 +76,7 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
         proxyFactoryBean.setProxyClassLoader(this.getClass().getClassLoader());
         proxyFactoryBean.setTargetSource(new SingletonTargetSource(this));
         proxyFactoryBean.addAdvisors(advisors);
-        methodInterceptors.forEach(it -> proxyFactoryBean.addAdvice(it));
+        methodInterceptors.forEach(proxyFactoryBean::addAdvice);
         return proxyFactoryBean.getObject();
     }
 
@@ -84,11 +84,12 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
     {
         Arrays.asList(clazz.getMethods())
                 .forEach(m -> {
-                    RequestMappingInfo mapping = getMappingForMethod(m, this.getClass());
+                    final RequestMappingInfo mapping = getMappingForMethod(m, this.getClass());
                     if (mapping != null)
                     {
-                        unregisterMapping(mapping);
-                        registerMapping(mapping, object, m);
+                        final RequestMappingInfo combined = RequestMappingInfo.paths(context.getContextPath()).build().combine(RequestMappingInfo.paths(context.getProjectName()).build().combine(mapping));
+                        unregisterMapping(combined);
+                        registerMapping(combined, object, m);
                     }
                 });
     }

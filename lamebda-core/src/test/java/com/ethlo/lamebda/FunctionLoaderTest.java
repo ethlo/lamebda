@@ -54,7 +54,7 @@ public class FunctionLoaderTest
         Files.createDirectories(basepath);
 
         functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader((cl, s) -> s
-                , f -> f, basepath));
+                , f -> f, basepath, "gateway"));
     }
 
     @Test
