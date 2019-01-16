@@ -45,7 +45,7 @@ This scripts responds to `GET` and `POST`, and the url mapping is based on the c
 <dependency>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda-spring-web-starter</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.1</version>
 </dependency>
 ```
 
@@ -63,7 +63,7 @@ Your function should be available under `/servlet/mypath/my-function`
 <dependency>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda-servlet</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.1</version>
 </dependency>
 ```
 
