@@ -33,7 +33,7 @@
 
         .header-bg {
             background: #000;
-            color: #FFF;
+            color:#FFF;
         }
     </style>
 </head>
@@ -42,11 +42,11 @@
 
 <div class="container">
     <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 header-bg border-bottom box-shadow">
-        <h5 class="my-0 mr-md-auto font-weight-normal"><span id="projectName"></span> Lamebda project</h5>
+        <h5 class="my-0 mr-md-auto font-weight-normal"><span id="projectName"></span></h5>
         <nav class="my-2 my-md-0 mr-md-3">
 
-            <a class="p-2 text-dark" href="api/">API documentation</a>
-            <a class="p-2 text-dark" href="api/api.yaml">API specification</a>
+            <a class="p-2" href="api/">API documentation</a>
+            <a class="p-2" href="api/api.yaml">API specification</a>
         </nav>
     </div>
     <table id="functiontable" class="table table-striped">
@@ -74,9 +74,10 @@
         return value === false ? 'table-danger' : 'table-success'
     }
 
-    function dateFormat(m) {
+    function dateFormat(m)
+    {
         return m.getUTCFullYear() + "-" +
-            ("0" + (m.getUTCMonth() + 1)).slice(-2) + "-" +
+            ("0" + (m.getUTCMonth()+1)).slice(-2) + "-" +
             ("0" + m.getUTCDate()).slice(-2) + " " +
             ("0" + m.getUTCHours()).slice(-2) + ":" +
             ("0" + m.getUTCMinutes()).slice(-2) + ":" +
@@ -87,7 +88,7 @@
         $.ajax({
             url: window.location + 'info/',
             success: function (data) {
-                document.title = '"' + data.project.name + '" Lamebda project ';
+                document.title =  data.project.name;
                 $('#projectName').html(data.project.name);
                 for (var i = 0; i < data.functions.length; i++) {
                     var f = data.functions[i];
@@ -102,8 +103,8 @@
                             requestMappingMarkup += '<li>';
                             requestMappingMarkup += rm.methods;
                             requestMappingMarkup += '<span> ' + rm.patterns + '</span>';
-                            requestMappingMarkup += rm.consumes ? '<span> &gt; ' + rm.consumes + '</span>' : '';
-                            requestMappingMarkup += rm.produces ? '<span> &lt; ' + rm.produces + '</span>' : '';
+                            requestMappingMarkup += rm.consumes ? '<span title="Consumes ' + rm.consumes + '"> &#8628; ' + rm.consumes + '</span>' : '';
+                            requestMappingMarkup += rm.produces ? '<span title="Produces ' + rm.produces + '"> &#8625; ' + rm.produces + '</span>' : '';
                             requestMappingMarkup += '</li>'
                         }
                         requestMappingMarkup += '</ul>';
