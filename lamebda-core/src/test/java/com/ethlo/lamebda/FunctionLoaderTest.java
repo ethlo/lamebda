@@ -106,7 +106,7 @@ public class FunctionLoaderTest extends BaseTest
     {
         try
         {
-            Thread.sleep(2_200);
+            Thread.sleep(3000);
         }
         catch (InterruptedException e)
         {
