@@ -33,7 +33,7 @@
 
         .header-bg {
             background: #000;
-            color:#FFF;
+            color: #FFF;
         }
     </style>
 </head>
@@ -74,10 +74,9 @@
         return value === false ? 'table-danger' : 'table-success'
     }
 
-    function dateFormat(m)
-    {
+    function dateFormat(m) {
         return m.getUTCFullYear() + "-" +
-            ("0" + (m.getUTCMonth()+1)).slice(-2) + "-" +
+            ("0" + (m.getUTCMonth() + 1)).slice(-2) + "-" +
             ("0" + m.getUTCDate()).slice(-2) + " " +
             ("0" + m.getUTCHours()).slice(-2) + ":" +
             ("0" + m.getUTCMinutes()).slice(-2) + ":" +
@@ -92,19 +91,23 @@
                 $('#projectName').html(data.project.name);
                 for (var i = 0; i < data.functions.length; i++) {
                     var f = data.functions[i];
-                    var mapCount = f.requestMappings.length;
-                    var requestMappingMarkup = '<ul class="list-unstyled">';
-                    for (var j = 0; j < mapCount; j++) {
-                        var rm = f.requestMappings[j];
-                        requestMappingMarkup += '<li>';
-                        requestMappingMarkup += rm.methods;
-                        requestMappingMarkup += '<span> ' + rm.patterns + '</span>';
-                        requestMappingMarkup += rm.consumes ? '<span> &gt; ' + rm.consumes + '</span>' : '';
-                        requestMappingMarkup += rm.produces ? '<span> &lt; ' + rm.produces + '</span>' : '';
-                        requestMappingMarkup += '</li>'
-                    }
-                    requestMappingMarkup += '</ul>';
 
+                    var requestMappingMarkup = '<b class="warning">None</b>'
+
+                    if (f.requestMappings) {
+                        var mapCount = f.requestMappings.length;
+                        requestMappingMarkup = '<ul class="list-unstyled">';
+                        for (var j = 0; j < mapCount; j++) {
+                            var rm = f.requestMappings[j];
+                            requestMappingMarkup += '<li>';
+                            requestMappingMarkup += rm.methods;
+                            requestMappingMarkup += '<span> ' + rm.patterns + '</span>';
+                            requestMappingMarkup += rm.consumes ? '<span> &gt; ' + rm.consumes + '</span>' : '';
+                            requestMappingMarkup += rm.produces ? '<span> &lt; ' + rm.produces + '</span>' : '';
+                            requestMappingMarkup += '</li>'
+                        }
+                        requestMappingMarkup += '</ul>';
+                    }
                     var markup = '' +
                         '<tr>' +
                         '<td>' + f.name + '</td>' +
