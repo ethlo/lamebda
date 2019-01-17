@@ -57,7 +57,7 @@ public class FunctionManagerImpl implements FunctionManager
 
     public FunctionManagerImpl(ProjectConfiguration projectConfiguration, LamebdaResourceLoader lamebdaResourceLoader)
     {
-        logger.info("Loading project {}\n{}", projectConfiguration.getProjectName(), projectConfiguration);
+        logger.info("*** Loading project: {} *** \n{}", projectConfiguration.getProjectName(), projectConfiguration.toPrettyString());
         this.projectConfiguration = projectConfiguration;
         this.lamebdaResourceLoader = lamebdaResourceLoader;
         this.groovyClassLoader = new GroovyClassLoader();

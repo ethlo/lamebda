@@ -112,21 +112,6 @@ public class ProjectConfiguration
         return rootContextPath;
     }
 
-    @Override
-    public String toString()
-    {
-        return "ProjectConfiguration{" +
-                "rootContextPath='" + rootContextPath + '\'' +
-                ", projectContextPath='" + projectContextPath + '\'' +
-                ", enableInfoFunction=" + enableInfoFunction +
-                ", enableStaticResourceFunction=" + enableStaticResourceFunction +
-                ", staticResourcesPrefix='" + staticResourcesPrefix + '\'' +
-                ", staticResourceDirectory=" + staticResourceDirectory +
-                ", enableUrlProjectContextPrefix=" + enableUrlProjectContextPrefix +
-                ", projectPath=" + projectPath +
-                '}';
-    }
-
     public static final class ProjectConfigurationBuilder
     {
         private String rootContextPath;
@@ -229,13 +214,51 @@ public class ProjectConfiguration
                     throw new UncheckedIOException(exc);
                 }
 
+                projectName = p.getProperty("project.name", projectName);
+
+                // URL mapping
+                projectContextPath = p.getProperty("mapping.project-context-path", projectContextPath);
+                enableUrlProjectContextPrefix = Boolean.parseBoolean(p.getProperty("mapping.use-project-context-path", Boolean.toString(enableUrlProjectContextPrefix)));
+
+                // Static resource function
+                enableStaticResourceFunction = Boolean.parseBoolean(p.getProperty("functions.static.enabled", Boolean.toString(enableStaticResourceFunction)));
                 staticResourcesPrefix = p.getProperty("functions.static.prefix", staticResourcesPrefix);
 
-                projectName = p.getProperty("project.name", projectName);
-                projectContextPath = p.getProperty("project.context-path", projectContextPath);
-                enableUrlProjectContextPrefix = Boolean.parseBoolean(p.getProperty("mapping.use-project-context-path", "true"));
+                // Info function
+                enableInfoFunction = Boolean.parseBoolean(p.getProperty("functions.info.enabled", Boolean.toString(enableInfoFunction)));
             }
             return this;
         }
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ProjectConfigurationBuilder{" +
+                "rootContextPath='" + rootContextPath + '\'' +
+                ", projectPath=" + projectPath +
+                ", projectName='" + projectName + '\'' +
+                ", projectContextPath='" + projectContextPath + '\'' +
+                ", enableInfoFunction=" + enableInfoFunction +
+                ", enableStaticResourceFunction=" + enableStaticResourceFunction +
+                ", enableUrlProjectContextPrefix=" + enableUrlProjectContextPrefix +
+                ", staticResourcesPrefix='" + staticResourcesPrefix + '\'' +
+                ", staticResourceDirectory=" + staticResourceDirectory +
+                '}';
+    }
+
+    public String toPrettyString()
+    {
+        return "" +
+                "projectName='" + projectName + '\'' +
+                "\nprojectContextPath='" + projectContextPath + '\'' +
+                "\nrootContextPath='" + rootContextPath + '\'' +
+                "\nprojectPath=" + projectPath +
+                "\nenableInfoFunction=" + enableInfoFunction +
+                "\nenableStaticResourceFunction=" + enableStaticResourceFunction +
+                "\nenableUrlProjectContextPrefix=" + enableUrlProjectContextPrefix +
+                "\nstaticResourcesPrefix='" + staticResourcesPrefix + '\'' +
+                "\nstaticResourceDirectory=" + staticResourceDirectory
+                + "";
     }
 }
