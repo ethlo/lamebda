@@ -36,7 +36,6 @@ import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.aop.target.SingletonTargetSource;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
@@ -87,9 +86,17 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
                     final RequestMappingInfo mapping = getMappingForMethod(m, this.getClass());
                     if (mapping != null)
                     {
-                        final RequestMappingInfo combined = RequestMappingInfo.paths(context.getContextPath()).build().combine(RequestMappingInfo.paths(context.getProjectName()).build().combine(mapping));
-                        unregisterMapping(combined);
-                        registerMapping(combined, object, m);
+                        final String rootContextPath = context.getProjectConfiguration().getRootContextPath();
+                        RequestMappingInfo mappingToUse = RequestMappingInfo.paths(rootContextPath).build();
+
+                        if (context.getProjectConfiguration().enableUrlProjectContextPrefix())
+                        {
+                            final String projectContextPath = context.getProjectConfiguration().getProjectContextPath();
+                            mappingToUse = mappingToUse.combine(RequestMappingInfo.paths(projectContextPath).build());
+                        }
+                        mappingToUse = mappingToUse.combine(mapping);
+                        unregisterMapping(mappingToUse);
+                        registerMapping(mappingToUse, object, m);
                     }
                 });
     }

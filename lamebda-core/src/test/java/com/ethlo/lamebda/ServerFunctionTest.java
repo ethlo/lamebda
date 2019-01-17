@@ -41,33 +41,8 @@ import com.ethlo.lamebda.test.MockHttpRequest;
 import com.ethlo.lamebda.test.MockHttpResponse;
 import com.ethlo.lamebda.util.IoUtil;
 
-@SpringBootTest(classes = ServerFunctionTest.class)
-@EnableAutoConfiguration
-@RunWith(SpringRunner.class)
-public class ServerFunctionTest
+public class ServerFunctionTest extends BaseTest
 {
-    private final Path basepath = Paths.get(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
-    private FunctionManagerImpl functionManager;
-
-    @Autowired
-    private ApplicationContext applicationContext;
-
-    public ServerFunctionTest() throws IOException
-    {
-        if (Files.exists(basepath))
-        {
-            IoUtil.deleteDirectory(basepath);
-        }
-        Files.createDirectories(basepath);
-
-        functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader((cl, s) -> s, f -> {
-            applicationContext.getAutowireCapableBeanFactory().autowireBean(f);
-            return f;
-        }, basepath, "gateway"));
-
-        functionManager.addFunction(Paths.get("static-resource-handler"), new StaticResourceFunction("", basepath.resolve("static")));
-    }
-
     @Test
     public void testServingStaticResource() throws Exception
     {

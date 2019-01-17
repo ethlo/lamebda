@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.ApiSpecificationModificationNotice;
 import com.ethlo.lamebda.FunctionContextAware;
+import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.FunctionModificationNotice;
 import com.ethlo.lamebda.PropertyFile;
 import com.ethlo.lamebda.ServerFunction;
@@ -63,6 +64,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
 {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemLamebdaResourceLoader.class);
 
+    public static final String PROJECT_FILENAME = "project.properties";
     public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
     public static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
     public static final String DEFAULT_CONFIG_FILENAME = "config.properties";
@@ -76,7 +78,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
     public static final String SHARED_DIRECTORY = "shared";
     public static final String LIB_DIRECTORY = "lib";
 
-    private final Path projectPath;
     private final Path scriptPath;
     private final Path specificationPath;
     private final Path sharedPath;
@@ -84,24 +85,24 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
 
     private final FunctionSourcePreProcessor functionSourcePreProcessor;
     private final FunctionPostProcessor functionPostProcessor;
-    private String contextPath;
+    private final ProjectConfiguration projectConfiguration;
 
     private Consumer<FunctionModificationNotice> functionChangeListener;
     private Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener;
     private Consumer<FileSystemEvent> libChangeListener;
 
-    public FileSystemLamebdaResourceLoader(FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor, Path projectPath, String contextPath) throws IOException
+    public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor) throws IOException
     {
+        this.projectConfiguration = projectConfiguration;
         this.functionSourcePreProcessor = Assert.notNull(functionSourcePreProcessor, "functionSourcePreProcesor cannot be null");
         this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
-        this.contextPath = contextPath;
 
+        final Path projectPath = projectConfiguration.getProjectPath();
         if (!Files.exists(projectPath))
         {
             throw new FileNotFoundException("Cannot use " + projectPath + " as project directory");
         }
 
-        this.projectPath = projectPath;
         this.scriptPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SCRIPT_DIRECTORY));
         this.specificationPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SPECIFICATION_DIRECTORY));
         this.sharedPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SHARED_DIRECTORY));
@@ -153,7 +154,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
 
     private FunctionContext loadContext(final LamebdaResourceLoader lamebdaResourceLoader, final ServerFunction func, final Path sourcePath)
     {
-        final FunctionConfiguration config = new FunctionConfiguration();
+        final FunctionConfiguration functionConfiguration = new FunctionConfiguration();
 
         final PropertyFile propertyFile = func.getClass().getAnnotation(PropertyFile.class);
         final Path basePath = sourcePath.getParent().getParent();
@@ -172,14 +173,14 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         {
             try
             {
-                config.load(new StringReader(cfgContent));
+                functionConfiguration.load(new StringReader(cfgContent));
             }
             catch (IOException e)
             {
                 throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
             }
         }
-        return new FunctionContext(contextPath, projectPath.getFileName().toString(), sourcePath, config);
+        return new FunctionContext(projectConfiguration, functionConfiguration);
     }
 
 
@@ -341,8 +342,8 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
     @Override
     public Optional<Path> getApiSpecification()
     {
-        final Path specPathYaml = projectPath.resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_YAML_FILENAME);
-        final Path specPathJson = projectPath.resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_JSON_FILENAME);
+        final Path specPathYaml = projectConfiguration.getProjectPath().resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_YAML_FILENAME);
+        final Path specPathJson = projectConfiguration.getProjectPath().resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_JSON_FILENAME);
         if (Files.exists(specPathYaml))
         {
             return Optional.of(specPathYaml);
@@ -383,11 +384,5 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         {
             throw new UncheckedIOException(e);
         }
-    }
-
-    @Override
-    public Path getRootPath()
-    {
-        return this.projectPath;
     }
 }

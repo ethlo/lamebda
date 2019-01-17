@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,6 +32,7 @@ import javax.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -46,18 +46,11 @@ import org.springframework.web.servlet.HandlerMapping;
 
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerImpl;
-import com.ethlo.lamebda.FunctionResult;
-import com.ethlo.lamebda.HttpMimeType;
-import com.ethlo.lamebda.HttpRequest;
-import com.ethlo.lamebda.HttpResponse;
-import com.ethlo.lamebda.functions.SingleResourceFunction;
-import com.ethlo.lamebda.functions.StaticResourceFunction;
-import com.ethlo.lamebda.functions.StatusFunction;
+import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
-import com.ethlo.lamebda.util.IoUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Configuration
@@ -69,14 +62,15 @@ public class LamebdaSpringWebAutoConfiguration
 
     private static final Logger logger = LoggerFactory.getLogger(LamebdaSpringWebAutoConfiguration.class);
 
-    private String requestPath = DEFAULT_PATH;
+    @Value("${lamebda.request-path:/lamebda}")
+    private String rootContextPath;
 
     @Autowired
     private ApplicationContext applicationContext;
 
-    public void setRequestPath(String requestPath)
+    public void setRootContextPath(String rootContextPath)
     {
-        this.requestPath = requestPath;
+        this.rootContextPath = rootContextPath;
     }
 
     @Bean
@@ -121,17 +115,21 @@ public class LamebdaSpringWebAutoConfiguration
     {
         return Files.list(cfg.getDirectory())
                 .filter(p-> !p.getFileName().toString().startsWith(".") && Files.isDirectory(p))
-                .map(projectDir -> initProject(requestPath, projectDir, preNotification, functionPostProcessor))
+                .map(projectPath ->
+                {
+                    final ProjectConfiguration projectConfiguration = ProjectConfiguration.builder(rootContextPath, projectPath).loadIfExists().build();
+                    return initProject(projectConfiguration, preNotification, functionPostProcessor);
+                })
                 .collect(Collectors.toList());
     }
 
-    private FunctionManager initProject(String contextPath, final Path projectDir, final FunctionSourcePreProcessor preNotification, final FunctionPostProcessor functionPostProcessor)
+    private FunctionManager initProject(ProjectConfiguration cfg, final FunctionSourcePreProcessor preNotification, final FunctionPostProcessor functionPostProcessor)
     {
-        final String projectName = projectDir.getFileName().toString();
+
         try
         {
-            final FileSystemLamebdaResourceLoader lamebdaResourceLoader = new FileSystemLamebdaResourceLoader(preNotification, functionPostProcessor, projectDir, contextPath);
-            return new FunctionManagerImpl(lamebdaResourceLoader);
+            final FileSystemLamebdaResourceLoader lamebdaResourceLoader = new FileSystemLamebdaResourceLoader(cfg, preNotification, functionPostProcessor);
+            return new FunctionManagerImpl(cfg, lamebdaResourceLoader);
         }
         catch (IOException exc)
         {
@@ -151,14 +149,14 @@ public class LamebdaSpringWebAutoConfiguration
                 }
             }
             return false;
-        }, requestPath, mapper);
+        }, rootContextPath, mapper);
     }
 
     @Bean
     @ConditionalOnBean(LamebdaController.class)
     public HandlerMapping lamebdaHandlerMapping(LamebdaController handler)
     {
-        logger.info("Registering handler mapping for request path prefix: {}", requestPath);
-        return new LamebdaHandlerMapping(handler, requestPath);
+        logger.info("Registering handler mapping for request path prefix: {}", rootContextPath);
+        return new LamebdaHandlerMapping(handler, rootContextPath);
     }
 }

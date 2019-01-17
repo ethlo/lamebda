@@ -30,33 +30,13 @@ import java.nio.file.StandardCopyOption;
 import java.util.Map;
 
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.util.IoUtil;
 
-public class FunctionLoaderTest
+public class FunctionLoaderTest extends BaseTest
 {
-    private static final Logger logger = LoggerFactory.getLogger(FunctionLoaderTest.class);
-
-    private final Path basepath = Paths.get(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
-    private FunctionManagerImpl functionManager;
-
-    public FunctionLoaderTest() throws IOException
-    {
-        if (Files.exists(basepath))
-        {
-            IoUtil.deleteDirectory(basepath);
-        }
-        Files.createDirectories(basepath);
-
-        functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader((cl, s) -> s
-                , f -> f, basepath, "gateway"));
-    }
-
     @Test
     public void testLoadOnCreate() throws Exception
     {
@@ -92,7 +72,7 @@ public class FunctionLoaderTest
 
     private void addShared() throws IOException
     {
-        final Path libTargetDir = basepath.resolve(FileSystemLamebdaResourceLoader.SHARED_DIRECTORY);
+        final Path libTargetDir = projectPath.resolve(FileSystemLamebdaResourceLoader.SHARED_DIRECTORY);
         final Path packageTargetDir = libTargetDir.resolve("mypackage");
         Files.createDirectories(packageTargetDir);
         Files.createDirectories(libTargetDir);
@@ -171,7 +151,7 @@ public class FunctionLoaderTest
     private Path deployFunc(final String name) throws IOException
     {
         addShared();
-        final Path target = basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve(name);
+        final Path target = projectPath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve(name);
         Files.createDirectories(target.getParent());
         return Files.copy(Paths.get("src/test/groovy", name), target, StandardCopyOption.REPLACE_EXISTING);
     }
@@ -183,7 +163,7 @@ public class FunctionLoaderTest
 
     private Path moveResource(final String name, String folder, String filename) throws IOException
     {
-        final Path target = basepath.resolve(folder).resolve(filename);
+        final Path target = projectPath.resolve(folder).resolve(filename);
         Files.createDirectories(target.getParent());
         ioWait();
         return Files.copy(Paths.get("src/test/resources", name), target, StandardCopyOption.REPLACE_EXISTING);

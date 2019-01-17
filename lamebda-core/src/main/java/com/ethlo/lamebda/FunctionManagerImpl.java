@@ -20,7 +20,6 @@ import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.functions.StaticResourceFunction;
 import com.ethlo.lamebda.functions.StatusFunction;
 import com.ethlo.lamebda.io.ChangeType;
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.oas.ApiGenerator;
 import com.ethlo.lamebda.oas.ModelGenerator;
@@ -51,14 +50,15 @@ public class FunctionManagerImpl implements FunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
     private final GroovyClassLoader groovyClassLoader;
-    private final String projectName;
+    private final ProjectConfiguration projectConfiguration;
 
     private Map<Path, ServerFunction> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
 
-    public FunctionManagerImpl(LamebdaResourceLoader lamebdaResourceLoader)
+    public FunctionManagerImpl(ProjectConfiguration projectConfiguration, LamebdaResourceLoader lamebdaResourceLoader)
     {
-        this.projectName = lamebdaResourceLoader.getRootPath().getFileName().toString();
+        logger.info("Loading project {}\n{}", projectConfiguration.getProjectName(), projectConfiguration);
+        this.projectConfiguration = projectConfiguration;
         this.lamebdaResourceLoader = lamebdaResourceLoader;
         this.groovyClassLoader = new GroovyClassLoader();
 
@@ -116,14 +116,22 @@ public class FunctionManagerImpl implements FunctionManager
 
         initialize();
 
-        addBuiltinFunctions(lamebdaResourceLoader.getRootPath());
+        addBuiltinFunctions();
     }
 
-    private void addBuiltinFunctions(Path projectDir)
+    private void addBuiltinFunctions()
     {
-        addFunction(Paths.get("static-data"), new StaticResourceFunction(projectDir.getFileName().toString(), projectDir.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY)));
-        addFunction(Paths.get("status-info"), new StatusFunction(projectDir, projectName, lamebdaResourceLoader, this));
-        addFunction(Paths.get("info-page"), new SingleResourceFunction("/" + projectName + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/info.html")));
+        if (projectConfiguration.enableStaticResourceFunction())
+        {
+            addFunction(Paths.get("static-data"), new StaticResourceFunction(projectConfiguration.getStaticResourcesContext(), projectConfiguration.getStaticResourceDirectory()));
+        }
+
+        if (projectConfiguration.enableInfoFunction())
+        {
+            final String defaultInfoPage = "/lamebda/templates/info.html";
+            addFunction(Paths.get("status-info"), new StatusFunction(projectConfiguration.getProjectPath(), projectConfiguration.getProjectContextPath(), lamebdaResourceLoader, this));
+            addFunction(Paths.get("info-page"), new SingleResourceFunction("/" + projectConfiguration.getProjectContextPath() + "/", HttpMimeType.HTML, IoUtil.classPathResource(defaultInfoPage)));
+        }
     }
 
     private void load(final LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
@@ -139,8 +147,8 @@ public class FunctionManagerImpl implements FunctionManager
             final URL classPathEntry = new ModelGenerator().generateModels(specificationFile);
             final Path targetFile = Files.createTempFile("oas-tmp", ".html");
             new ApiGenerator().generateApiDocumentation(specificationFile, targetFile);
-            addFunction(Paths.get("api"), new SingleResourceFunction("/" + projectName + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile)));
-            addFunction(Paths.get("api-human-readable"), new SingleResourceFunction("/" + projectName + "/api/", HttpMimeType.HTML, IoUtil.toByteArray(targetFile)));
+            addFunction(Paths.get("api"), new SingleResourceFunction("/" + projectConfiguration.getProjectContextPath() + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile)));
+            addFunction(Paths.get("api-human-readable"), new SingleResourceFunction("/" + projectConfiguration.getProjectContextPath() + "/api/", HttpMimeType.HTML, IoUtil.toByteArray(targetFile)));
             Files.deleteIfExists(targetFile);
             groovyClassLoader.addURL(classPathEntry);
             logger.info("Adding model classpath {}", classPathEntry);

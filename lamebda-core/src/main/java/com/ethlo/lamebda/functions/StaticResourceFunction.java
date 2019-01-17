@@ -32,15 +32,17 @@ import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.HttpStatus;
 import com.ethlo.lamebda.SimpleServerFunction;
 import com.ethlo.lamebda.error.ErrorResponse;
+import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.FileNameUtil;
 
 public class StaticResourceFunction extends SimpleServerFunction implements BuiltInServerFunction
 {
     private final Path resourceBasePath;
 
-    public StaticResourceFunction(String projectFolder, Path resourceBasePath)
+    public StaticResourceFunction(String prefix, Path resourceBasePath)
     {
-        super("/" + projectFolder + "/static/**");
+        super("/" + prefix + "/**");
+        Assert.notNull(resourceBasePath, "resourceBasePath cannot ne null");
         this.resourceBasePath = resourceBasePath;
     }
 
