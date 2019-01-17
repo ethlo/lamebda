@@ -23,12 +23,12 @@
 
 	<appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
 		<encoder>
-			<pattern>%d %5p [%t] [%c:%L] - %m%n%ex
-			</pattern>
+			<patterns>%d %5p [%t] [%c:%L] - %m%n%ex
+			</patterns>
 		</encoder>
 	</appender>
 
-	<logger name="org.openapitools.codegen" level="INFO" />
+	<logger name="org.openapitools.codegen" level="WARN" />
 
 	<root level="INFO">
 		<appender-ref ref="stdout" />

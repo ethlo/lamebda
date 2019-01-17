@@ -3,8 +3,8 @@
 
 	<appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
 		<encoder>
-			<pattern>%d %5p [%t] [%c:%L] - %m%n%ex
-			</pattern>
+			<patterns>%d %5p [%t] [%c:%L] - %m%n%ex
+			</patterns>
 		</encoder>
 	</appender>
 

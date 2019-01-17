@@ -1,5 +1,6 @@
 package com.ethlo.lamebda;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
@@ -45,7 +46,7 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
     }
 
     @Override
-    public final FunctionResult handle(HttpRequest request, HttpResponse response)
+    public final FunctionResult handle(HttpRequest request, HttpResponse response) throws Exception
     {
         if (! PATH_MATCHER.match(pattern, request.path()))
         {
@@ -56,7 +57,7 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
         return FunctionResult.PROCESSED;
     }
     
-    protected void doHandle(HttpRequest request, HttpResponse response)
+    protected void doHandle(HttpRequest request, HttpResponse response) throws IOException
     {
         final HttpMethod m = HttpMethod.parse(request.method());
         if (m == null)

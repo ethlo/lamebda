@@ -25,7 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import com.ethlo.lamebda.FunctionResult;
 import com.ethlo.lamebda.HttpMimeType;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
@@ -35,14 +34,14 @@ import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.FileNameUtil;
 
-public class StaticResourceFunction extends SimpleServerFunction implements BuiltInServerFunction
+public class SubDirectoryStaticResourceFunction extends SimpleServerFunction implements BuiltInServerFunction
 {
     private final Path resourceBasePath;
 
-    public StaticResourceFunction(String prefix, Path resourceBasePath)
+    public SubDirectoryStaticResourceFunction(String prefix, Path resourceBasePath)
     {
-        super("/" + prefix + "/**");
-        Assert.notNull(resourceBasePath, "resourceBasePath cannot ne null");
+        super(prefix + "**");
+        Assert.notNull(resourceBasePath, "resourceBasePath cannot be null");
         this.resourceBasePath = resourceBasePath;
     }
 

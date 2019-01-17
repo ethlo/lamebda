@@ -22,24 +22,10 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.junit4.SpringRunner;
 
-import com.ethlo.lamebda.functions.StaticResourceFunction;
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.test.MockHttpRequest;
 import com.ethlo.lamebda.test.MockHttpResponse;
-import com.ethlo.lamebda.util.IoUtil;
 
 public class ServerFunctionTest extends BaseTest
 {

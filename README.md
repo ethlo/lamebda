@@ -25,7 +25,7 @@ class MyFunction extends SimpleServerFunction {
 
     @Override
     void get(HttpRequest request, HttpResponse response) {
-        response.json(HttpStatus.OK, [method: request.method, message:'Hello world'])
+        response.json(HttpStatus.OK, [methods: request.methods, message:'Hello world'])
     }
 
     @Override

@@ -138,7 +138,7 @@ public class LamebdaSpringWebAutoConfiguration
     }
 
     @Bean
-    public LamebdaController lamebdaController(List<FunctionManager> functionManagers, ObjectMapper mapper)
+    public LamebdaController lamebdaController(List<FunctionManager> functionManagers)
     {
         return new LamebdaController((request, response) -> {
             for (FunctionManager functionManager : functionManagers)
@@ -149,7 +149,7 @@ public class LamebdaSpringWebAutoConfiguration
                 }
             }
             return false;
-        }, rootContextPath, mapper);
+        }, rootContextPath);
     }
 
     @Bean

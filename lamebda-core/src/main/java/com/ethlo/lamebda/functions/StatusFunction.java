@@ -21,39 +21,36 @@ package com.ethlo.lamebda.functions;
  */
 
 import java.nio.file.Path;
-import java.time.OffsetDateTime;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.ethlo.lamebda.ConfigurableFunctionManager;
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.HttpStatus;
+import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.SimpleServerFunction;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionStatusInfo;
-import com.ethlo.lamebda.util.FileNameUtil;
 
 public class StatusFunction extends SimpleServerFunction implements BuiltInServerFunction
 {
     private final FunctionManager functionManager;
     private final LamebdaResourceLoader resourceLoader;
-    private final String projectName;
-    private final Path projectDir;
+    private final ProjectConfiguration projectConfiguration;
 
-    public StatusFunction(final Path projectDir, String projectName, LamebdaResourceLoader resourceLoader, FunctionManager functionManager)
+    public StatusFunction(LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager)
     {
-        super("/" + projectName + "/info/");
-        this.projectDir = projectDir;
-        this.projectName = projectName;
+        super("/" + functionManager.getProjectConfiguration().getContextPath() + "/info/");
         this.resourceLoader = resourceLoader;
         this.functionManager = functionManager;
+        this.projectConfiguration = functionManager.getProjectConfiguration();
     }
 
     @Override
@@ -63,18 +60,31 @@ public class StatusFunction extends SimpleServerFunction implements BuiltInServe
         final int size = Integer.parseInt(request.param("size", "25"));
         final FunctionManagerImpl fm = (FunctionManagerImpl) functionManager;
         final Map<Path, ServerFunction> functions = fm.getFunctions();
-        final List<FunctionStatusInfo> functionList = getSingleHandlerInfo(page, size).stream().map(s ->
+        final List<FunctionStatusInfo> functionList = getFunctionInfoList(page, size).stream().map(s ->
         {
+            final FunctionStatusInfo info = new FunctionStatusInfo(projectConfiguration.getPath(), s);
+
             final boolean isLoaded = functions.get(s.getSourcePath()) != null;
-            return new FunctionStatusInfo(projectDir, s).setRunning(isLoaded);
+            info.setRunning(isLoaded);
+
+            final ServerFunction func = ((FunctionManagerImpl) functionManager).getFunctions().get(s.getSourcePath());
+            if (func instanceof URLMappedServerFunction)
+            {
+                info.setRequestMappings(((URLMappedServerFunction)func).getUrlMapping());
+            }
+
+            return info;
         }).collect(Collectors.toList());
         final Map<String, Object> res = new LinkedHashMap<>();
-        res.put("project", Collections.singletonMap("name", projectName));
+        final Map<String, Object> projectInfo = new LinkedHashMap<>();
+        projectInfo.put("name", projectConfiguration.getName());
+        projectInfo.put("configuration", projectConfiguration);
+        res.put("project", projectInfo);
         res.put("functions", functionList);
         response.json(HttpStatus.OK, res);
     }
 
-    private List<ServerFunctionInfo> getSingleHandlerInfo(int page, int pageSize)
+    private List<ServerFunctionInfo> getFunctionInfoList(int page, int pageSize)
     {
         return resourceLoader.findAll(page * pageSize, pageSize);
     }

@@ -27,7 +27,13 @@
         }
 
         .container {
-            max-width: 960px;
+            max-width: 4096px;
+            padding: 0;
+        }
+
+        .header-bg {
+            background: #000;
+            color:#FFF;
         }
     </style>
 </head>
@@ -35,7 +41,7 @@
 <body>
 
 <div class="container">
-    <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 bg-white border-bottom box-shadow">
+    <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 header-bg border-bottom box-shadow">
         <h5 class="my-0 mr-md-auto font-weight-normal"><span id="projectName"></span> Lamebda project</h5>
         <nav class="my-2 my-md-0 mr-md-3">
 
@@ -48,6 +54,7 @@
         <tr>
             <th scope="col">Name</th>
             <th scope="col">Running</th>
+            <th scope="col">Request mapping</th>
             <th scope="col">Modified</th>
         </tr>
         </thead>
@@ -67,6 +74,16 @@
         return value === false ? 'table-danger' : 'table-success'
     }
 
+    function dateFormat(m)
+    {
+        return m.getUTCFullYear() + "-" +
+            ("0" + (m.getUTCMonth()+1)).slice(-2) + "-" +
+            ("0" + m.getUTCDate()).slice(-2) + " " +
+            ("0" + m.getUTCHours()).slice(-2) + ":" +
+            ("0" + m.getUTCMinutes()).slice(-2) + ":" +
+            ("0" + m.getUTCSeconds()).slice(-2);
+    }
+
     $(document).ready(function () {
         $.ajax({
             url: window.location + 'info/',
@@ -75,7 +92,26 @@
                 $('#projectName').html(data.project.name);
                 for (var i = 0; i < data.functions.length; i++) {
                     var f = data.functions[i]
-                    var markup = '<tr><td>' + f.name + '</td><td class="' + cellStyle(f.running) + '">' + f.running + '</td><td>' + f.lastModified + '</td></tr>'
+                    var mapCount = f.requestMappings.length;
+                    var requestMappingMarkup = '<ul class="list-unstyled">'
+                    for (var j = 0; j < mapCount; j++) {
+                        var rm = f.requestMappings[j];
+                        requestMappingMarkup += '<li>'
+                        requestMappingMarkup += rm.methods;
+                        requestMappingMarkup += '<span> ' + rm.patterns + '</span>';
+                        requestMappingMarkup += rm.consumes ? '<span> &gt; ' + rm.consumes + '</span>' : '';
+                        requestMappingMarkup += rm.produces ? '<span> &lt; ' + rm.produces + '</span>' : '';
+                        requestMappingMarkup += '</li>'
+                    }
+                    requestMappingMarkup += '</ul>'
+
+                    var markup = '' +
+                        '<tr>' +
+                        '<td>' + f.name + '</td>' +
+                        '<td class="' + cellStyle(f.running) + '">' + f.running + '</td>' +
+                        '<td>' + requestMappingMarkup + '</td>' +
+                        '<td>' + dateFormat(new Date(f.lastModified)) + '</td>' +
+                        '</tr>'
                     $("#functiontable").append(markup);
                 }
             }

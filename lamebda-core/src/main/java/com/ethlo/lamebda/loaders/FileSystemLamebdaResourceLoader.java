@@ -97,7 +97,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         this.functionSourcePreProcessor = Assert.notNull(functionSourcePreProcessor, "functionSourcePreProcesor cannot be null");
         this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
 
-        final Path projectPath = projectConfiguration.getProjectPath();
+        final Path projectPath = projectConfiguration.getPath();
         if (!Files.exists(projectPath))
         {
             throw new FileNotFoundException("Cannot use " + projectPath + " as project directory");
@@ -342,8 +342,8 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
     @Override
     public Optional<Path> getApiSpecification()
     {
-        final Path specPathYaml = projectConfiguration.getProjectPath().resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_YAML_FILENAME);
-        final Path specPathJson = projectConfiguration.getProjectPath().resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_JSON_FILENAME);
+        final Path specPathYaml = projectConfiguration.getPath().resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_YAML_FILENAME);
+        final Path specPathJson = projectConfiguration.getPath().resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_JSON_FILENAME);
         if (Files.exists(specPathYaml))
         {
             return Optional.of(specPathYaml);

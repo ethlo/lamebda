@@ -22,7 +22,10 @@ package com.ethlo.lamebda.spring;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -36,6 +39,7 @@ import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.aop.target.SingletonTargetSource;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.MimeType;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
@@ -44,12 +48,15 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.FunctionResult;
+import com.ethlo.lamebda.HttpMethod;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.context.FunctionContext;
+import com.ethlo.lamebda.functions.URLMappedServerFunction;
+import com.ethlo.lamebda.mapping.RequestMapping;
 
-public class SpringMvcServerFunction extends RequestMappingHandlerMapping implements ServerFunction, FunctionContextAware
+public class SpringMvcServerFunction extends RequestMappingHandlerMapping implements URLMappedServerFunction, ServerFunction, FunctionContextAware
 {
     protected final Logger logger = LoggerFactory.getLogger(getClass().getCanonicalName());
 
@@ -57,6 +64,7 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
 
     @Autowired
     private RequestMappingHandlerAdapter adapter;
+    private Set<RequestMapping> requestMappings = new LinkedHashSet<>();
 
     @Autowired(required = false)
     private void postConstruct(final ListableBeanFactory beanFactory, final List<MethodInterceptor> methodInterceptors)
@@ -64,22 +72,23 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
         final BeanFactoryAspectJAdvisorsBuilder advisorsBuilder = new BeanFactoryAspectJAdvisorsBuilder(beanFactory);
         final List<Advisor> advisors = advisorsBuilder.buildAspectJAdvisors();
 
-        final Object proxyObject = createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors);
+        final ServerFunction proxyObject = createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors);
         detectAndRegisterRequestHandlerMethods(this.getClass(), proxyObject);
     }
 
-    private Object createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)
+    private SpringMvcServerFunction createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)
     {
         final ProxyFactoryBean proxyFactoryBean = new ProxyFactoryBean();
         proxyFactoryBean.setProxyTargetClass(true);
         proxyFactoryBean.setProxyClassLoader(this.getClass().getClassLoader());
         proxyFactoryBean.setTargetSource(new SingletonTargetSource(this));
+        proxyFactoryBean.setTargetClass(SpringMvcServerFunction.class);
         proxyFactoryBean.addAdvisors(advisors);
         methodInterceptors.forEach(proxyFactoryBean::addAdvice);
-        return proxyFactoryBean.getObject();
+        return (SpringMvcServerFunction) proxyFactoryBean.getObject();
     }
 
-    private void detectAndRegisterRequestHandlerMethods(final Class<?> clazz, final Object object)
+    private void detectAndRegisterRequestHandlerMethods(final Class<?> clazz, final ServerFunction object)
     {
         Arrays.asList(clazz.getMethods())
                 .forEach(m -> {
@@ -91,10 +100,15 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
 
                         if (context.getProjectConfiguration().enableUrlProjectContextPrefix())
                         {
-                            final String projectContextPath = context.getProjectConfiguration().getProjectContextPath();
+                            final String projectContextPath = context.getProjectConfiguration().getContextPath();
                             mappingToUse = mappingToUse.combine(RequestMappingInfo.paths(projectContextPath).build());
                         }
                         mappingToUse = mappingToUse.combine(mapping);
+                        final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method->HttpMethod.parse(method.name())).collect(Collectors.toSet());
+                        final Set<String> patterns = mappingToUse.getPatternsCondition().getPatterns();
+                        final Set<String> consumes = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
+                        final Set<String> produces = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
+                        this.requestMappings.add(new RequestMapping(patterns, methods, consumes, produces));
                         unregisterMapping(mappingToUse);
                         registerMapping(mappingToUse, object, m);
                     }
@@ -137,5 +151,11 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
     public FunctionContext getContext()
     {
         return context;
+    }
+
+    @Override
+    public Set<RequestMapping> getUrlMapping()
+    {
+        return requestMappings;
     }
 }

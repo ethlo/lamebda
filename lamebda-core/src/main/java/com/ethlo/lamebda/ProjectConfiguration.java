@@ -28,12 +28,14 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ProjectConfiguration
 {
     private String rootContextPath;
 
-    private String projectContextPath;
+    private String contextPath;
 
     private boolean enableInfoFunction;
 
@@ -42,19 +44,20 @@ public class ProjectConfiguration
     private Path staticResourceDirectory;
 
     private boolean enableUrlProjectContextPrefix;
-    private Path projectPath;
-    private String projectName;
+    private Path path;
+    private String name;
 
     private ProjectConfiguration()
     {
     }
 
     /**
-     * @return The project level context mapping in the URL, for example <code>/gateway/<projectContextPath>/my-function</code>
+     * @return The project level context mapping in the URL, for example <code>/gateway/<contextPath>/my-function</code>
      */
-    public String getProjectContextPath()
+    @JsonProperty("mapping.project-context-path")
+    public String getContextPath()
     {
-        return projectContextPath;
+        return contextPath;
     }
 
     /**
@@ -67,26 +70,31 @@ public class ProjectConfiguration
         return enableInfoFunction;
     }
 
+    @JsonProperty("function.static.enabled")
     public boolean enableStaticResourceFunction()
     {
         return enableStaticResourceFunction;
     }
 
+    @JsonProperty("function.static.prefix")
     public String getStaticResourcesContext()
     {
         return staticResourcesPrefix;
     }
 
+    @JsonIgnore
     public Path getStaticResourceDirectory()
     {
         return staticResourceDirectory;
     }
 
-    public Path getProjectPath()
+    @JsonIgnore
+    public Path getPath()
     {
-        return projectPath;
+        return path;
     }
 
+    @JsonProperty("mapping.use-project-context-path")
     public boolean enableUrlProjectContextPrefix()
     {
         return enableUrlProjectContextPrefix;
@@ -97,9 +105,9 @@ public class ProjectConfiguration
         return new ProjectConfigurationBuilder(rootContextPath, projectPath);
     }
 
-    public String getProjectName()
+    public String getName()
     {
-        return projectName;
+        return name;
     }
 
     /**
@@ -188,14 +196,14 @@ public class ProjectConfiguration
         {
             ProjectConfiguration projectConfiguration = new ProjectConfiguration();
             projectConfiguration.rootContextPath = this.rootContextPath;
-            projectConfiguration.projectPath = this.projectPath;
+            projectConfiguration.path = this.projectPath;
             projectConfiguration.staticResourcesPrefix = this.staticResourcesPrefix;
-            projectConfiguration.projectContextPath = this.projectContextPath;
+            projectConfiguration.contextPath = this.projectContextPath;
             projectConfiguration.staticResourceDirectory = this.staticResourceDirectory;
             projectConfiguration.enableInfoFunction = this.enableInfoFunction;
             projectConfiguration.enableStaticResourceFunction = this.enableStaticResourceFunction;
             projectConfiguration.enableUrlProjectContextPrefix = this.enableUrlProjectContextPrefix;
-            projectConfiguration.projectName = this.projectName;
+            projectConfiguration.name = this.projectName;
             return projectConfiguration;
         }
 
@@ -236,9 +244,9 @@ public class ProjectConfiguration
     {
         return "ProjectConfigurationBuilder{" +
                 "rootContextPath='" + rootContextPath + '\'' +
-                ", projectPath=" + projectPath +
-                ", projectName='" + projectName + '\'' +
-                ", projectContextPath='" + projectContextPath + '\'' +
+                ", path=" + path +
+                ", name='" + name + '\'' +
+                ", contextPath='" + contextPath + '\'' +
                 ", enableInfoFunction=" + enableInfoFunction +
                 ", enableStaticResourceFunction=" + enableStaticResourceFunction +
                 ", enableUrlProjectContextPrefix=" + enableUrlProjectContextPrefix +
@@ -250,10 +258,10 @@ public class ProjectConfiguration
     public String toPrettyString()
     {
         return "" +
-                "projectName='" + projectName + '\'' +
-                "\nprojectContextPath='" + projectContextPath + '\'' +
+                "name='" + name + '\'' +
+                "\ncontextPath='" + contextPath + '\'' +
                 "\nrootContextPath='" + rootContextPath + '\'' +
-                "\nprojectPath=" + projectPath +
+                "\npath=" + path +
                 "\nenableInfoFunction=" + enableInfoFunction +
                 "\nenableStaticResourceFunction=" + enableStaticResourceFunction +
                 "\nenableUrlProjectContextPrefix=" + enableUrlProjectContextPrefix +
