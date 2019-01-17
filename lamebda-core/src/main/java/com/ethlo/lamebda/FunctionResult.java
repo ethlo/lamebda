@@ -22,5 +22,5 @@ package com.ethlo.lamebda;
 
 public enum FunctionResult
 {
-    PROCESSED, SKIPPED; 
+    PROCESSED, SKIPPED
 }

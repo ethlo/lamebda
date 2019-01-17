@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-import com.ethlo.lamebda.*;
+import com.ethlo.lamebda.*
 
 class Incorrect extends SimpleServerFunction {
 

@@ -88,22 +88,22 @@
         $.ajax({
             url: window.location + 'info/',
             success: function (data) {
-                document.title = '"' + data.project.name + '" Lamebda project '
+                document.title = '"' + data.project.name + '" Lamebda project ';
                 $('#projectName').html(data.project.name);
                 for (var i = 0; i < data.functions.length; i++) {
-                    var f = data.functions[i]
+                    var f = data.functions[i];
                     var mapCount = f.requestMappings.length;
-                    var requestMappingMarkup = '<ul class="list-unstyled">'
+                    var requestMappingMarkup = '<ul class="list-unstyled">';
                     for (var j = 0; j < mapCount; j++) {
                         var rm = f.requestMappings[j];
-                        requestMappingMarkup += '<li>'
+                        requestMappingMarkup += '<li>';
                         requestMappingMarkup += rm.methods;
                         requestMappingMarkup += '<span> ' + rm.patterns + '</span>';
                         requestMappingMarkup += rm.consumes ? '<span> &gt; ' + rm.consumes + '</span>' : '';
                         requestMappingMarkup += rm.produces ? '<span> &lt; ' + rm.produces + '</span>' : '';
                         requestMappingMarkup += '</li>'
                     }
-                    requestMappingMarkup += '</ul>'
+                    requestMappingMarkup += '</ul>';
 
                     var markup = '' +
                         '<tr>' +
@@ -111,7 +111,7 @@
                         '<td class="' + cellStyle(f.running) + '">' + f.running + '</td>' +
                         '<td>' + requestMappingMarkup + '</td>' +
                         '<td>' + dateFormat(new Date(f.lastModified)) + '</td>' +
-                        '</tr>'
+                        '</tr>';
                     $("#functiontable").append(markup);
                 }
             }

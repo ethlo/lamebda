@@ -34,5 +34,5 @@ class SpringMvc extends SpringMvcServerFunction
 
 class RequestClass
 {
-    String payload;
+    String payload
 }
