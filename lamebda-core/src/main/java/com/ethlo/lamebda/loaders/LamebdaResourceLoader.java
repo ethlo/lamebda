@@ -31,7 +31,6 @@ import com.ethlo.lamebda.ApiSpecificationModificationNotice;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.io.FileSystemEvent;
-import com.google.common.collect.Multimap;
 import groovy.lang.GroovyClassLoader;
 
 public interface LamebdaResourceLoader

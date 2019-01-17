@@ -16,8 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
-import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.functions.SingleFileResourceFunction;
+import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.functions.StatusFunction;
 import com.ethlo.lamebda.functions.SubDirectoryStaticResourceFunction;
 import com.ethlo.lamebda.io.ChangeType;

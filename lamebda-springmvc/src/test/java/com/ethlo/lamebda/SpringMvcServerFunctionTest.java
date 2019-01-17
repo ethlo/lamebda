@@ -24,13 +24,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 
 import org.junit.Before;
@@ -99,35 +96,5 @@ public class SpringMvcServerFunctionTest
     private Path move(final String name) throws IOException
     {
         return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve(name), StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    private void remove(final String name) throws IOException
-    {
-        final Path p = basepath.resolve(name);
-        if (p.toFile().exists())
-        {
-            Files.delete(p);
-        }
-    }
-
-    private void deleteDir(String dir) throws IOException
-    {
-        Path directory = Paths.get(dir);
-        Files.walkFileTree(directory, new SimpleFileVisitor<Path>()
-        {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
-            {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException
-            {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
     }
 }

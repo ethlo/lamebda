@@ -20,8 +20,6 @@ package com.ethlo.lamebda.spring;
  * #L%
  */
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.context.ApplicationContext;
 
@@ -32,7 +30,6 @@ public class AutowireHelper
     public static FunctionPostProcessor process(ApplicationContext applicationContext)
     {
         final AutowireCapableBeanFactory bf = applicationContext.getAutowireCapableBeanFactory();
-        final AtomicInteger i = new AtomicInteger();
         return f -> {
             bf.autowireBean(f);
             return f;

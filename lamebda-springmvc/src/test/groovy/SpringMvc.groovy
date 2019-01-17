@@ -17,8 +17,12 @@
  * limitations under the License.
  * #L%
  */
+
 import com.ethlo.lamebda.spring.SpringMvcServerFunction
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.ResponseBody
 
 class SpringMvc extends SpringMvcServerFunction
 {

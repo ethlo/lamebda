@@ -20,8 +20,6 @@ package com.ethlo.lamebda.util;
  * #L%
  */
 
-import java.io.File;
-
 /**
  * Largely copied from Apache Common IO
  */

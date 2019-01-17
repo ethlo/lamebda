@@ -44,8 +44,8 @@ import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.ApiSpecificationModificationNotice;
 import com.ethlo.lamebda.FunctionContextAware;
-import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.FunctionModificationNotice;
+import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.PropertyFile;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;

@@ -20,7 +20,6 @@ package com.ethlo.lamebda.loaders;
  * #L%
  */
 
-import com.ethlo.lamebda.ServerFunction;
 import groovy.lang.GroovyClassLoader;
 
 @FunctionalInterface

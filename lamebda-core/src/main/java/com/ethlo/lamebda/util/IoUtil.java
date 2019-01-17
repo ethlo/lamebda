@@ -40,8 +40,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import jdk.nashorn.internal.runtime.logging.DebugLogger;
-
 public class IoUtil
 {
     private static Logger logger = LoggerFactory.getLogger(IoUtil.class);
