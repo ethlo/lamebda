@@ -72,23 +72,22 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
         final BeanFactoryAspectJAdvisorsBuilder advisorsBuilder = new BeanFactoryAspectJAdvisorsBuilder(beanFactory);
         final List<Advisor> advisors = advisorsBuilder.buildAspectJAdvisors();
 
-        final ServerFunction proxyObject = createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors);
+        final Object proxyObject = createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors);
         detectAndRegisterRequestHandlerMethods(this.getClass(), proxyObject);
     }
 
-    private SpringMvcServerFunction createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)
+    private Object createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)
     {
         final ProxyFactoryBean proxyFactoryBean = new ProxyFactoryBean();
         proxyFactoryBean.setProxyTargetClass(true);
         proxyFactoryBean.setProxyClassLoader(this.getClass().getClassLoader());
         proxyFactoryBean.setTargetSource(new SingletonTargetSource(this));
-        proxyFactoryBean.setTargetClass(SpringMvcServerFunction.class);
         proxyFactoryBean.addAdvisors(advisors);
         methodInterceptors.forEach(proxyFactoryBean::addAdvice);
-        return (SpringMvcServerFunction) proxyFactoryBean.getObject();
+        return proxyFactoryBean.getObject();
     }
 
-    private void detectAndRegisterRequestHandlerMethods(final Class<?> clazz, final ServerFunction object)
+    private void detectAndRegisterRequestHandlerMethods(final Class<?> clazz, final Object object)
     {
         Arrays.asList(clazz.getMethods())
                 .forEach(m -> {
@@ -104,7 +103,7 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
                             mappingToUse = mappingToUse.combine(RequestMappingInfo.paths(projectContextPath).build());
                         }
                         mappingToUse = mappingToUse.combine(mapping);
-                        final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method->HttpMethod.parse(method.name())).collect(Collectors.toSet());
+                        final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method -> HttpMethod.parse(method.name())).collect(Collectors.toSet());
                         final Set<String> patterns = mappingToUse.getPatternsCondition().getPatterns();
                         final Set<String> consumes = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
                         final Set<String> produces = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
