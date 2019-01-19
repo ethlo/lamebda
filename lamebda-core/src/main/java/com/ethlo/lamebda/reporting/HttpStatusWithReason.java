@@ -59,7 +59,6 @@ public class HttpStatusWithReason
 
     @Override public int hashCode()
     {
-
         return Objects.hash(statusCode, reasonPhrase);
     }
 }

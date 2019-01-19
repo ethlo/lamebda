@@ -59,15 +59,20 @@ public class LamebdaMetricsFilter implements Filter
         final HttpServletRequest request = (HttpServletRequest) req;
         final HttpServletResponse response = (HttpServletResponse) res;
 
-        chain.doFilter(request, response);
-
-        final String pattern = (String) request.getAttribute(LamebdaMetricsFilter.PATTERN_ATTRIBUTE_NAME);
-        if (pattern != null)
+        try
         {
-            final String reason = (String) request.getAttribute(REASON_ATTRIBUTE_NAME);
+            chain.doFilter(request, response);
+        }
+        finally
+        {
+            final String pattern = (String) request.getAttribute(LamebdaMetricsFilter.PATTERN_ATTRIBUTE_NAME);
+            if (pattern != null)
+            {
+                final String reason = (String) request.getAttribute(REASON_ATTRIBUTE_NAME);
 
-            final MethodAndPattern requestMapping = new MethodAndPattern(request.getMethod(), pattern);
-            logInvocation(requestMapping, request, startedTimestamp, startedNanos, System.nanoTime(), new HttpStatusWithReason(response.getStatus(), reason != null ? reason : ""));
+                final MethodAndPattern requestMapping = new MethodAndPattern(request.getMethod(), pattern);
+                logInvocation(requestMapping, request, startedTimestamp, startedNanos, System.nanoTime(), new HttpStatusWithReason(response.getStatus(), reason != null ? reason : ""));
+            }
         }
     }
 
