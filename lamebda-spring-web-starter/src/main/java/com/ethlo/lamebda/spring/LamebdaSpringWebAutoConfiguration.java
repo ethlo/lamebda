@@ -37,6 +37,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,6 +52,8 @@ import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
+import com.ethlo.lamebda.reporting.FunctionMetricsService;
+import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
 
 @Configuration
 @ConfigurationProperties("lamebda")
@@ -134,6 +137,15 @@ public class LamebdaSpringWebAutoConfiguration
         {
             throw new UncheckedIOException(exc);
         }
+    }
+
+    @Bean
+    public FilterRegistrationBean metricsFilter()
+    {
+        final FilterRegistrationBean b = new FilterRegistrationBean();
+        b.setFilter(new LamebdaMetricsFilter(FunctionMetricsService.getInstance()));
+        b.setOrder(FilterRegistrationBean.HIGHEST_PRECEDENCE);
+        return b;
     }
 
     @Bean

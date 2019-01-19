@@ -24,6 +24,7 @@ import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.oas.ApiGenerator;
 import com.ethlo.lamebda.oas.ModelGenerator;
+import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
@@ -55,6 +56,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private Map<Path, ServerFunction> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
+    private final FunctionMetricsService functionMetricsService = FunctionMetricsService.getInstance();
 
     public FunctionManagerImpl(ProjectConfiguration projectConfiguration, LamebdaResourceLoader lamebdaResourceLoader)
     {
@@ -130,7 +132,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         if (projectConfiguration.enableInfoFunction())
         {
             final String defaultInfoPage = "/lamebda/templates/info.html";
-            addFunction(Paths.get("status-info"), new StatusFunction(lamebdaResourceLoader, this));
+            addFunction(Paths.get("status-info"), new StatusFunction(lamebdaResourceLoader, this, functionMetricsService));
 
             final Path customInfoPagePath = projectConfiguration.getPath().resolve("templates").resolve("info.html");
             if (Files.exists(customInfoPagePath))
@@ -203,7 +205,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             }
             catch (Exception exc)
             {
-                logger.error("Error in function {}: {}", f.getSourcePath(), exc.getMessage());
+                logger.error("Error in function {}: {}", f.getSourcePath(), exc);
             }
         }
     }

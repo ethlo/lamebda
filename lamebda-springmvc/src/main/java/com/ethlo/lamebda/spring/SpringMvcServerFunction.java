@@ -41,7 +41,9 @@ import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.MimeType;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
@@ -55,10 +57,12 @@ import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.URLMappedServerFunction;
 import com.ethlo.lamebda.mapping.RequestMapping;
+import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
 
 public class SpringMvcServerFunction extends RequestMappingHandlerMapping implements URLMappedServerFunction, ServerFunction, FunctionContextAware
 {
-    protected final Logger logger = LoggerFactory.getLogger(getClass().getCanonicalName());
+    // Override parent logger with a more capable logger
+    protected final static Logger logger = LoggerFactory.getLogger(RequestMappingHandlerMapping.class);
 
     private FunctionContext context;
 
@@ -92,38 +96,30 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
         Arrays.asList(clazz.getMethods())
                 .forEach(m -> {
                     final RequestMappingInfo mapping = getMappingForMethod(m, this.getClass());
-                    if (mapping != null)
-                    {
-                        final String rootContextPath = context.getProjectConfiguration().getRootContextPath();
-                        RequestMappingInfo mappingToUse = RequestMappingInfo.paths(rootContextPath).build();
-
-                        if (context.getProjectConfiguration().enableUrlProjectContextPrefix())
-                        {
-                            final String projectContextPath = context.getProjectConfiguration().getContextPath();
-                            mappingToUse = mappingToUse.combine(RequestMappingInfo.paths(projectContextPath).build());
-                        }
-                        mappingToUse = mappingToUse.combine(mapping);
-                        final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method -> HttpMethod.parse(method.name())).collect(Collectors.toSet());
-                        final Set<String> patterns = mappingToUse.getPatternsCondition().getPatterns();
-                        final Set<String> consumes = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
-                        final Set<String> produces = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
-                        this.requestMappings.add(new RequestMapping(patterns, methods, consumes, produces));
-                        unregisterMapping(mappingToUse);
-                        registerMapping(mappingToUse, object, m);
-                    }
+                    doRegister(object, m, mapping);
                 });
     }
 
-    public SpringMvcServerFunction()
+    private void doRegister(final Object object, final Method m, final RequestMappingInfo mapping)
     {
-        for (Method m : ReflectionUtils.getUniqueDeclaredMethods(getClass()))
+        if (mapping != null)
         {
-            final RequestMappingInfo mapping = getMappingForMethod(m, this.getClass());
-            if (mapping != null)
+            final String rootContextPath = context.getProjectConfiguration().getRootContextPath();
+            RequestMappingInfo mappingToUse = RequestMappingInfo.paths(rootContextPath).build();
+
+            if (context.getProjectConfiguration().enableUrlProjectContextPrefix())
             {
-                logger.info("Register mapping {}", mapping);
-                registerMapping(mapping, this, m);
+                final String projectContextPath = context.getProjectConfiguration().getContextPath();
+                mappingToUse = mappingToUse.combine(RequestMappingInfo.paths(projectContextPath).build());
             }
+            mappingToUse = mappingToUse.combine(mapping);
+            final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method -> HttpMethod.parse(method.name())).collect(Collectors.toSet());
+            final Set<String> patterns = mappingToUse.getPatternsCondition().getPatterns();
+            final Set<String> consumes = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
+            final Set<String> produces = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
+            this.requestMappings.add(new RequestMapping(patterns, methods, consumes, produces));
+            unregisterMapping(mappingToUse);
+            registerMapping(mappingToUse, object, m);
         }
     }
 
@@ -132,12 +128,17 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
     {
         final HttpServletRequest rawRequest = (HttpServletRequest) httpRequest.raw();
         final HttpServletResponse rawResponse = (HttpServletResponse) httpResponse.raw();
+
         final HandlerExecutionChain handler = getHandler(rawRequest);
         if (handler == null)
         {
             return FunctionResult.SKIPPED;
         }
+
+        rawRequest.setAttribute(LamebdaMetricsFilter.PATTERN_ATTRIBUTE_NAME, rawRequest.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE));
+
         adapter.handle(rawRequest, rawResponse, handler.getHandler());
+
         return FunctionResult.PROCESSED;
     }
 
@@ -145,6 +146,17 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
     public void setContext(final FunctionContext context)
     {
         this.context = context;
+
+        init();
+    }
+
+    private void init()
+    {
+        for (Method method : ReflectionUtils.getUniqueDeclaredMethods(getClass()))
+        {
+            final RequestMappingInfo mapping = getMappingForMethod(method, this.getClass());
+            doRegister(this, method, mapping);
+        }
     }
 
     public FunctionContext getContext()

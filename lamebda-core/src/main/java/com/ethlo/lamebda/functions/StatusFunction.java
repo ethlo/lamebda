@@ -37,6 +37,7 @@ import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.SimpleServerFunction;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
+import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.FunctionStatusInfo;
 
 public class StatusFunction extends SimpleServerFunction implements BuiltInServerFunction
@@ -44,13 +45,15 @@ public class StatusFunction extends SimpleServerFunction implements BuiltInServe
     private final FunctionManager functionManager;
     private final LamebdaResourceLoader resourceLoader;
     private final ProjectConfiguration projectConfiguration;
+    private final FunctionMetricsService functionMetricsService;
 
-    public StatusFunction(LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager)
+    public StatusFunction(LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager, FunctionMetricsService functionMetricsService)
     {
         super("/" + functionManager.getProjectConfiguration().getContextPath() + "/info/");
         this.resourceLoader = resourceLoader;
         this.functionManager = functionManager;
         this.projectConfiguration = functionManager.getProjectConfiguration();
+        this.functionMetricsService = functionMetricsService;
     }
 
     @Override
@@ -81,6 +84,7 @@ public class StatusFunction extends SimpleServerFunction implements BuiltInServe
         projectInfo.put("configuration", projectConfiguration);
         res.put("project", projectInfo);
         res.put("functions", functionList);
+        res.put("metrics", functionMetricsService.getInvocations());
         response.json(HttpStatus.OK, res);
     }
 

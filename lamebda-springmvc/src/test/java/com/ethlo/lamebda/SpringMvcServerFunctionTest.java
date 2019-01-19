@@ -85,11 +85,12 @@ public class SpringMvcServerFunctionTest
         assertThat(functions.keySet()).contains(sourcePath);
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
-        req.setRequestURI("/test/123");
+        req.setRequestURI("/lamebda/lamebda-unit-test/test/123");
         req.setMethod("POST");
         req.setContentType("application/json");
         req.setContent("{\"payload\": \"hello world\"}".getBytes(StandardCharsets.UTF_8));
         functionManager.handle(new ServletHttpRequest("/gateway", req), new ServletHttpResponse(res));
+        assertThat(res.getStatus()).isEqualTo(200);
         assertThat(res.getContentAsString()).isEqualTo("{\"id\":\"123\"}");
     }
 

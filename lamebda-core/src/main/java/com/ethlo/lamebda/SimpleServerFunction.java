@@ -35,13 +35,11 @@ import com.ethlo.lamebda.util.StringUtil;
 public abstract class SimpleServerFunction implements ServerFunction, FunctionContextAware, URLMappedServerFunction
 {
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
-    protected final String pattern;
+    protected String pattern;
     private FunctionContext context;
 
     public SimpleServerFunction()
     {
-        final String hyphenenated = StringUtil.camelCaseToHyphen(getClass().getSimpleName());
-        this.pattern = "/" + hyphenenated + "/**";
     }
 
     public SimpleServerFunction(String pattern)
@@ -56,7 +54,6 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
         {
             return FunctionResult.SKIPPED;
         }
-
         doHandle(request, response);
         return FunctionResult.PROCESSED;
     }
@@ -168,6 +165,11 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
     public void setContext(FunctionContext context)
     {
         this.context = context;
+
+        final String hyphenenated = StringUtil.camelCaseToHyphen(getClass().getSimpleName());
+        final ProjectConfiguration cfg = context.getProjectConfiguration();
+        final String projectContext = (cfg.enableUrlProjectContextPrefix() ? (cfg.getContextPath() + "/") : "");
+        this.pattern = "/" + projectContext + hyphenenated + "/**";
     }
 
     public FunctionContext getContext()
@@ -179,8 +181,7 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
     public Set<RequestMapping> getUrlMapping()
     {
         final ProjectConfiguration cfg = context.getProjectConfiguration();
-        final String optionalProjectPath = cfg.enableUrlProjectContextPrefix() ? cfg.getContextPath() : "";
-        final URI url = URI.create(cfg.getRootContextPath() + "/" + optionalProjectPath + "/" + pattern);
+        final URI url = URI.create(cfg.getRootContextPath() + "/" + pattern);
         return Collections.singleton(new RequestMapping(Collections.singleton(url.normalize().toString()), Collections.emptySet(), null, null));
     }
 }
