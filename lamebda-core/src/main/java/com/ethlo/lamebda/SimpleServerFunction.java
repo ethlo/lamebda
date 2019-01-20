@@ -40,6 +40,7 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
 
     public SimpleServerFunction()
     {
+        pattern = StringUtil.camelCaseToHyphen(this.getClass().getName());
     }
 
     public SimpleServerFunction(String pattern)
@@ -165,11 +166,9 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
     public void setContext(FunctionContext context)
     {
         this.context = context;
-
-        final String hyphenenated = StringUtil.camelCaseToHyphen(getClass().getSimpleName());
         final ProjectConfiguration cfg = context.getProjectConfiguration();
         final String projectContext = (cfg.enableUrlProjectContextPrefix() ? (cfg.getContextPath() + "/") : "");
-        this.pattern = "/" + projectContext + hyphenenated + "/**";
+        this.pattern = URI.create("/" + projectContext + pattern).normalize() + "/**";
     }
 
     public FunctionContext getContext()

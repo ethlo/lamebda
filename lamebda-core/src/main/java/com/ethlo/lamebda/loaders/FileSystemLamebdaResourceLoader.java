@@ -34,6 +34,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -306,6 +307,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         try
         {
             return Files.list(scriptPath).filter(f -> FileNameUtil.getExtension(f.getFileName().toString()).equals(SCRIPT_EXTENSION))
+                    .sorted(Comparator.comparing(Path::getFileName))
                     .skip(offset)
                     .limit(size)
                     .map(n ->

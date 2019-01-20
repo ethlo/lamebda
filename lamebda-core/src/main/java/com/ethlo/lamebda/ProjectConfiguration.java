@@ -23,16 +23,29 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
+import java.util.UUID;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
+import com.ethlo.lamebda.security.UsernamePasswordCredentials;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ProjectConfiguration
 {
+    private static final Logger logger = LoggerFactory.getLogger(ProjectConfiguration.class);
+
     private String rootContextPath;
 
     private String contextPath;
@@ -46,6 +59,7 @@ public class ProjectConfiguration
     private boolean enableUrlProjectContextPrefix;
     private Path path;
     private String name;
+    private UsernamePasswordCredentials adminCredentials;
 
     private ProjectConfiguration()
     {
@@ -82,7 +96,7 @@ public class ProjectConfiguration
         return staticResourcesPrefix;
     }
 
-    @JsonIgnore
+    @JsonProperty("function.static.path")
     public Path getStaticResourceDirectory()
     {
         return staticResourceDirectory;
@@ -102,7 +116,33 @@ public class ProjectConfiguration
 
     public static ProjectConfigurationBuilder builder(String rootContextPath, Path projectPath)
     {
+        final Path logbackConfig = projectPath.resolve("logback.xml");
+        if (Files.exists(logbackConfig))
+        {
+            configureLogback(logbackConfig);
+        }
+
         return new ProjectConfigurationBuilder(rootContextPath, projectPath);
+    }
+
+    private static void configureLogback(final Path logbackConfig)
+    {
+        final LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        context.reset();
+        final JoranConfigurator configurator = new JoranConfigurator();
+        configurator.setContext(context);
+        try
+        {
+            configurator.doConfigure(logbackConfig.toUri().toURL());
+        }
+        catch (JoranException exc)
+        {
+            throw new IllegalArgumentException("Unable to reconfigure logback using " + logbackConfig.toString() + "logback.xml file", exc);
+        }
+        catch (MalformedURLException exc)
+        {
+            throw new UncheckedIOException("Unable to reconfigure logback using " + logbackConfig.toString() + "logback.xml file", exc);
+        }
     }
 
     public String getName()
@@ -120,8 +160,15 @@ public class ProjectConfiguration
         return rootContextPath;
     }
 
+    @JsonIgnore
+    public UsernamePasswordCredentials getAdminCredentials()
+    {
+        return this.adminCredentials;
+    }
+
     public static final class ProjectConfigurationBuilder
     {
+        private UsernamePasswordCredentials adminCredentials;
         private String rootContextPath;
         private Path projectPath;
 
@@ -148,6 +195,7 @@ public class ProjectConfiguration
             this.staticResourcesPrefix = "static";
             this.projectPath.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY);
             this.staticResourceDirectory = projectPath.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY);
+            this.adminCredentials = new UsernamePasswordCredentials("admin", UUID.randomUUID().toString());
         }
 
         public ProjectConfigurationBuilder projectContextPath(String projectContextPath)
@@ -204,6 +252,7 @@ public class ProjectConfiguration
             projectConfiguration.enableStaticResourceFunction = this.enableStaticResourceFunction;
             projectConfiguration.enableUrlProjectContextPrefix = this.enableUrlProjectContextPrefix;
             projectConfiguration.name = this.projectName;
+            projectConfiguration.adminCredentials = this.adminCredentials;
             return projectConfiguration;
         }
 
@@ -231,6 +280,16 @@ public class ProjectConfiguration
                 // Static resource function
                 enableStaticResourceFunction = Boolean.parseBoolean(p.getProperty("functions.static.enabled", Boolean.toString(enableStaticResourceFunction)));
                 staticResourcesPrefix = p.getProperty("functions.static.prefix", staticResourcesPrefix);
+                staticResourceDirectory = Paths.get(p.getProperty("function.static.path", staticResourcesPrefix.toString()));
+
+                final String adminUsername = p.getProperty("admin.credentials.username", "admin");
+                String adminPassword = p.getProperty("admin.credentials.password");
+                if (adminPassword == null)
+                {
+                    adminPassword = RandomStringUtils.randomAlphanumeric(12);
+                    logger.info("Using generated admin password: {}. Please set it using 'admin.credentials.password=' in project.properties", adminPassword);
+                }
+                adminCredentials = new UsernamePasswordCredentials(adminUsername, adminPassword);
 
                 // Info function
                 enableInfoFunction = Boolean.parseBoolean(p.getProperty("functions.info.enabled", Boolean.toString(enableInfoFunction)));

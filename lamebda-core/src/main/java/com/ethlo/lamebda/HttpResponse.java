@@ -1,5 +1,7 @@
 package com.ethlo.lamebda;
 
+import java.util.List;
+
 import com.ethlo.lamebda.error.ErrorResponse;
 
 /*-
@@ -43,4 +45,6 @@ public interface HttpResponse
     void json(int status, Object body);
 
     Object raw();
+
+    void addHeader(String name, String value);
 }

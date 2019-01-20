@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -64,7 +65,8 @@ public class ServletHttpRequest implements HttpRequest
     @Override
     public List<String> header(String name)
     {
-        return new ArrayList<>(headers().get(name));
+        final Set<String> headers = headers().get(name.toLowerCase());
+        return headers != null ? new ArrayList<>(headers) : Collections.emptyList();
     }
 
     @Override

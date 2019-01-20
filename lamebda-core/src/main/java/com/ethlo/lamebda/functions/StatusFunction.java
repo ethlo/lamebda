@@ -35,12 +35,14 @@ import com.ethlo.lamebda.HttpStatus;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
-import com.ethlo.lamebda.SimpleServerFunction;
+import com.ethlo.lamebda.context.FunctionConfiguration;
+import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.FunctionStatusInfo;
+import com.ethlo.lamebda.security.UsernamePasswordCredentials;
 
-public class StatusFunction extends SimpleServerFunction implements BuiltInServerFunction
+public class StatusFunction extends BasicAuthSimpleServerFunction implements BuiltInServerFunction
 {
     private final FunctionManager functionManager;
     private final LamebdaResourceLoader resourceLoader;
@@ -49,15 +51,16 @@ public class StatusFunction extends SimpleServerFunction implements BuiltInServe
 
     public StatusFunction(LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager, FunctionMetricsService functionMetricsService)
     {
-        super("/" + functionManager.getProjectConfiguration().getContextPath() + "/info/");
+        super("/info/");
         this.resourceLoader = resourceLoader;
         this.functionManager = functionManager;
         this.projectConfiguration = functionManager.getProjectConfiguration();
         this.functionMetricsService = functionMetricsService;
+        setContext(new FunctionContext(functionManager.getProjectConfiguration(), new FunctionConfiguration()));
     }
 
     @Override
-    public void doHandle(HttpRequest request, HttpResponse response)
+    public void get(HttpRequest request, HttpResponse response)
     {
         final int page = Integer.parseInt(request.param("page", "0"));
         final int size = Integer.parseInt(request.param("size", "25"));
@@ -73,7 +76,7 @@ public class StatusFunction extends SimpleServerFunction implements BuiltInServe
             final ServerFunction func = ((FunctionManagerImpl) functionManager).getFunctions().get(s.getSourcePath());
             if (func instanceof URLMappedServerFunction)
             {
-                info.setRequestMappings(((URLMappedServerFunction)func).getUrlMapping());
+                info.setRequestMappings(((URLMappedServerFunction) func).getUrlMapping());
             }
 
             return info;
@@ -91,5 +94,12 @@ public class StatusFunction extends SimpleServerFunction implements BuiltInServe
     private List<ServerFunctionInfo> getFunctionInfoList(int page, int pageSize)
     {
         return resourceLoader.findAll(page * pageSize, pageSize);
+    }
+
+    @Override
+    protected boolean allow(String username, String password)
+    {
+        final UsernamePasswordCredentials adminCredentials = getContext().getProjectConfiguration().getAdminCredentials();
+        return adminCredentials.matches(username, password);
     }
 }

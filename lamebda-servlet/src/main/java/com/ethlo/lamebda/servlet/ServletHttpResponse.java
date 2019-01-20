@@ -137,4 +137,10 @@ public class ServletHttpResponse implements HttpResponse
     {
         return response;
     }
+
+    @Override
+    public void addHeader(final String name, final String value)
+    {
+        response.addHeader(name, value);
+    }
 }

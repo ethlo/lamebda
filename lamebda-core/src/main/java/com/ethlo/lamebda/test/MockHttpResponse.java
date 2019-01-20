@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.error.ErrorResponse;
+import com.ethlo.lamebda.util.Multimap;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -45,6 +46,7 @@ public class MockHttpResponse implements HttpResponse
     private String contentType;
     private String characterEncoding = StandardCharsets.UTF_8.displayName();
     private ByteArrayOutputStream body = new ByteArrayOutputStream();
+    private Multimap<String,String> headers;
 
     @Override
     public void setStatus(final int status)
@@ -128,6 +130,12 @@ public class MockHttpResponse implements HttpResponse
     public Object raw()
     {
         return this;
+    }
+
+    @Override
+    public void addHeader(final String name, final String value)
+    {
+        this.headers.add(name, value);
     }
 
     public byte[] rawBody()
