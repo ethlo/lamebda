@@ -84,7 +84,7 @@ public class StatusFunction extends SimpleServerFunction implements BuiltInServe
         projectInfo.put("configuration", projectConfiguration);
         res.put("project", projectInfo);
         res.put("functions", functionList);
-        res.put("metrics", functionMetricsService.getInvocations());
+        res.put("metrics", functionMetricsService.getMetrics());
         response.json(HttpStatus.OK, res);
     }
 

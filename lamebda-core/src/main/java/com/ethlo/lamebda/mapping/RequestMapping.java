@@ -21,13 +21,15 @@ package com.ethlo.lamebda.mapping;
  */
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 
 import com.ethlo.lamebda.HttpMethod;
+import com.ethlo.lamebda.reporting.MethodAndPattern;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-public class RequestMapping
+public class RequestMapping implements Comparable<RequestMapping>
 {
     private final Set<String> patterns;
     private final Set<HttpMethod> methods;
@@ -94,5 +96,18 @@ public class RequestMapping
     @Override public int hashCode()
     {
         return Objects.hash(patterns, methods, consumes, produces);
+    }
+
+    @Override
+    public int compareTo(final RequestMapping requestMapping)
+    {
+        return from(this).compareTo(from(requestMapping));
+    }
+
+    private MethodAndPattern from(final RequestMapping requestMapping)
+    {
+        final String method = requestMapping.getMethods().isEmpty() ? "" : requestMapping.getMethods().iterator().next().name();
+        final String pattern = requestMapping.getPatterns().isEmpty() ? "" : requestMapping.getPatterns().iterator().next();
+        return new MethodAndPattern(method, pattern);
     }
 }

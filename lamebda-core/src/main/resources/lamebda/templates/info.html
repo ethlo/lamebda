@@ -28,7 +28,6 @@
 
         .container {
             max-width: 4096px;
-            padding: 0;
         }
 
         .header-bg {
@@ -40,22 +39,40 @@
 
 <body>
 
-<div class="container">
-    <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 header-bg border-bottom box-shadow">
-        <h5 class="my-0 mr-md-auto font-weight-normal"><span id="projectName"></span></h5>
-        <nav class="my-2 my-md-0 mr-md-3">
+<div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 header-bg border-bottom box-shadow">
+    <h5 class="my-0 mr-md-auto font-weight-normal"><span id="projectName"></span></h5>
+    <nav class="my-2 my-md-0 mr-md-3">
 
-            <a class="p-2" href="api/">API documentation</a>
-            <a class="p-2" href="api/api.yaml">API specification</a>
-        </nav>
-    </div>
-    <table id="functiontable" class="table table-striped">
-        <thead>
+        <a class="p-2" href="api/">API documentation</a>
+        <a class="p-2" href="api/api.yaml">API specification</a>
+    </nav>
+</div>
+
+<div class="container">
+
+    <h5>Functions</h5>
+    <table id="functiontable" class="table table-hover table-bordered table-light">
+        <thead class="thead-light">
         <tr>
             <th scope="col">Name</th>
             <th scope="col">Running</th>
             <th scope="col">Request mapping</th>
             <th scope="col">Modified</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <h5>Metrics</h5>
+    <table id="metricstable" class="table table-hover table-light">
+        <thead class="thead-light">
+        <tr>
+            <th scope="col">Path</th>
+            <th scope="col">Last used</th>
+            <th scope="col">Response time</th>
+            <th scope="col">Last error</th>
+            <th scope="col">Response status</th>
         </tr>
         </thead>
         <tbody>
@@ -69,13 +86,20 @@
 
 <script>
 
+    function numberFormat(n, fd) {
+        if (! n) {
+            return ''
+        }
 
-    function cellStyle(value) {
-        return value === false ? 'table-danger' : 'table-success'
+        return n.toFixed(fd)
     }
 
     function dateFormat(m)
     {
+        if (! m) {
+            return ''
+        }
+        m = new Date(m)
         return m.getUTCFullYear() + "-" +
             ("0" + (m.getUTCMonth()+1)).slice(-2) + "-" +
             ("0" + m.getUTCDate()).slice(-2) + " " +
@@ -84,40 +108,69 @@
             ("0" + m.getUTCSeconds()).slice(-2);
     }
 
+    function renderMetrics(metrics)
+    {
+        for (var pattern in metrics) {
+            var metric = metrics[pattern]
+
+            var statusMarkup = '<thead class"thead-light"><th class="col-sm-6">Status</th><th class="col-sm-4">Count</th></thead>'
+            for (status in metric.countByStatus) {
+                var count = metric.countByStatus[status]
+                statusMarkup += '<tr><td class="col-sm-6">' + status + '</td><td class="col-sm-4">' + count + '</td></tr>'
+            }
+
+            var markup = '<tr>' +
+                '<td>' + pattern + '</td>' +
+                '<td>' + dateFormat(metric.lastInvocation) + '</td>' +
+                '<td>' + numberFormat(metric.averageResponseTime, 2) + ' ms (Last: ' + numberFormat(metric.lastResponseTime, 2) + ' ms)</td>' +
+                '<td>' + metric.lastError + '</td>' +
+                '<td>' +
+                '<table class="table table-sm table-bordered">' + statusMarkup + '</table>' +
+                '</td>' +
+                '</tr>'
+            $("#metricstable").append(markup);
+        }
+    }
+
+    function renderFunctions(functions) {
+        for (var i = 0; i < functions.length; i++) {
+            var f = functions[i];
+
+            var requestMappingMarkup = '<span class="text-warning">None</span>'
+
+            if (f.requestMappings) {
+                var mapCount = f.requestMappings.length;
+                requestMappingMarkup = '<ul class="list-unstyled">';
+                for (var j = 0; j < mapCount; j++) {
+                    var rm = f.requestMappings[j];
+                    requestMappingMarkup += '<li>';
+                    requestMappingMarkup += rm.methods;
+                    requestMappingMarkup += '<span> ' + rm.patterns + '</span>';
+                    requestMappingMarkup += '<span title="Consumes ' + rm.consumes + '"> &#8628; ' + rm.consumes + '</span>'
+                    requestMappingMarkup += '<span title="Produces ' + rm.produces + '"> &#8625; ' + rm.produces + '</span>'
+                    requestMappingMarkup += '</li>'
+                }
+                requestMappingMarkup += '</ul>';
+            }
+            var markup = '' +
+                '<tr>' +
+                '<td>' + f.name + '</td>' +
+                '<td><span class="' + (f.running ? 'text-success' : 'text-danger') + '">' + f.running + '</td>' +
+                '<td>' + requestMappingMarkup + '</td>' +
+                '<td>' + dateFormat(new Date(f.lastModified)) + '</td>' +
+                '</tr>';
+            $("#functiontable").append(markup);
+        }
+    }
+
     $(document).ready(function () {
         $.ajax({
             url: window.location + 'info/',
             success: function (data) {
                 document.title =  data.project.name;
                 $('#projectName').html(data.project.name);
-                for (var i = 0; i < data.functions.length; i++) {
-                    var f = data.functions[i];
-
-                    var requestMappingMarkup = '<b class="warning">None</b>'
-
-                    if (f.requestMappings) {
-                        var mapCount = f.requestMappings.length;
-                        requestMappingMarkup = '<ul class="list-unstyled">';
-                        for (var j = 0; j < mapCount; j++) {
-                            var rm = f.requestMappings[j];
-                            requestMappingMarkup += '<li>';
-                            requestMappingMarkup += rm.methods;
-                            requestMappingMarkup += '<span> ' + rm.patterns + '</span>';
-                            requestMappingMarkup += rm.consumes ? '<span title="Consumes ' + rm.consumes + '"> &#8628; ' + rm.consumes + '</span>' : '';
-                            requestMappingMarkup += rm.produces ? '<span title="Produces ' + rm.produces + '"> &#8625; ' + rm.produces + '</span>' : '';
-                            requestMappingMarkup += '</li>'
-                        }
-                        requestMappingMarkup += '</ul>';
-                    }
-                    var markup = '' +
-                        '<tr>' +
-                        '<td>' + f.name + '</td>' +
-                        '<td class="' + cellStyle(f.running) + '">' + f.running + '</td>' +
-                        '<td>' + requestMappingMarkup + '</td>' +
-                        '<td>' + dateFormat(new Date(f.lastModified)) + '</td>' +
-                        '</tr>';
-                    $("#functiontable").append(markup);
-                }
+                renderFunctions(data.functions)
+                renderMetrics(data.metrics)
             }
         });
     });

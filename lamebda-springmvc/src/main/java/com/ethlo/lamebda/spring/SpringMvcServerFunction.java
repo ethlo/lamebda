@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -41,7 +42,6 @@ import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.MimeType;
 import org.springframework.util.ReflectionUtils;
-import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
@@ -57,6 +57,8 @@ import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.URLMappedServerFunction;
 import com.ethlo.lamebda.mapping.RequestMapping;
+import com.ethlo.lamebda.reporting.FunctionMetricsService;
+import com.ethlo.lamebda.reporting.MethodAndPattern;
 import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
 
 public class SpringMvcServerFunction extends RequestMappingHandlerMapping implements URLMappedServerFunction, ServerFunction, FunctionContextAware
@@ -116,7 +118,7 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
             final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method -> HttpMethod.parse(method.name())).collect(Collectors.toSet());
             final Set<String> patterns = mappingToUse.getPatternsCondition().getPatterns();
             final Set<String> consumes = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
-            final Set<String> produces = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
+            final Set<String> produces = mappingToUse.getProducesCondition().getProducibleMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
             this.requestMappings.add(new RequestMapping(patterns, methods, consumes, produces));
             unregisterMapping(mappingToUse);
             registerMapping(mappingToUse, object, m);
@@ -135,11 +137,19 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
             return FunctionResult.SKIPPED;
         }
 
-        rawRequest.setAttribute(LamebdaMetricsFilter.PATTERN_ATTRIBUTE_NAME, rawRequest.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE));
+        final String pattern = (String) rawRequest.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+        rawRequest.setAttribute(LamebdaMetricsFilter.PATTERN_ATTRIBUTE_NAME, pattern);
 
-        adapter.handle(rawRequest, rawResponse, handler.getHandler());
-
-        return FunctionResult.PROCESSED;
+        try
+        {
+            adapter.handle(rawRequest, rawResponse, handler.getHandler());
+            return FunctionResult.PROCESSED;
+        }
+        catch (Exception exc)
+        {
+            FunctionMetricsService.getInstance().errorOccured(new MethodAndPattern(rawRequest.getMethod(), pattern), exc);
+            throw exc;
+        }
     }
 
     @Override
@@ -167,6 +177,6 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
     @Override
     public Set<RequestMapping> getUrlMapping()
     {
-        return requestMappings;
+        return new TreeSet<>(requestMappings);
     }
 }
