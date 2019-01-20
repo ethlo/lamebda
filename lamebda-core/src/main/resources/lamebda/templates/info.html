@@ -40,7 +40,7 @@
 <body>
 
 <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 header-bg border-bottom box-shadow">
-    <h5 class="my-0 mr-md-auto font-weight-normal"><span id="projectName"></span></h5>
+    <h5 class="my-0 mr-md-auto font-weight-normal"><span id="projectName">Lamebda project</span> <span id="projectVersion" class="text-muted"></span></h5>
     <nav class="my-2 my-md-0 mr-md-3">
 
         <a class="p-2" href="api/">API documentation</a>
@@ -123,7 +123,7 @@
                 '<td>' + pattern + '</td>' +
                 '<td>' + dateFormat(metric.lastInvocation) + '</td>' +
                 '<td>' + numberFormat(metric.averageResponseTime, 2) + ' ms (Last: ' + numberFormat(metric.lastResponseTime, 2) + ' ms)</td>' +
-                '<td>' + metric.lastError + '</td>' +
+                '<td>' + (metric.lastError ? metric.lastError : 'None') + '</td>' +
                 '<td>' +
                 '<table class="table table-sm table-bordered">' + statusMarkup + '</table>' +
                 '</td>' +
@@ -167,8 +167,11 @@
         $.ajax({
             url: window.location + 'info/',
             success: function (data) {
-                document.title =  data.project.name;
-                $('#projectName').html(data.project.name);
+                var cfg = data.project.configuration
+                console.log('Project cfg', cfg)
+                document.title =  cfg['project.name'];
+                $('#projectName').html(document.title);
+                $('#projectVersion').html(cfg['project.version']);
                 renderFunctions(data.functions)
                 renderMetrics(data.metrics)
             }

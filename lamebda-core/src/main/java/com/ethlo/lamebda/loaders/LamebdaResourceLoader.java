@@ -20,6 +20,7 @@ package com.ethlo.lamebda.loaders;
  * #L%
  */
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -28,12 +29,14 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.ethlo.lamebda.ApiSpecificationModificationNotice;
+import com.ethlo.lamebda.FunctionModificationNotice;
+import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.io.FileSystemEvent;
 import groovy.lang.GroovyClassLoader;
 
-public interface LamebdaResourceLoader
+public interface LamebdaResourceLoader extends AutoCloseable
 {
     /**
      * Load the contents of the class
@@ -53,9 +56,13 @@ public interface LamebdaResourceLoader
      */
     List<ServerFunctionInfo> findAll(long offset, int size);
 
+    void setProjectChangeListener(Consumer<FileSystemEvent> l);
+
     void setApiSpecificationChangeListener(Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener);
 
     void setLibChangeListener(Consumer<FileSystemEvent> listener);
+
+    void setFunctionChangeListener(Consumer<FunctionModificationNotice> l);
 
     ServerFunction load(GroovyClassLoader classLoader, Path sourcePath);
 
@@ -68,4 +75,8 @@ public interface LamebdaResourceLoader
     URL getSharedClassPath();
 
     List<URL> getLibUrls();
+
+    ProjectConfiguration getProjectConfiguration();
+
+    void close();
 }

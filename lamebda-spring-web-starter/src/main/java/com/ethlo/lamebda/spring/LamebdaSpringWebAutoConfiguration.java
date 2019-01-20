@@ -21,11 +21,7 @@ package com.ethlo.lamebda.spring;
  */
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.validation.constraints.NotNull;
 
@@ -45,10 +41,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.servlet.HandlerMapping;
 
+import com.ethlo.lamebda.DelegatingFunctionManager;
 import com.ethlo.lamebda.FunctionManager;
-import com.ethlo.lamebda.FunctionManagerImpl;
-import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
+import com.ethlo.lamebda.FunctionManagerDirector;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
@@ -79,7 +74,7 @@ public class LamebdaSpringWebAutoConfiguration
     @ConditionalOnMissingBean
     public FunctionPostProcessor functionPostProcessor()
     {
-        return AutowireHelper.process(applicationContext);
+        return AutowireHelper.postProcessor(applicationContext);
     }
 
     @Bean
@@ -113,30 +108,9 @@ public class LamebdaSpringWebAutoConfiguration
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean(FileSourceConfiguration.class)
-    public List<FunctionManager> functionManager(FunctionSourcePreProcessor preNotification, FunctionPostProcessor functionPostProcessor, FileSourceConfiguration cfg) throws IOException
+    public FunctionManagerDirector functionManagerDirector(FileSourceConfiguration cfg) throws IOException
     {
-        return Files.list(cfg.getDirectory())
-                .filter(p-> !p.getFileName().toString().startsWith(".") && Files.isDirectory(p))
-                .map(projectPath ->
-                {
-                    final ProjectConfiguration projectConfiguration = ProjectConfiguration.builder(rootContextPath, projectPath).loadIfExists().build();
-                    return initProject(projectConfiguration, preNotification, functionPostProcessor);
-                })
-                .collect(Collectors.toList());
-    }
-
-    private FunctionManager initProject(ProjectConfiguration cfg, final FunctionSourcePreProcessor preNotification, final FunctionPostProcessor functionPostProcessor)
-    {
-
-        try
-        {
-            final FileSystemLamebdaResourceLoader lamebdaResourceLoader = new FileSystemLamebdaResourceLoader(cfg, preNotification, functionPostProcessor);
-            return new FunctionManagerImpl(cfg, lamebdaResourceLoader);
-        }
-        catch (IOException exc)
-        {
-            throw new UncheckedIOException(exc);
-        }
+        return new FunctionManagerDirector(cfg.getDirectory(), rootContextPath, AutowireHelper.postProcessor(applicationContext));
     }
 
     @Bean
@@ -149,18 +123,9 @@ public class LamebdaSpringWebAutoConfiguration
     }
 
     @Bean
-    public LamebdaController lamebdaController(List<FunctionManager> functionManagers)
+    public LamebdaController lamebdaController(FunctionManagerDirector functionManagerDirector)
     {
-        return new LamebdaController((request, response) -> {
-            for (FunctionManager functionManager : functionManagers)
-            {
-                if (functionManager.handle(request, response))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }, rootContextPath);
+        return new LamebdaController(new DelegatingFunctionManager(functionManagerDirector), rootContextPath);
     }
 
     @Bean

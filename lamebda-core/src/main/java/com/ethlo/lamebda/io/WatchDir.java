@@ -26,6 +26,7 @@ import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.FileSystems;
@@ -44,7 +45,7 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WatchDir
+public class WatchDir implements AutoCloseable
 {
     private static final Logger logger = LoggerFactory.getLogger(WatchDir.class);
 
@@ -190,5 +191,11 @@ public class WatchDir
                 }
             }
         }
+    }
+
+    @Override
+    public void close()
+    {
+        keys.forEach((key, path)->key.cancel());
     }
 }

@@ -68,7 +68,7 @@ public class SpringMvcServerFunctionTest
         Files.createDirectories(basepath);
 
         final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", basepath).build();
-        functionManager = new FunctionManagerImpl(cfg, new FileSystemLamebdaResourceLoader(cfg, (cl, s) -> s, AutowireHelper.process(applicationContext)));
+        functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, (cl, s) -> s, AutowireHelper.postProcessor(applicationContext)));
     }
 
     private void ioWait() throws InterruptedException

@@ -27,7 +27,7 @@ import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 
 public class AutowireHelper
 {
-    public static FunctionPostProcessor process(ApplicationContext applicationContext)
+    public static FunctionPostProcessor postProcessor(ApplicationContext applicationContext)
     {
         final AutowireCapableBeanFactory bf = applicationContext.getAutowireCapableBeanFactory();
         return f -> {

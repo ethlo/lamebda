@@ -43,6 +43,9 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
 import com.ethlo.lamebda.ApiSpecificationModificationNotice;
 import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.FunctionModificationNotice;
@@ -50,7 +53,6 @@ import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.PropertyFile;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
-import com.ethlo.lamebda.SourceChangeAware;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.io.ChangeType;
@@ -61,7 +63,7 @@ import com.ethlo.lamebda.util.FileNameUtil;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
-public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, SourceChangeAware
+public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemLamebdaResourceLoader.class);
 
@@ -79,6 +81,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
     public static final String SHARED_DIRECTORY = "shared";
     public static final String LIB_DIRECTORY = "lib";
 
+    private final Path projectPath;
     private final Path scriptPath;
     private final Path specificationPath;
     private final Path sharedPath;
@@ -91,9 +94,14 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
     private Consumer<FunctionModificationNotice> functionChangeListener;
     private Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener;
     private Consumer<FileSystemEvent> libChangeListener;
+    private Consumer<FileSystemEvent> projectChangeListener;
+
+    private WatchDir watchDir;
 
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor) throws IOException
     {
+        configureLogback(projectConfiguration.getPath());
+
         this.projectConfiguration = projectConfiguration;
         this.functionSourcePreProcessor = Assert.notNull(functionSourcePreProcessor, "functionSourcePreProcesor cannot be null");
         this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
@@ -104,6 +112,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
             throw new FileNotFoundException("Cannot use " + projectPath + " as project directory");
         }
 
+        this.projectPath = projectPath;
         this.scriptPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SCRIPT_DIRECTORY));
         this.specificationPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SPECIFICATION_DIRECTORY));
         this.sharedPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SHARED_DIRECTORY));
@@ -115,13 +124,46 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         logger.debug("Shared path: {}", sharedPath);
         logger.debug("Library path: {}", libPath);
 
-        listenForChanges(scriptPath, specificationPath, libPath);
+        listenForChanges(projectPath, scriptPath, specificationPath, libPath);
     }
+
+    private static void configureLogback(Path projectPath)
+    {
+        final Path logbackConfig = projectPath.resolve("logback.xml");
+        if (! Files.exists(logbackConfig))
+        {
+            return;
+        }
+
+        final LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        context.reset();
+        final JoranConfigurator configurator = new JoranConfigurator();
+        configurator.setContext(context);
+        try
+        {
+            configurator.doConfigure(logbackConfig.toUri().toURL());
+        }
+        catch (JoranException exc)
+        {
+            throw new IllegalArgumentException("Unable to reconfigure logback using " + logbackConfig.toString() + "logback.xml file", exc);
+        }
+        catch (MalformedURLException exc)
+        {
+            throw new UncheckedIOException("Unable to reconfigure logback using " + logbackConfig.toString() + "logback.xml file", exc);
+        }
+    }
+
 
     @Override
     public void setFunctionChangeListener(Consumer<FunctionModificationNotice> l)
     {
         this.functionChangeListener = l;
+    }
+
+    @Override
+    public void setProjectChangeListener(Consumer<FileSystemEvent> l)
+    {
+        this.projectChangeListener = l;
     }
 
     @Override
@@ -243,7 +285,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
 
     private void listenForChanges(Path... paths) throws IOException
     {
-        final WatchDir watchDir = new WatchDir(e -> {
+        this.watchDir = new WatchDir(e -> {
             logger.debug("{}", e);
 
             try
@@ -261,7 +303,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
             @Override
             public void run()
             {
-                setName("function-watcher");
+                setName("filesystem-watcher");
                 logger.info("Watching {} for changes", Arrays.asList(paths));
                 watchDir.processEvents();
             }
@@ -279,19 +321,31 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         }
         else if (FileNameUtil.getExtension(filename).equals(JAR_EXTENSION) && event.getPath().getParent().equals(libPath))
         {
-            libChanged(event.getPath(), changeType);
+            libChanged(event);
         }
         else if (filename.equals(API_SPECIFICATION_JSON_FILENAME) || filename.equals(API_SPECIFICATION_YAML_FILENAME))
         {
             apiSpecificationChanged(event.getPath(), changeType);
         }
+        else if (filename.equals(PROJECT_FILENAME) && event.getPath().getParent().equals(projectPath) && changeType == ChangeType.MODIFIED)
+        {
+            projectConfigurationChanged(event);
+        }
     }
 
-    private void libChanged(final Path path, final ChangeType changeType)
+    private void projectConfigurationChanged(FileSystemEvent e)
+    {
+        if (projectChangeListener != null)
+        {
+            projectChangeListener.accept(e);
+        }
+    }
+
+    private void libChanged(FileSystemEvent event)
     {
         if (libChangeListener != null)
         {
-            libChangeListener.accept(new FunctionModificationNotice(changeType, path));
+            libChangeListener.accept(event);
         }
     }
 
@@ -386,5 +440,17 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader, S
         {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @Override
+    public ProjectConfiguration getProjectConfiguration()
+    {
+        return projectConfiguration;
+    }
+
+    @Override
+    public void close()
+    {
+        this.watchDir.close();
     }
 }

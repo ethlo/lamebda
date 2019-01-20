@@ -1,6 +1,7 @@
 package com.ethlo.lamebda;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.URL;
 import java.nio.file.Files;
@@ -58,10 +59,11 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     private LamebdaResourceLoader lamebdaResourceLoader;
     private final FunctionMetricsService functionMetricsService = FunctionMetricsService.getInstance();
 
-    public FunctionManagerImpl(ProjectConfiguration projectConfiguration, LamebdaResourceLoader lamebdaResourceLoader)
+    public FunctionManagerImpl(LamebdaResourceLoader lamebdaResourceLoader)
     {
+        this.projectConfiguration = lamebdaResourceLoader.getProjectConfiguration();
+
         logger.info("Loading project: {}\n{}", projectConfiguration.getName(), projectConfiguration.toPrettyString());
-        this.projectConfiguration = projectConfiguration;
         this.lamebdaResourceLoader = lamebdaResourceLoader;
         this.groovyClassLoader = new GroovyClassLoader();
 
@@ -72,54 +74,49 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             groovyClassLoader.addURL(url);
         });
 
-        if (lamebdaResourceLoader instanceof SourceChangeAware)
-        {
-            ((SourceChangeAware) lamebdaResourceLoader).setFunctionChangeListener(n -> {
-                switch (n.getChangeType())
-                {
-                    case CREATED:
-                    case MODIFIED:
-                        try
-                        {
-                            load(lamebdaResourceLoader, n.getPath());
-                        }
-                        catch (CompilationFailedException exc)
-                        {
-                            logger.warn("Unloading function {} due to script compilation error", n.getPath());
-                            unload(n.getPath());
-                            throw exc;
-                        }
-                        break;
-
-                    case DELETED:
+        lamebdaResourceLoader.setFunctionChangeListener(n -> {
+            switch (n.getChangeType())
+            {
+                case CREATED:
+                case MODIFIED:
+                    try
+                    {
+                        load(lamebdaResourceLoader, n.getPath());
+                    }
+                    catch (CompilationFailedException exc)
+                    {
+                        logger.warn("Unloading function {} due to script compilation error", n.getPath());
                         unload(n.getPath());
-                }
-            });
+                        throw exc;
+                    }
+                    break;
 
-            // Listen for specification changes
-            lamebdaResourceLoader.setApiSpecificationChangeListener(n ->
-            {
-                logger.info("Specification file changed: {}", n.getPath());
-                if (n.getChangeType() != ChangeType.DELETED)
-                {
-                    processApiSpecification(n.getPath());
-                    reloadFunctions(n.getPath());
-                }
-            });
+                case DELETED:
+                    unload(n.getPath());
+            }
+        });
 
-            // Listen for lib folder changes
-            lamebdaResourceLoader.setLibChangeListener(n ->
+        // Listen for specification changes
+        lamebdaResourceLoader.setApiSpecificationChangeListener(n ->
+        {
+            logger.info("Specification file changed: {}", n.getPath());
+            if (n.getChangeType() != ChangeType.DELETED)
             {
-                if (n.getChangeType() == ChangeType.CREATED)
-                {
-                    groovyClassLoader.addURL(IoUtil.toURL(n.getPath()));
-                }
-            });
-        }
+                processApiSpecification(n.getPath());
+                reloadFunctions(n.getPath());
+            }
+        });
+
+        // Listen for lib folder changes
+        lamebdaResourceLoader.setLibChangeListener(n ->
+        {
+            if (n.getChangeType() == ChangeType.CREATED)
+            {
+                groovyClassLoader.addURL(IoUtil.toURL(n.getPath()));
+            }
+        });
 
         initialize();
-
-        addBuiltinFunctions();
     }
 
     private void addBuiltinFunctions()
@@ -197,6 +194,9 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             processApiSpecification(apiSpecification.get());
         }
 
+        this.functions.forEach((path, function) -> {
+            unload(path);
+        });
         for (ServerFunctionInfo f : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
         {
             try
@@ -208,6 +208,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
                 logger.error("Error in function {}: {}", f.getSourcePath(), exc);
             }
         }
+
+        addBuiltinFunctions();
     }
 
     private void unload(final Path sourcePath)
@@ -231,6 +233,21 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             }
         }
         return false;
+    }
+
+    @Override
+    public void close()
+    {
+        try
+        {
+            this.groovyClassLoader.close();
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
+
+        this.lamebdaResourceLoader.close();
     }
 
     @Override

@@ -54,7 +54,7 @@ public class ModelGenerator
         configurator.addAdditionalProperty("useBeanValidation", true);
         configurator.addAdditionalProperty("performBeanValidation", true);
         configurator.addAdditionalProperty("useSwaggerAnnotations", false);
-        configurator.addAdditionalProperty("java8", true);
+        configurator.addAdditionalProperty("dateLibrary", "java8");
 
         final Path tmpTemplateDir = targetBaseDir.resolve("templates");
         final Path baseTemplateCp = Paths.get("openapi-generator/templates/jaxrs/spec");

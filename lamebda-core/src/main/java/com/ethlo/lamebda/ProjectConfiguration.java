@@ -23,7 +23,6 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,9 +33,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.security.UsernamePasswordCredentials;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -60,6 +56,7 @@ public class ProjectConfiguration
     private Path path;
     private String name;
     private UsernamePasswordCredentials adminCredentials;
+    private String version;
 
     private ProjectConfiguration()
     {
@@ -116,38 +113,19 @@ public class ProjectConfiguration
 
     public static ProjectConfigurationBuilder builder(String rootContextPath, Path projectPath)
     {
-        final Path logbackConfig = projectPath.resolve("logback.xml");
-        if (Files.exists(logbackConfig))
-        {
-            configureLogback(logbackConfig);
-        }
-
         return new ProjectConfigurationBuilder(rootContextPath, projectPath);
     }
 
-    private static void configureLogback(final Path logbackConfig)
-    {
-        final LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-        context.reset();
-        final JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(context);
-        try
-        {
-            configurator.doConfigure(logbackConfig.toUri().toURL());
-        }
-        catch (JoranException exc)
-        {
-            throw new IllegalArgumentException("Unable to reconfigure logback using " + logbackConfig.toString() + "logback.xml file", exc);
-        }
-        catch (MalformedURLException exc)
-        {
-            throw new UncheckedIOException("Unable to reconfigure logback using " + logbackConfig.toString() + "logback.xml file", exc);
-        }
-    }
-
+    @JsonProperty("project.name")
     public String getName()
     {
         return name;
+    }
+
+    @JsonProperty("project.version")
+    public String getVersion()
+    {
+        return version;
     }
 
     /**
@@ -180,6 +158,7 @@ public class ProjectConfiguration
 
         private String staticResourcesPrefix;
         private Path staticResourceDirectory;
+        private String projectVersion;
 
         private ProjectConfigurationBuilder(String rootContextPath, Path projectPath)
         {
@@ -252,6 +231,7 @@ public class ProjectConfiguration
             projectConfiguration.enableStaticResourceFunction = this.enableStaticResourceFunction;
             projectConfiguration.enableUrlProjectContextPrefix = this.enableUrlProjectContextPrefix;
             projectConfiguration.name = this.projectName;
+            projectConfiguration.version = this.projectVersion;
             projectConfiguration.adminCredentials = this.adminCredentials;
             return projectConfiguration;
         }
@@ -272,6 +252,7 @@ public class ProjectConfiguration
                 }
 
                 projectName = p.getProperty("project.name", projectName);
+                projectVersion = p.getProperty("project.version");
 
                 // URL mapping
                 projectContextPath = p.getProperty("mapping.project-context-path", projectContextPath);

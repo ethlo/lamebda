@@ -20,8 +20,9 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-@FunctionalInterface
-public interface FunctionManager
+public interface FunctionManager extends AutoCloseable
 {
     boolean handle(HttpRequest request, HttpResponse response) throws Exception;
+
+    void close();
 }

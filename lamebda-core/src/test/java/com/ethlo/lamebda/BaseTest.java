@@ -46,7 +46,7 @@ public abstract class BaseTest
             Files.createDirectories(projectPath);
 
             final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).build();
-            functionManager = new FunctionManagerImpl(cfg, new FileSystemLamebdaResourceLoader(cfg, (cl, s) -> s, f -> f));
+            functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, (cl, s) -> s, f -> f));
         }
         catch (IOException exc)
         {
