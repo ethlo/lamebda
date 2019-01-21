@@ -69,17 +69,17 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     public static final String PROJECT_FILENAME = "project.properties";
     public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
-    public static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
-    public static final String DEFAULT_CONFIG_FILENAME = "config.properties";
+    private static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
+    private static final String DEFAULT_CONFIG_FILENAME = "config.properties";
 
-    public static final String SCRIPT_EXTENSION = "groovy";
+    private static final String SCRIPT_EXTENSION = "groovy";
     private static final String JAR_EXTENSION = "jar";
 
     public static final String SCRIPT_DIRECTORY = "scripts";
     public static final String STATIC_DIRECTORY = "static";
     public static final String SPECIFICATION_DIRECTORY = "specification";
     public static final String SHARED_DIRECTORY = "shared";
-    public static final String LIB_DIRECTORY = "lib";
+    private static final String LIB_DIRECTORY = "lib";
 
     private final Path projectPath;
     private final Path scriptPath;
@@ -205,30 +205,29 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         final FunctionConfiguration functionConfiguration = new FunctionConfiguration();
 
         final PropertyFile propertyFile = functionClass.getAnnotation(PropertyFile.class);
+        final boolean required = propertyFile != null ? propertyFile.required() : false;
         final String filename = propertyFile != null ? propertyFile.value() : FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME;
         final Path cfgFilePath = getProjectConfiguration().getPath().resolve(filename);
 
-        String cfgContent;
-        try
+        if (Files.exists(cfgFilePath))
         {
-            cfgContent = readSourceIfReadable(cfgFilePath);
-        }
-        catch (IOException exc)
-        {
-            throw new RuntimeException(exc);
-        }
-
-        if (cfgContent != null)
-        {
+            //
             try
             {
+                final String cfgContent = readSource(cfgFilePath);
                 functionConfiguration.load(new StringReader(cfgContent));
             }
-            catch (IOException e)
+            catch (IOException exc)
             {
-                throw new RuntimeException("Unable to load property file " + cfgFilePath, e);
+                throw new UncheckedIOException(exc);
             }
         }
+        else if (required)
+        {
+            // Does not exist, but is required
+            throw new UncheckedIOException(new FileNotFoundException(cfgFilePath.toString()));
+        }
+
         return new FunctionContext(projectConfiguration, functionConfiguration);
     }
 

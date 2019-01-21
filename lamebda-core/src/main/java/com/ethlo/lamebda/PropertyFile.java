@@ -33,5 +33,6 @@ import java.lang.annotation.Target;
 @Documented
 public @interface PropertyFile
 {
-    String value();
+    String value() default "config.properties";
+    boolean required() default true;
 }
