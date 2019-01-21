@@ -35,12 +35,11 @@ import com.ethlo.lamebda.util.StringUtil;
  * #L%
  */
 
-public abstract class SimpleServerFunction implements ServerFunction, FunctionContextAware, URLMappedServerFunction
+public abstract class SimpleServerFunction extends BaseServerFunction implements URLMappedServerFunction
 {
     private static final Logger logger = LoggerFactory.getLogger(SimpleServerFunction.class);
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
     protected String pattern;
-    private FunctionContext context;
 
     public SimpleServerFunction()
     {
@@ -170,13 +169,11 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
     }
 
     @Override
-    public SimpleServerFunction setContext(FunctionContext context)
+    public final void initInternal(FunctionContext context)
     {
-        this.context = context;
         final ProjectConfiguration cfg = context.getProjectConfiguration();
         final String projectContext = (cfg.enableUrlProjectContextPrefix() ? (cfg.getContextPath() + "/") : "");
         this.pattern = URI.create("/" + projectContext + pattern).normalize().toString();
-        return this;
     }
 
     public FunctionContext getContext()

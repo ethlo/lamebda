@@ -47,13 +47,15 @@ import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
+import com.ethlo.lamebda.BaseServerFunction;
 import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.FunctionResult;
 import com.ethlo.lamebda.HttpMethod;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
+import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
-import com.ethlo.lamebda.SimpleServerFunction;
+import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.URLMappedServerFunction;
 import com.ethlo.lamebda.mapping.RequestMapping;
@@ -61,14 +63,12 @@ import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.MethodAndPattern;
 import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
 
-public class SpringMvcServerFunction implements URLMappedServerFunction, ServerFunction, FunctionContextAware
+public class SpringMvcServerFunction extends BaseServerFunction implements URLMappedServerFunction
 {
-    protected final static Logger logger = LoggerFactory.getLogger(SpringMvcServerFunction.class);
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final OpenRequestMappingHandlerMapping openRequestMappingHandlerMapping = new OpenRequestMappingHandlerMapping();
     private final Set<RequestMapping> requestMappings = new LinkedHashSet<>();
-
-    private FunctionContext context;
 
     @Autowired
     private RequestMappingHandlerAdapter adapter;
@@ -155,15 +155,7 @@ public class SpringMvcServerFunction implements URLMappedServerFunction, ServerF
     }
 
     @Override
-    public SimpleServerFunction setContext(final FunctionContext context)
-    {
-        this.context = context;
-
-        init();
-        return null;
-    }
-
-    private void init()
+    protected final void initInternal(FunctionContext context)
     {
         for (Method method : ReflectionUtils.getUniqueDeclaredMethods(getClass()))
         {

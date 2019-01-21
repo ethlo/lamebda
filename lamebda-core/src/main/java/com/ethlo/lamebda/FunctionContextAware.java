@@ -20,9 +20,16 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 
 public interface FunctionContextAware
 {
-    ServerFunction setContext(FunctionContext context);
+    void setContext(FunctionContext context);
+
+    void init(final FunctionConfiguration functionConfiguration);
+
+    void init(ProjectConfiguration projectConfiguration);
+
+    void init(FunctionContext functionContext);
 }

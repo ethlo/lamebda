@@ -113,7 +113,7 @@ public class ProjectConfiguration
 
     public static ProjectConfigurationBuilder builder(String rootContextPath, Path projectPath)
     {
-        return new ProjectConfigurationBuilder(rootContextPath, projectPath);
+        return new ProjectConfigurationBuilder(rootContextPath, projectPath.toAbsolutePath());
     }
 
     @JsonProperty("project.name")

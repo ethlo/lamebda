@@ -168,9 +168,9 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             final Path targetFile = Files.createTempFile("oas-tmp", ".html");
             new ApiGenerator().generateApiDocumentation(specificationFile, targetFile);
 
-            addFunction(Paths.get("api-yaml"), new SingleResourceFunction("/lamebda/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile)).setContext(functionContext));
+            addFunction(Paths.get("api-yaml"), new SingleResourceFunction("/lamebda/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile)));
 
-            addFunction(Paths.get("api-human-readable"), new SingleResourceFunction("/lamebda/api*", HttpMimeType.HTML, IoUtil.toByteArray(targetFile)).setContext(functionContext));
+            addFunction(Paths.get("api-human-readable"), new SingleResourceFunction("/lamebda/api*", HttpMimeType.HTML, IoUtil.toByteArray(targetFile)));
 
             Files.deleteIfExists(targetFile);
             groovyClassLoader.addURL(classPathEntry);

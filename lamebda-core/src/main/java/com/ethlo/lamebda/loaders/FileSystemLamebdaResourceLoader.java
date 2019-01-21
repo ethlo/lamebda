@@ -105,7 +105,8 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor) throws IOException
     {
-        configureLogback(projectConfiguration.getPath());
+        // TODO: This seems to be unstable, so leaving it off for now
+        //configureLogback(projectConfiguration.getPath());
 
         this.projectConfiguration = projectConfiguration;
         this.functionSourcePreProcessor = Assert.notNull(functionSourcePreProcessor, "functionSourcePreProcesor cannot be null");
@@ -114,7 +115,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         final Path projectPath = projectConfiguration.getPath();
         if (!Files.exists(projectPath))
         {
-            throw new FileNotFoundException("Cannot use " + projectPath + " as project directory");
+            throw new FileNotFoundException("Cannot use " + projectPath.toAbsolutePath() + " as project directory as it does not exist");
         }
 
         this.projectPath = projectPath;
@@ -135,13 +136,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private static void configureLogback(Path projectPath)
     {
         final Path logbackConfig = projectPath.resolve("logback.xml");
-        if (!Files.exists(logbackConfig))
+        if (! Files.exists(logbackConfig))
         {
             return;
         }
 
         final LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-        context.reset();
         final JoranConfigurator configurator = new JoranConfigurator();
         configurator.setContext(context);
         try
@@ -188,11 +188,11 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     {
         final Class<ServerFunction> clazz = parseClass(classLoader, sourcePath);
         final ServerFunction instance = instantiate(clazz);
-        internalPostProcess(instance);
+        setContextIfApplicable(instance);
         return functionPostProcessor.process(instance);
     }
 
-    private void internalPostProcess(final ServerFunction func)
+    private void setContextIfApplicable(final ServerFunction func)
     {
         if (func instanceof FunctionContextAware)
         {

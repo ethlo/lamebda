@@ -147,7 +147,6 @@ public class WatchDir implements AutoCloseable
             Path dir = keys.get(key);
             if (dir == null)
             {
-                System.err.println("WatchKey not recognized!!");
                 continue;
             }
 

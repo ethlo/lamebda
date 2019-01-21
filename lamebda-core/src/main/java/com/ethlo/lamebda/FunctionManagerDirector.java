@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
@@ -52,7 +53,6 @@ public class FunctionManagerDirector
     private Map<Path, FunctionManager> functionManagers = new ConcurrentHashMap<>();
     private WatchDir watchDir;
 
-
     public FunctionManagerDirector(final Path rootDirectory, String rootContext, FunctionPostProcessor functionPostProcessor) throws IOException
     {
         this.rootDirectory = rootDirectory;
@@ -63,8 +63,17 @@ public class FunctionManagerDirector
         this.watchDir = new WatchDir(e -> {
             if (isValidProjectDir(e.getPath()))
             {
-                close(e.getPath());
-                create(e.getPath());
+                if (e.getChangeType() == ChangeType.DELETED)
+                {
+                    logger.info("Closing project due to directory deletion: {}", e.getPath());
+                    close(e.getPath());
+                }
+
+                if (e.getChangeType() == ChangeType.MODIFIED)
+                {
+                    logger.info("Loading project due to directory created: {}", e.getPath());
+                    create(e.getPath());
+                }
             }
         }, false, rootDirectory);
         new Thread()
@@ -120,12 +129,14 @@ public class FunctionManagerDirector
         final FunctionManager existing = this.functionManagers.remove(projectPath);
         if (existing != null)
         {
+            logger.info("Closing {}", projectPath);
             existing.close();
         }
     }
 
     private FunctionManager create(final Path projectPath)
     {
+        logger.info("Loading {}", projectPath);
         final FileSystemLamebdaResourceLoader lamebdaResourceLoader = createResourceLoader(projectPath);
         final FunctionManager fm = new FunctionManagerImpl(lamebdaResourceLoader);
         functionManagers.put(projectPath, fm);
