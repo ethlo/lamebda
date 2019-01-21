@@ -49,9 +49,9 @@ public class StatusFunction extends AdminSimpleServerFunction implements BuiltIn
     private final ProjectConfiguration projectConfiguration;
     private final FunctionMetricsService functionMetricsService;
 
-    public StatusFunction(LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager, FunctionMetricsService functionMetricsService)
+    public StatusFunction(String pattern, LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager, FunctionMetricsService functionMetricsService)
     {
-        super("/lamebda/status.json");
+        super(pattern);
         this.resourceLoader = resourceLoader;
         this.functionManager = functionManager;
         this.projectConfiguration = functionManager.getProjectConfiguration();

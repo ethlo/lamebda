@@ -24,6 +24,7 @@ import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.functions.StatusFunction;
 import com.ethlo.lamebda.functions.SubDirectoryStaticResourceFunction;
 import com.ethlo.lamebda.io.ChangeType;
+import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.oas.ApiGenerator;
 import com.ethlo.lamebda.oas.ModelGenerator;
@@ -60,6 +61,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     private Map<Path, ServerFunction> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
     private final FunctionMetricsService functionMetricsService = FunctionMetricsService.getInstance();
+    private final String statusBasePath = "/status";
+    private final String specificationBasePath = "/specification";
 
     public FunctionManagerImpl(LamebdaResourceLoader lamebdaResourceLoader)
     {
@@ -131,21 +134,20 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         if (projectConfiguration.enableInfoFunction())
         {
             final String defaultInfoPage = "/lamebda/templates/info.html";
-            addFunction(Paths.get("status-info"), new StatusFunction(lamebdaResourceLoader, this, functionMetricsService));
+            addFunction(Paths.get("status-info"), withMinimalContext(new StatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService)));
 
             final Path customInfoPagePath = projectConfiguration.getPath().resolve("templates").resolve("info.html");
-            final String infoPagePath = "/" + projectConfiguration.getContextPath() + "/lamebda";
             if (Files.exists(customInfoPagePath))
             {
-                addFunction(Paths.get("custom-info-page"), new SingleFileResourceFunction(infoPagePath, customInfoPagePath));
+                addFunction(Paths.get("custom-status-page"), withMinimalContext(new SingleFileResourceFunction(statusBasePath, customInfoPagePath)));
             }
             else
             {
-                addFunction(Paths.get("info-page"), new SingleResourceFunction(infoPagePath, HttpMimeType.HTML, IoUtil.classPathResource(defaultInfoPage)));
+                addFunction(Paths.get("status-page"), withMinimalContext(new SingleResourceFunction(statusBasePath, HttpMimeType.HTML, IoUtil.classPathResource(defaultInfoPage))));
             }
         }
 
-        final Path apiPath = projectConfiguration.getPath().resolve("specification").resolve("oas.yaml");
+        final Path apiPath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY).resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
         if (Files.exists(apiPath))
         {
             processApiSpecification(projectConfiguration, apiPath);
@@ -160,17 +162,15 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void processApiSpecification(final ProjectConfiguration projectConfiguration, Path specificationFile)
     {
-        final FunctionContext functionContext = new FunctionContext(projectConfiguration, new FunctionConfiguration());
-
         try
         {
             final URL classPathEntry = new ModelGenerator().generateModels(specificationFile);
             final Path targetFile = Files.createTempFile("oas-tmp", ".html");
             new ApiGenerator().generateApiDocumentation(specificationFile, targetFile);
 
-            addFunction(Paths.get("api-yaml"), new SingleResourceFunction("/lamebda/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile)));
+            addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile))));
 
-            addFunction(Paths.get("api-human-readable"), new SingleResourceFunction("/lamebda/api*", HttpMimeType.HTML, IoUtil.toByteArray(targetFile)));
+            addFunction(Paths.get("api-human-readable"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api*", HttpMimeType.HTML, IoUtil.toByteArray(targetFile))));
 
             Files.deleteIfExists(targetFile);
             groovyClassLoader.addURL(classPathEntry);
@@ -180,6 +180,12 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         {
             throw new RuntimeException("There was an error processing the API specification file " + specificationFile, exc);
         }
+    }
+
+    private <T extends ServerFunction & FunctionContextAware> T withMinimalContext(final T function)
+    {
+        function.setContext(new FunctionContext(projectConfiguration, new FunctionConfiguration()));
+        return function;
     }
 
     private void reloadFunctions(final Path path)

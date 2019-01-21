@@ -30,6 +30,7 @@ import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.HttpStatus;
 import com.ethlo.lamebda.SimpleServerFunction;
+import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.FileNameUtil;
 
