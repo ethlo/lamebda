@@ -24,5 +24,5 @@ import com.ethlo.lamebda.context.FunctionContext;
 
 public interface FunctionContextAware
 {
-    void setContext(FunctionContext context);
+    SimpleServerFunction setContext(FunctionContext context);
 }

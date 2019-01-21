@@ -9,9 +9,9 @@ package com.ethlo.lamebda;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,53 +24,71 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
+import jdk.nashorn.internal.runtime.logging.DebugLogger;
 
 public class FunctionManagerDirector
 {
+    private static final Logger logger = LoggerFactory.getLogger(FunctionManagerDirector.class);
+
     private final Path rootDirectory;
     private final String rootContext;
 
-    private FunctionSourcePreProcessor preNotification = (c,s)->s;
+    private FunctionSourcePreProcessor preNotification = (c, s) -> s;
     private FunctionPostProcessor functionPostProcessor;
 
     private Map<Path, FunctionManager> functionManagers = new ConcurrentHashMap<>();
+    private WatchDir watchDir;
 
-    public FunctionManagerDirector(final Path rootDirectory, String rootContext, FunctionPostProcessor functionPostProcessor)
+
+    public FunctionManagerDirector(final Path rootDirectory, String rootContext, FunctionPostProcessor functionPostProcessor) throws IOException
     {
         this.rootDirectory = rootDirectory;
         this.rootContext = rootContext;
         this.functionPostProcessor = functionPostProcessor;
 
-        initialize();
+        // Register directory watcher to discover new project directories created in root directory
+        this.watchDir = new WatchDir(e -> {
+            if (isValidProjectDir(e.getPath()))
+            {
+                close(e.getPath());
+                create(e.getPath());
+            }
+        }, false, rootDirectory);
+        new Thread()
+        {
+            @Override
+            public void run()
+            {
+                setName("root-filesystem-watcher");
+                logger.info("Watching {} for changes", Arrays.asList(rootDirectory));
+                watchDir.processEvents();
+            }
+        }.start();
+
+        // Initialize all existing in root directory
+        initializeAll();
     }
 
-    public void initialize()
+    public void initializeAll()
     {
         final List<Path> directories;
         try
         {
             directories = Files.list(rootDirectory)
-                    .filter(p ->
-                    {
-                        try
-                        {
-                            return !Files.isHidden(p) && Files.isDirectory(p);
-                        }
-                        catch (IOException exc)
-                        {
-                            throw new UncheckedIOException(exc);
-                        }
-                    })
+                    .filter(this::isValidProjectDir)
                     .collect(Collectors.toList());
         }
         catch (IOException e)
@@ -80,26 +98,50 @@ public class FunctionManagerDirector
 
         for (Path projectPath : directories)
         {
-            functionManagers.put(projectPath, initProject(projectPath));
+            close(projectPath);
+            create(projectPath);
         }
     }
 
-
-    private FunctionManager initProject(Path projectPath)
+    private boolean isValidProjectDir(final Path p)
     {
         try
         {
-            final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
-            final FileSystemLamebdaResourceLoader lamebdaResourceLoader = new FileSystemLamebdaResourceLoader(cfg, preNotification, functionPostProcessor);
-            lamebdaResourceLoader.setProjectChangeListener(n -> {
-                final FunctionManager existing = this.functionManagers.remove(projectPath);
-                existing.close();
-                initProject(projectPath);
-                this.functionManagers.put(projectPath, initProject(projectPath));
-            });
-            final FunctionManager fm = new FunctionManagerImpl(lamebdaResourceLoader);
-            return fm;
+            return !Files.isHidden(p) && Files.isDirectory(p) && p.getParent().equals(rootDirectory);
+        }
+        catch (IOException exc)
+        {
+            throw new UncheckedIOException(exc);
+        }
+    }
 
+    private void close(final Path projectPath)
+    {
+        final FunctionManager existing = this.functionManagers.remove(projectPath);
+        if (existing != null)
+        {
+            existing.close();
+        }
+    }
+
+    private FunctionManager create(final Path projectPath)
+    {
+        final FileSystemLamebdaResourceLoader lamebdaResourceLoader = createResourceLoader(projectPath);
+        final FunctionManager fm = new FunctionManagerImpl(lamebdaResourceLoader);
+        functionManagers.put(projectPath, fm);
+        lamebdaResourceLoader.setProjectChangeListener(n -> {
+            close(projectPath);
+            create(projectPath);
+        });
+        return fm;
+    }
+
+    private FileSystemLamebdaResourceLoader createResourceLoader(Path projectPath)
+    {
+        final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
+        try
+        {
+            return new FileSystemLamebdaResourceLoader(cfg, preNotification, functionPostProcessor);
         }
         catch (IOException exc)
         {

@@ -46,7 +46,6 @@ import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.FunctionResult;
@@ -54,6 +53,7 @@ import com.ethlo.lamebda.HttpMethod;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.ServerFunction;
+import com.ethlo.lamebda.SimpleServerFunction;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.URLMappedServerFunction;
 import com.ethlo.lamebda.mapping.RequestMapping;
@@ -61,16 +61,18 @@ import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.MethodAndPattern;
 import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
 
-public class SpringMvcServerFunction extends RequestMappingHandlerMapping implements URLMappedServerFunction, ServerFunction, FunctionContextAware
+public class SpringMvcServerFunction implements URLMappedServerFunction, ServerFunction, FunctionContextAware
 {
-    // Override parent logger with a more capable logger
-    protected final static Logger logger = LoggerFactory.getLogger(RequestMappingHandlerMapping.class);
+    protected final static Logger logger = LoggerFactory.getLogger(SpringMvcServerFunction.class);
+
+    private final OpenRequestMappingHandlerMapping openRequestMappingHandlerMapping = new OpenRequestMappingHandlerMapping();
+    private final Set<RequestMapping> requestMappings = new LinkedHashSet<>();
 
     private FunctionContext context;
 
     @Autowired
     private RequestMappingHandlerAdapter adapter;
-    private Set<RequestMapping> requestMappings = new LinkedHashSet<>();
+
 
     @Autowired(required = false)
     private void postConstruct(final ListableBeanFactory beanFactory, final List<MethodInterceptor> methodInterceptors)
@@ -97,7 +99,7 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
     {
         Arrays.asList(clazz.getMethods())
                 .forEach(m -> {
-                    final RequestMappingInfo mapping = getMappingForMethod(m, this.getClass());
+                    final RequestMappingInfo mapping = openRequestMappingHandlerMapping.getMappingForMethod(m, this.getClass());
                     doRegister(object, m, mapping);
                 });
     }
@@ -120,8 +122,8 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
             final Set<String> consumes = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
             final Set<String> produces = mappingToUse.getProducesCondition().getProducibleMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
             this.requestMappings.add(new RequestMapping(patterns, methods, consumes, produces));
-            unregisterMapping(mappingToUse);
-            registerMapping(mappingToUse, object, m);
+            openRequestMappingHandlerMapping.unregisterMapping(mappingToUse);
+            openRequestMappingHandlerMapping.registerMapping(mappingToUse, object, m);
         }
     }
 
@@ -131,7 +133,7 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
         final HttpServletRequest rawRequest = (HttpServletRequest) httpRequest.raw();
         final HttpServletResponse rawResponse = (HttpServletResponse) httpResponse.raw();
 
-        final HandlerExecutionChain handler = getHandler(rawRequest);
+        final HandlerExecutionChain handler = openRequestMappingHandlerMapping.getHandler(rawRequest);
         if (handler == null)
         {
             return FunctionResult.SKIPPED;
@@ -153,18 +155,19 @@ public class SpringMvcServerFunction extends RequestMappingHandlerMapping implem
     }
 
     @Override
-    public void setContext(final FunctionContext context)
+    public SimpleServerFunction setContext(final FunctionContext context)
     {
         this.context = context;
 
         init();
+        return null;
     }
 
     private void init()
     {
         for (Method method : ReflectionUtils.getUniqueDeclaredMethods(getClass()))
         {
-            final RequestMappingInfo mapping = getMappingForMethod(method, this.getClass());
+            final RequestMappingInfo mapping = openRequestMappingHandlerMapping.getMappingForMethod(method, this.getClass());
             doRegister(this, method, mapping);
         }
     }

@@ -296,7 +296,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
             {
                 logger.warn("Error during file changed event processing: {}", exc.getMessage(), exc);
             }
-        }, paths);
+        },true, paths);
 
         new Thread()
         {

@@ -6,6 +6,9 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.functions.URLMappedServerFunction;
@@ -34,6 +37,7 @@ import com.ethlo.lamebda.util.StringUtil;
 
 public abstract class SimpleServerFunction implements ServerFunction, FunctionContextAware, URLMappedServerFunction
 {
+    private static final Logger logger = LoggerFactory.getLogger(SimpleServerFunction.class);
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
     protected String pattern;
     private FunctionContext context;
@@ -51,10 +55,13 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
     @Override
     public final FunctionResult handle(HttpRequest request, HttpResponse response) throws Exception
     {
-        if (!PATH_MATCHER.match(pattern, request.path()))
+        final String path = request.path();
+        if (!PATH_MATCHER.match(pattern, path))
         {
+            logger.debug("Function {}. Request path {} does NOT match pattern {}", this.getClass().getSimpleName(), path, pattern);
             return FunctionResult.SKIPPED;
         }
+        logger.debug("Function {}. Handling request with path {}", this.getClass().getSimpleName(), path);
         doHandle(request, response);
         return FunctionResult.PROCESSED;
     }
@@ -163,12 +170,13 @@ public abstract class SimpleServerFunction implements ServerFunction, FunctionCo
     }
 
     @Override
-    public void setContext(FunctionContext context)
+    public SimpleServerFunction setContext(FunctionContext context)
     {
         this.context = context;
         final ProjectConfiguration cfg = context.getProjectConfiguration();
         final String projectContext = (cfg.enableUrlProjectContextPrefix() ? (cfg.getContextPath() + "/") : "");
-        this.pattern = URI.create("/" + projectContext + pattern).normalize() + "/**";
+        this.pattern = URI.create("/" + projectContext + pattern).normalize().toString();
+        return this;
     }
 
     public FunctionContext getContext()

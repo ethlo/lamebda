@@ -29,9 +29,9 @@ import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.SimpleServerFunction;
 
-public abstract class BasicAuthSimpleServerFunction extends SimpleServerFunction
+public abstract class AdminSimpleServerFunction extends SimpleServerFunction
 {
-    protected BasicAuthSimpleServerFunction(String pattern)
+    protected AdminSimpleServerFunction(String pattern)
     {
         super(pattern);
     }

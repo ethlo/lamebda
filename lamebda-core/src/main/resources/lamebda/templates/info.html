@@ -43,8 +43,8 @@
     <h5 class="my-0 mr-md-auto font-weight-normal"><span id="projectName">Lamebda project</span> <span id="projectVersion" class="text-muted"></span></h5>
     <nav class="my-2 my-md-0 mr-md-3">
 
-        <a class="p-2" href="api/">API documentation</a>
-        <a class="p-2" href="api/api.yaml">API specification</a>
+        <a class="p-2" href="lamebda/api">API documentation</a>
+        <a class="p-2" href="lamebda/api/api.yaml">API specification</a>
     </nav>
 </div>
 
@@ -165,7 +165,7 @@
 
     $(document).ready(function () {
         $.ajax({
-            url: window.location + 'info/',
+            url: window.location + '/status.json',
             success: function (data) {
                 var cfg = data.project.configuration
                 console.log('Project cfg', cfg)

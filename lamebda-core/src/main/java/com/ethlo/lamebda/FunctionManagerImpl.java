@@ -16,6 +16,8 @@ import org.codehaus.groovy.control.CompilationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ethlo.lamebda.context.FunctionConfiguration;
+import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.functions.SingleFileResourceFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
@@ -102,7 +104,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             logger.info("Specification file changed: {}", n.getPath());
             if (n.getChangeType() != ChangeType.DELETED)
             {
-                processApiSpecification(n.getPath());
+                processApiSpecification(projectConfiguration, n.getPath());
                 reloadFunctions(n.getPath());
             }
         });
@@ -132,14 +134,21 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             addFunction(Paths.get("status-info"), new StatusFunction(lamebdaResourceLoader, this, functionMetricsService));
 
             final Path customInfoPagePath = projectConfiguration.getPath().resolve("templates").resolve("info.html");
+            final String infoPagePath = "/" + projectConfiguration.getContextPath() + "/lamebda";
             if (Files.exists(customInfoPagePath))
             {
-                addFunction(Paths.get("custom-info-page"), new SingleFileResourceFunction("/" + projectConfiguration.getContextPath() + "/", customInfoPagePath));
+                addFunction(Paths.get("custom-info-page"), new SingleFileResourceFunction(infoPagePath, customInfoPagePath));
             }
             else
             {
-                addFunction(Paths.get("info-page"), new SingleResourceFunction("/" + projectConfiguration.getContextPath() + "/", HttpMimeType.HTML, IoUtil.classPathResource(defaultInfoPage)));
+                addFunction(Paths.get("info-page"), new SingleResourceFunction(infoPagePath, HttpMimeType.HTML, IoUtil.classPathResource(defaultInfoPage)));
             }
+        }
+
+        final Path apiPath = projectConfiguration.getPath().resolve("specification").resolve("oas.yaml");
+        if (Files.exists(apiPath))
+        {
+            processApiSpecification(projectConfiguration, apiPath);
         }
     }
 
@@ -149,15 +158,20 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         addFunction(sourcePath, loaded);
     }
 
-    private void processApiSpecification(Path specificationFile)
+    private void processApiSpecification(final ProjectConfiguration projectConfiguration, Path specificationFile)
     {
+        final FunctionContext functionContext = new FunctionContext(projectConfiguration, new FunctionConfiguration());
+
         try
         {
             final URL classPathEntry = new ModelGenerator().generateModels(specificationFile);
             final Path targetFile = Files.createTempFile("oas-tmp", ".html");
             new ApiGenerator().generateApiDocumentation(specificationFile, targetFile);
-            addFunction(Paths.get("api"), new SingleResourceFunction("/" + projectConfiguration.getContextPath() + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile)));
-            addFunction(Paths.get("api-human-readable"), new SingleResourceFunction("/" + projectConfiguration.getContextPath() + "/api/", HttpMimeType.HTML, IoUtil.toByteArray(targetFile)));
+
+            addFunction(Paths.get("api-yaml"), new SingleResourceFunction("/lamebda/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile)).setContext(functionContext));
+
+            addFunction(Paths.get("api-human-readable"), new SingleResourceFunction("/lamebda/api*", HttpMimeType.HTML, IoUtil.toByteArray(targetFile)).setContext(functionContext));
+
             Files.deleteIfExists(targetFile);
             groovyClassLoader.addURL(classPathEntry);
             logger.info("Adding model classpath {}", classPathEntry);
@@ -191,7 +205,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         final Optional<Path> apiSpecification = lamebdaResourceLoader.getApiSpecification();
         if (apiSpecification.isPresent())
         {
-            processApiSpecification(apiSpecification.get());
+            processApiSpecification(projectConfiguration, apiSpecification.get());
         }
 
         this.functions.forEach((path, function) -> {

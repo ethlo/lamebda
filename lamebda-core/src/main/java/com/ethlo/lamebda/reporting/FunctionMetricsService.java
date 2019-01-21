@@ -58,7 +58,7 @@ public class FunctionMetricsService
 
     public void errorOccured(MethodAndPattern pattern, Exception exc)
     {
-        lastErrors.put(pattern, ITU.formatUtcMilli(OffsetDateTime.now()) + ": " + exc.getClass().getCanonicalName() + " - " + exc.getMessage());
+        lastErrors.put(pattern, ITU.formatUtc(OffsetDateTime.now()) + ": " + exc.getClass().getCanonicalName() + " - " + exc.getMessage());
     }
 
     public void requestHandled(String userId, OffsetDateTime timestamp, MethodAndPattern mapping, Duration elapsedTime, HttpStatusWithReason httpStatusWithReason)
@@ -105,9 +105,10 @@ public class FunctionMetricsService
         {
             final MethodAndPattern mapping = e.getKey();
             final AtomicLong totalElapsed = totalRuntime.getOrDefault(mapping, new AtomicLong(1));
-            final double avg = (totalElapsed.doubleValue() / e.getValue().values().stream().reduce(0L, Long::sum)) / 1_000_000; // Nano til ms
+            final double lastResponseTime = lastResponseTimes.get(mapping);
+            final double avg = (totalElapsed.doubleValue() / e.getValue().values().stream().mapToDouble(d->d).sum()) / 1_000_000; // Nano til ms
             final String lastError = lastErrors.get(mapping);
-            retVal.put(mapping, new FunctionMetric(firstInvocation.get(mapping), e.getValue(), lastInvocation.get(mapping), avg, lastError, lastResponseTimes.get(mapping)));
+            retVal.put(mapping, new FunctionMetric(firstInvocation.get(mapping), e.getValue(), lastInvocation.get(mapping), avg, lastError, lastResponseTime));
         }
 
         return new TreeMap<>(retVal);

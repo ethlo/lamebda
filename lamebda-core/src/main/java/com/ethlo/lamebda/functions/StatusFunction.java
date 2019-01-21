@@ -42,7 +42,7 @@ import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.FunctionStatusInfo;
 import com.ethlo.lamebda.security.UsernamePasswordCredentials;
 
-public class StatusFunction extends BasicAuthSimpleServerFunction implements BuiltInServerFunction
+public class StatusFunction extends AdminSimpleServerFunction implements BuiltInServerFunction
 {
     private final FunctionManager functionManager;
     private final LamebdaResourceLoader resourceLoader;
@@ -51,7 +51,7 @@ public class StatusFunction extends BasicAuthSimpleServerFunction implements Bui
 
     public StatusFunction(LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager, FunctionMetricsService functionMetricsService)
     {
-        super("/info/");
+        super("/lamebda/status.json");
         this.resourceLoader = resourceLoader;
         this.functionManager = functionManager;
         this.projectConfiguration = functionManager.getProjectConfiguration();
