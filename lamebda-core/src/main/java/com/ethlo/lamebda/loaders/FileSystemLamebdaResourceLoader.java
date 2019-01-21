@@ -98,6 +98,11 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     private WatchDir watchDir;
 
+    public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration) throws IOException
+    {
+        this(projectConfiguration, (c, s) -> s, s -> s);
+    }
+
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor) throws IOException
     {
         configureLogback(projectConfiguration.getPath());
@@ -130,7 +135,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private static void configureLogback(Path projectPath)
     {
         final Path logbackConfig = projectPath.resolve("logback.xml");
-        if (! Files.exists(logbackConfig))
+        if (!Files.exists(logbackConfig))
         {
             return;
         }
@@ -183,29 +188,30 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     {
         final Class<ServerFunction> clazz = parseClass(classLoader, sourcePath);
         final ServerFunction instance = instantiate(clazz);
-        internalPostProcess(this, instance, sourcePath);
+        internalPostProcess(instance);
         return functionPostProcessor.process(instance);
     }
 
-    private void internalPostProcess(final LamebdaResourceLoader lamebdaResourceLoader, final ServerFunction func, final Path sourcePath)
+    private void internalPostProcess(final ServerFunction func)
     {
         if (func instanceof FunctionContextAware)
         {
-            ((FunctionContextAware) func).setContext(loadContext(lamebdaResourceLoader, func, sourcePath));
+            ((FunctionContextAware) func).setContext(loadContext(func.getClass()));
         }
     }
 
-    private FunctionContext loadContext(final LamebdaResourceLoader lamebdaResourceLoader, final ServerFunction func, final Path sourcePath)
+    public FunctionContext loadContext(final Class<?> functionClass)
     {
         final FunctionConfiguration functionConfiguration = new FunctionConfiguration();
 
-        final PropertyFile propertyFile = func.getClass().getAnnotation(PropertyFile.class);
-        final Path basePath = sourcePath.getParent().getParent();
-        final Path cfgFilePath = propertyFile != null ? basePath.resolve(propertyFile.value()) : basePath.resolve(FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME);
+        final PropertyFile propertyFile = functionClass.getAnnotation(PropertyFile.class);
+        final String filename = propertyFile != null ? propertyFile.value() : FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME;
+        final Path cfgFilePath = getProjectConfiguration().getPath().resolve(filename);
+
         String cfgContent;
         try
         {
-            cfgContent = lamebdaResourceLoader.readSourceIfReadable(cfgFilePath);
+            cfgContent = readSourceIfReadable(cfgFilePath);
         }
         catch (IOException exc)
         {
@@ -296,7 +302,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
             {
                 logger.warn("Error during file changed event processing: {}", exc.getMessage(), exc);
             }
-        },true, paths);
+        }, true, paths);
 
         new Thread()
         {
