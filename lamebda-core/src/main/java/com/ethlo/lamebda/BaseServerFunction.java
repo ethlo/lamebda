@@ -45,19 +45,19 @@ public abstract class BaseServerFunction implements ServerFunction, FunctionCont
     @Override
     public void init(final FunctionConfiguration functionConfiguration)
     {
-
+        // Empty implementation
     }
 
     @Override
     public void init(ProjectConfiguration projectConfiguration)
     {
-
+        // Empty implementation
     }
 
     @Override
     public void init(FunctionContext functionContext)
     {
-
+        // Empty implementation
     }
 
     protected abstract void initInternal(FunctionContext functionContext);

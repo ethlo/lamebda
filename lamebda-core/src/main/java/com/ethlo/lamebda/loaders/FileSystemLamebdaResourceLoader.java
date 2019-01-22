@@ -136,7 +136,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private static void configureLogback(Path projectPath)
     {
         final Path logbackConfig = projectPath.resolve("logback.xml");
-        if (! Files.exists(logbackConfig))
+        if (!Files.exists(logbackConfig))
         {
             return;
         }
@@ -391,27 +391,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     }
 
     @Override
-    public String readSourceIfReadable(final Path sourcePath) throws IOException
-    {
-        if (Files.exists(sourcePath) && Files.isReadable(sourcePath))
-        {
-            return readSource(sourcePath);
-        }
-        return null;
-    }
-
-    @Override
     public Optional<Path> getApiSpecification()
     {
         final Path specPathYaml = projectConfiguration.getPath().resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_YAML_FILENAME);
-        final Path specPathJson = projectConfiguration.getPath().resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_JSON_FILENAME);
         if (Files.exists(specPathYaml))
         {
             return Optional.of(specPathYaml);
-        }
-        else if (Files.exists(specPathJson))
-        {
-            return Optional.of(specPathJson);
         }
         return Optional.empty();
     }

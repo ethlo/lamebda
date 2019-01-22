@@ -38,7 +38,6 @@ import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
-import jdk.nashorn.internal.runtime.logging.DebugLogger;
 
 public class FunctionManagerDirector
 {

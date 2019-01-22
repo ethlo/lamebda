@@ -261,7 +261,7 @@ public class ProjectConfiguration
                 // Static resource function
                 enableStaticResourceFunction = Boolean.parseBoolean(p.getProperty("functions.static.enabled", Boolean.toString(enableStaticResourceFunction)));
                 staticResourcesPrefix = p.getProperty("functions.static.prefix", staticResourcesPrefix);
-                staticResourceDirectory = Paths.get(p.getProperty("function.static.path", staticResourcesPrefix.toString()));
+                staticResourceDirectory = Paths.get(p.getProperty("function.static.path", staticResourcesPrefix));
 
                 final String adminUsername = p.getProperty("admin.credentials.username", "admin");
                 String adminPassword = p.getProperty("admin.credentials.password");

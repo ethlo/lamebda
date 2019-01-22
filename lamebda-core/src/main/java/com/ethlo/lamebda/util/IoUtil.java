@@ -175,7 +175,7 @@ public class IoUtil
         {
             return toByteArray(in);
         }
-        logger.info("Classpath URLs: {}", ((URLClassLoader)IoUtil.class.getClassLoader()).getURLs());
+        logger.info("Classpath URLs: {}", (Object[]) ((URLClassLoader)IoUtil.class.getClassLoader()).getURLs());
         throw new UncheckedIOException(new FileNotFoundException(correctedPath));
     }
 

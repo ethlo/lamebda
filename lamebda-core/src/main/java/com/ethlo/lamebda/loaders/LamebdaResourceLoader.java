@@ -20,7 +20,6 @@ package com.ethlo.lamebda.loaders;
  * #L%
  */
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -67,8 +66,6 @@ public interface LamebdaResourceLoader extends AutoCloseable
     ServerFunction load(GroovyClassLoader classLoader, Path sourcePath);
 
     Class<ServerFunction> parseClass(GroovyClassLoader classLoader, Path sourcePath);
-
-    String readSourceIfReadable(Path path) throws IOException;
 
     Optional<Path> getApiSpecification();
 
