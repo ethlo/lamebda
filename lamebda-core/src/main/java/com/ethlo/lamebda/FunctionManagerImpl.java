@@ -147,13 +147,15 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             final Path lamebdaTplDir = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
 
             // Static project welcome page
-            // createStaticOverrideableResource("welcome", "","welcome.html", lamebdaTplDir.resolve("welcome.html"));
+            createStaticOverrideableResource("welcome", "/","welcome.html", lamebdaTplDir.resolve("welcome.html"));
+            //addFunction(Paths.get("redirect-project"), withMinimalContext(new RedirectFunction("", "/")));
 
             // JSON data
             addFunction(Paths.get("status-info"), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService)));
 
             // Static page for viewing status
-            createStaticOverrideableResource("status", "/status","status.html", lamebdaTplDir.resolve("status.html"));
+            createStaticOverrideableResource("status", "/status/","status.html", lamebdaTplDir.resolve("status.html"));
+            //addFunction(Paths.get("redirect-status"), withMinimalContext(new RedirectFunction("/status", "/status/")));
         }
 
         final Path apiPath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY).resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);

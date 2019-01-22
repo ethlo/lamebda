@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +54,7 @@ public abstract class SimpleServerFunction extends BaseServerFunction implements
     public final FunctionResult handle(HttpRequest request, HttpResponse response) throws Exception
     {
         final String path = request.path();
-        if (! isMatch(path))
+        if (!isMatch(path))
         {
             logger.debug("Function {}. Request path {} does NOT match pattern {}", this.getClass().getSimpleName(), path, pattern);
             return FunctionResult.SKIPPED;
@@ -183,7 +182,7 @@ public abstract class SimpleServerFunction extends BaseServerFunction implements
     {
         final ProjectConfiguration cfg = context.getProjectConfiguration();
         final String projectContext = (cfg.enableUrlProjectContextPrefix() ? (cfg.getContextPath() + "/") : "");
-        this.pattern = StringUtils.stripEnd(URI.create("/" + projectContext + pattern).normalize().toString(), "/");
+        this.pattern = URI.create("/" + projectContext + pattern).normalize().toString();
     }
 
     public FunctionContext getContext()
