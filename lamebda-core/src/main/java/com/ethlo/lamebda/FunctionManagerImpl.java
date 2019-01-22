@@ -196,12 +196,13 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         final Path targetPath = Files.createTempDirectory("oas-tmp");
 
-        final Path templatePath = projectConfiguration.getPath().resolve("templates").resolve("api-doc");
+        final Path candidate = projectConfiguration.getPath().resolve("templates").resolve("api-doc");
+        final Path tplPath = Files.exists(candidate) ? candidate : null;
         final ApiGenerator gen = ApiGenerator.builder()
                 .generatorName(projectConfiguration.getApiDocGenerator())
                 .specPath(specificationFile)
                 .targetPath(targetPath)
-                .templatesPath(templatePath)
+                .templatesPath(tplPath)
                 .build();
         gen.generateApiDocumentation();
 
