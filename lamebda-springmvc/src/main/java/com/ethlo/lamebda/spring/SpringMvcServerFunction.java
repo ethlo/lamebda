@@ -53,7 +53,7 @@ import com.ethlo.lamebda.HttpMethod;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.context.FunctionContext;
-import com.ethlo.lamebda.functions.URLMappedServerFunction;
+import com.ethlo.lamebda.URLMappedServerFunction;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.MethodAndPattern;

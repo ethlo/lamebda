@@ -58,6 +58,11 @@ public class FunctionManagerDirector
         this.rootContext = rootContext;
         this.functionPostProcessor = functionPostProcessor;
 
+        initializeAll();
+    }
+
+    private void setupDirectoryWatcher() throws IOException
+    {
         // Register directory watcher to discover new project directories created in root directory
         this.watchDir = new WatchDir(e -> {
             if (isValidProjectDir(e.getPath()))
@@ -85,13 +90,12 @@ public class FunctionManagerDirector
                 watchDir.processEvents();
             }
         }.start();
-
-        // Initialize all existing in root directory
-        initializeAll();
     }
 
-    public void initializeAll()
+    public void initializeAll() throws IOException
     {
+        setupDirectoryWatcher();
+
         final List<Path> directories;
         try
         {

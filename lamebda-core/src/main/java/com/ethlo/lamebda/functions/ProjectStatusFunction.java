@@ -35,6 +35,7 @@ import com.ethlo.lamebda.HttpStatus;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
+import com.ethlo.lamebda.URLMappedServerFunction;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
@@ -42,14 +43,14 @@ import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.FunctionStatusInfo;
 import com.ethlo.lamebda.security.UsernamePasswordCredentials;
 
-public class StatusFunction extends AdminSimpleServerFunction implements BuiltInServerFunction
+public class ProjectStatusFunction extends AdminSimpleServerFunction implements BuiltInServerFunction
 {
     private final FunctionManager functionManager;
     private final LamebdaResourceLoader resourceLoader;
     private final ProjectConfiguration projectConfiguration;
     private final FunctionMetricsService functionMetricsService;
 
-    public StatusFunction(String pattern, LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager, FunctionMetricsService functionMetricsService)
+    public ProjectStatusFunction(String pattern, LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager, FunctionMetricsService functionMetricsService)
     {
         super(pattern);
         this.resourceLoader = resourceLoader;

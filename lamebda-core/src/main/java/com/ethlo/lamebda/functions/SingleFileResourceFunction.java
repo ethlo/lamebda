@@ -39,9 +39,9 @@ public class SingleFileResourceFunction extends SimpleServerFunction implements 
     private final Path filePath;
     private final String contentType;
 
-    public SingleFileResourceFunction(String prefix, Path filePath)
+    public SingleFileResourceFunction(String urlPath, Path filePath)
     {
-        super(prefix);
+        super(urlPath);
         Assert.notNull(filePath, "filePath cannot be null");
         this.filePath = filePath;
         this.contentType = HttpMimeType.fromExtension(FileNameUtil.getExtension(filePath.getFileName().toString()));

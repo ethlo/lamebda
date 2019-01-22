@@ -6,12 +6,12 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.error.ErrorResponse;
-import com.ethlo.lamebda.functions.URLMappedServerFunction;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.util.StringUtil;
 
@@ -55,7 +55,7 @@ public abstract class SimpleServerFunction extends BaseServerFunction implements
     public final FunctionResult handle(HttpRequest request, HttpResponse response) throws Exception
     {
         final String path = request.path();
-        if (!PATH_MATCHER.match(pattern, path))
+        if (! isMatch(path))
         {
             logger.debug("Function {}. Request path {} does NOT match pattern {}", this.getClass().getSimpleName(), path, pattern);
             return FunctionResult.SKIPPED;
@@ -63,6 +63,16 @@ public abstract class SimpleServerFunction extends BaseServerFunction implements
         logger.debug("Function {}. Handling request with path {}", this.getClass().getSimpleName(), path);
         doHandle(request, response);
         return FunctionResult.PROCESSED;
+    }
+
+    private boolean isMatch(final String path)
+    {
+        if (path.equals(pattern))
+        {
+            // Special matching for root
+            return true;
+        }
+        return PATH_MATCHER.match(pattern, path);
     }
 
     protected void doHandle(HttpRequest request, HttpResponse response) throws IOException
@@ -173,7 +183,7 @@ public abstract class SimpleServerFunction extends BaseServerFunction implements
     {
         final ProjectConfiguration cfg = context.getProjectConfiguration();
         final String projectContext = (cfg.enableUrlProjectContextPrefix() ? (cfg.getContextPath() + "/") : "");
-        this.pattern = URI.create("/" + projectContext + pattern).normalize().toString();
+        this.pattern = StringUtils.stripEnd(URI.create("/" + projectContext + pattern).normalize().toString(), "/");
     }
 
     public FunctionContext getContext()

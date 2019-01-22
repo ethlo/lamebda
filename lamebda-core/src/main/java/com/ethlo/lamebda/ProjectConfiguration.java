@@ -58,6 +58,8 @@ public class ProjectConfiguration
     private UsernamePasswordCredentials adminCredentials;
     private String version;
 
+    private String apiDocGenerator;
+
     private ProjectConfiguration()
     {
     }
@@ -96,7 +98,7 @@ public class ProjectConfiguration
     @JsonProperty("function.static.path")
     public Path getStaticResourceDirectory()
     {
-        return staticResourceDirectory;
+        return staticResourceDirectory.toAbsolutePath();
     }
 
     @JsonIgnore
@@ -126,6 +128,12 @@ public class ProjectConfiguration
     public String getVersion()
     {
         return version;
+    }
+
+    @JsonProperty("specification.api.doc.generator")
+    public String getApiDocGenerator()
+    {
+        return apiDocGenerator;
     }
 
     /**
@@ -160,19 +168,22 @@ public class ProjectConfiguration
         private Path staticResourceDirectory;
         private String projectVersion;
 
+        private String apiDocGenerator;
+
         private ProjectConfigurationBuilder(String rootContextPath, Path projectPath)
         {
             this.rootContextPath = rootContextPath;
             this.projectPath = projectPath;
 
             // Set defaults
+            this.apiDocGenerator = "html";
+
             this.projectName = projectPath.getFileName().toString();
             this.projectContextPath = projectPath.getFileName().toString();
             this.enableInfoFunction = true;
             this.enableStaticResourceFunction = true;
             this.enableUrlProjectContextPrefix = true;
             this.staticResourcesPrefix = "static";
-            this.projectPath.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY);
             this.staticResourceDirectory = projectPath.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY);
             this.adminCredentials = new UsernamePasswordCredentials("admin", UUID.randomUUID().toString());
         }
@@ -226,13 +237,14 @@ public class ProjectConfiguration
             projectConfiguration.path = this.projectPath;
             projectConfiguration.staticResourcesPrefix = this.staticResourcesPrefix;
             projectConfiguration.contextPath = this.projectContextPath;
-            projectConfiguration.staticResourceDirectory = this.staticResourceDirectory;
+            projectConfiguration.staticResourceDirectory = this.staticResourceDirectory.toAbsolutePath();
             projectConfiguration.enableInfoFunction = this.enableInfoFunction;
             projectConfiguration.enableStaticResourceFunction = this.enableStaticResourceFunction;
             projectConfiguration.enableUrlProjectContextPrefix = this.enableUrlProjectContextPrefix;
             projectConfiguration.name = this.projectName;
             projectConfiguration.version = this.projectVersion;
             projectConfiguration.adminCredentials = this.adminCredentials;
+            projectConfiguration.apiDocGenerator = this.apiDocGenerator;
             return projectConfiguration;
         }
 
@@ -261,7 +273,9 @@ public class ProjectConfiguration
                 // Static resource function
                 enableStaticResourceFunction = Boolean.parseBoolean(p.getProperty("functions.static.enabled", Boolean.toString(enableStaticResourceFunction)));
                 staticResourcesPrefix = p.getProperty("functions.static.prefix", staticResourcesPrefix);
-                staticResourceDirectory = Paths.get(p.getProperty("function.static.path", staticResourcesPrefix));
+                staticResourceDirectory = Paths.get(p.getProperty("function.static.path", staticResourceDirectory.toString()));
+
+                apiDocGenerator = p.getProperty("specification.api.doc.generator", apiDocGenerator);
 
                 final String adminUsername = p.getProperty("admin.credentials.username", "admin");
                 String adminPassword = p.getProperty("admin.credentials.password");

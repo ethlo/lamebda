@@ -108,16 +108,22 @@ public class IoUtil
         Files.createDirectories(dest);
         Files.walkFileTree(src, new SimpleFileVisitor<Path>()
         {
-            @Override public FileVisitResult preVisitDirectory(final Path path, final BasicFileAttributes basicFileAttributes) throws IOException
+            @Override
+            public FileVisitResult preVisitDirectory(final Path path, final BasicFileAttributes basicFileAttributes) throws IOException
             {
                 Files.createDirectories(path.normalize());
                 return super.preVisitDirectory(path, basicFileAttributes);
             }
 
-            @Override public FileVisitResult visitFile(final Path path, final BasicFileAttributes basicFileAttributes) throws IOException
+            @Override
+            public FileVisitResult visitFile(final Path path, final BasicFileAttributes basicFileAttributes) throws IOException
             {
                 Path rel = src.relativize(path);
                 final Path target = dest.resolve(rel);
+                if (! Files.exists(target.getParent()))
+                {
+                    Files.createDirectories(target.getParent());
+                }
                 Files.copy(path, target, StandardCopyOption.REPLACE_EXISTING);
                 return super.visitFile(path, basicFileAttributes);
             }

@@ -29,9 +29,9 @@ public class SingleResourceFunction extends SimpleServerFunction implements Buil
     private final byte[] content;
     private final String mimeType;
 
-    public SingleResourceFunction(String url, String mimeType, byte[] content)
+    public SingleResourceFunction(String urlPath, String mimeType, byte[] content)
     {
-        super(url);
+        super(urlPath);
         this.mimeType = mimeType;
         this.content = content;
     }

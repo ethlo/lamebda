@@ -1,4 +1,4 @@
-package com.ethlo.lamebda.functions;
+package com.ethlo.lamebda;
 
 /*-
  * #%L

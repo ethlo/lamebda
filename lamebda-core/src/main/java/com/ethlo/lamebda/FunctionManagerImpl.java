@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.codehaus.groovy.control.CompilationFailedException;
@@ -19,10 +18,10 @@ import org.slf4j.LoggerFactory;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
+import com.ethlo.lamebda.functions.DirectoryResourceFunction;
 import com.ethlo.lamebda.functions.SingleFileResourceFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
-import com.ethlo.lamebda.functions.StatusFunction;
-import com.ethlo.lamebda.functions.SubDirectoryStaticResourceFunction;
+import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
@@ -98,6 +97,9 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
                 case DELETED:
                     unload(n.getPath());
+
+                default:
+                    throw new IllegalArgumentException("Unhandled event type: " + n.getChangeType());
             }
         });
 
@@ -107,7 +109,15 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             logger.info("Specification file changed: {}", n.getPath());
             if (n.getChangeType() != ChangeType.DELETED)
             {
-                processApiSpecification(projectConfiguration, n.getPath());
+                try
+                {
+                    generateHumanReadableApiDoc(projectConfiguration, n.getPath());
+                    generateModels(n.getPath());
+                }
+                catch (IOException exc)
+                {
+                    throw new UncheckedIOException(exc);
+                }
                 reloadFunctions(n.getPath());
             }
         });
@@ -124,33 +134,44 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         initialize();
     }
 
-    private void addBuiltinFunctions()
+    private void addBuiltinFunctions() throws IOException
     {
         if (projectConfiguration.enableStaticResourceFunction())
         {
-            addFunction(Paths.get("static-data"), new SubDirectoryStaticResourceFunction("/" + projectConfiguration.getStaticResourcesContext() + "/", projectConfiguration.getStaticResourceDirectory()));
+            addFunction(Paths.get("static-data"), withMinimalContext(new DirectoryResourceFunction("/" + projectConfiguration.getStaticResourcesContext(), projectConfiguration.getStaticResourceDirectory())));
         }
 
         if (projectConfiguration.enableInfoFunction())
         {
-            final String defaultInfoPage = "/lamebda/templates/info.html";
-            addFunction(Paths.get("status-info"), withMinimalContext(new StatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService)));
+            final Path lamebdaTplDir = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
 
-            final Path customInfoPagePath = projectConfiguration.getPath().resolve("templates").resolve("info.html");
-            if (Files.exists(customInfoPagePath))
-            {
-                addFunction(Paths.get("custom-status-page"), withMinimalContext(new SingleFileResourceFunction(statusBasePath, customInfoPagePath)));
-            }
-            else
-            {
-                addFunction(Paths.get("status-page"), withMinimalContext(new SingleResourceFunction(statusBasePath, HttpMimeType.HTML, IoUtil.classPathResource(defaultInfoPage))));
-            }
+            // Static page for viewing status
+            createStaticOverrideableResource("welcome", "","welcome.html", lamebdaTplDir.resolve("welcome.html"));
+
+            // JSON data
+            addFunction(Paths.get("status-info"), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService)));
+
+            // Static page for viewing status
+            createStaticOverrideableResource("status", "/status","status.html", lamebdaTplDir.resolve("status.html"));
         }
 
         final Path apiPath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY).resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
         if (Files.exists(apiPath))
         {
-            processApiSpecification(projectConfiguration, apiPath);
+            generateModels(apiPath);
+            generateHumanReadableApiDoc(projectConfiguration, apiPath);
+        }
+    }
+
+    private void createStaticOverrideableResource(String name, String urlPath, String classPathResource, Path overrideFile)
+    {
+        if (Files.exists(overrideFile))
+        {
+            addFunction(Paths.get("custom-" + name), withMinimalContext(new SingleFileResourceFunction(urlPath, overrideFile)));
+        }
+        else
+        {
+            addFunction(Paths.get(name), withMinimalContext(new SingleResourceFunction(urlPath, HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/" + classPathResource))));
         }
     }
 
@@ -160,26 +181,30 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         addFunction(sourcePath, loaded);
     }
 
-    private void processApiSpecification(final ProjectConfiguration projectConfiguration, Path specificationFile)
+    private void generateModels(Path specificationFile) throws IOException
     {
-        try
-        {
-            final URL classPathEntry = new ModelGenerator().generateModels(specificationFile);
-            final Path targetFile = Files.createTempFile("oas-tmp", ".html");
-            new ApiGenerator().generateApiDocumentation(specificationFile, targetFile);
+        final URL classPathEntry = new ModelGenerator().generateModels(specificationFile);
+        groovyClassLoader.addURL(classPathEntry);
+        logger.info("Adding model classpath {}", classPathEntry);
 
-            addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile))));
+    }
 
-            addFunction(Paths.get("api-human-readable"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api*", HttpMimeType.HTML, IoUtil.toByteArray(targetFile))));
+    private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration, Path specificationFile) throws IOException
+    {
+        final Path targetPath = Files.createTempDirectory("oas-tmp");
 
-            Files.deleteIfExists(targetFile);
-            groovyClassLoader.addURL(classPathEntry);
-            logger.info("Adding model classpath {}", classPathEntry);
-        }
-        catch (IOException exc)
-        {
-            throw new RuntimeException("There was an error processing the API specification file " + specificationFile, exc);
-        }
+        final Path templatePath = projectConfiguration.getPath().resolve("templates").resolve("api-doc");
+        final ApiGenerator gen = ApiGenerator.builder()
+                .generatorName(projectConfiguration.getApiDocGenerator())
+                .specPath(specificationFile)
+                .targetPath(targetPath)
+                .templatesPath(templatePath)
+                .build();
+        gen.generateApiDocumentation();
+
+        addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile))));
+
+        addFunction(Paths.get("api-human-readable"), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api", targetPath)));
     }
 
     private <T extends ServerFunction & FunctionContextAware> T withMinimalContext(final T function)
@@ -208,15 +233,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void initialize()
     {
-        final Optional<Path> apiSpecification = lamebdaResourceLoader.getApiSpecification();
-        if (apiSpecification.isPresent())
-        {
-            processApiSpecification(projectConfiguration, apiSpecification.get());
-        }
-
-        this.functions.forEach((path, function) -> {
-            unload(path);
-        });
         for (ServerFunctionInfo f : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
         {
             try
@@ -229,7 +245,14 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             }
         }
 
-        addBuiltinFunctions();
+        try
+        {
+            addBuiltinFunctions();
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private void unload(final Path sourcePath)
