@@ -19,6 +19,7 @@ import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
+import com.ethlo.lamebda.functions.RedirectFunction;
 import com.ethlo.lamebda.functions.SingleFileResourceFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
@@ -145,8 +146,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         {
             final Path lamebdaTplDir = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
 
-            // Static page for viewing status
-            createStaticOverrideableResource("welcome", "","welcome.html", lamebdaTplDir.resolve("welcome.html"));
+            // Static project welcome page
+            // createStaticOverrideableResource("welcome", "","welcome.html", lamebdaTplDir.resolve("welcome.html"));
 
             // JSON data
             addFunction(Paths.get("status-info"), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService)));
