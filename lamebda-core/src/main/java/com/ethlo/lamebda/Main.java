@@ -67,7 +67,7 @@ public class Main
     {
         if (Files.exists(specificationFile))
         {
-            final URL classPathEntry = new ModelGenerator().generateModels(specificationFile);
+            new ModelGenerator().generateModels(specificationFile);
         }
         else
         {

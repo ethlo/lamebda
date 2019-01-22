@@ -48,14 +48,10 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 import com.ethlo.lamebda.BaseServerFunction;
-import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.FunctionResult;
 import com.ethlo.lamebda.HttpMethod;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
-import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.ServerFunction;
-import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.URLMappedServerFunction;
 import com.ethlo.lamebda.mapping.RequestMapping;
@@ -75,7 +71,7 @@ public class SpringMvcServerFunction extends BaseServerFunction implements URLMa
 
 
     @Autowired(required = false)
-    private void postConstruct(final ListableBeanFactory beanFactory, final List<MethodInterceptor> methodInterceptors)
+    protected final void postConstruct(final ListableBeanFactory beanFactory, final List<MethodInterceptor> methodInterceptors)
     {
         final BeanFactoryAspectJAdvisorsBuilder advisorsBuilder = new BeanFactoryAspectJAdvisorsBuilder(beanFactory);
         final List<Advisor> advisors = advisorsBuilder.buildAspectJAdvisors();

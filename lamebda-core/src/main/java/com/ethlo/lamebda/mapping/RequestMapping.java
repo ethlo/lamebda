@@ -21,7 +21,6 @@ package com.ethlo.lamebda.mapping;
  */
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 

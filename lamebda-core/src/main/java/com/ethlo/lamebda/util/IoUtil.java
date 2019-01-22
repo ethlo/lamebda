@@ -163,7 +163,7 @@ public class IoUtil
         }
         catch (MalformedURLException e)
         {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

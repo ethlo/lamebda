@@ -22,7 +22,6 @@ package com.ethlo.lamebda.spring;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
 
 import javax.validation.constraints.NotNull;
 
@@ -44,7 +43,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.servlet.HandlerMapping;
 
 import com.ethlo.lamebda.DelegatingFunctionManager;
-import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerDirector;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;

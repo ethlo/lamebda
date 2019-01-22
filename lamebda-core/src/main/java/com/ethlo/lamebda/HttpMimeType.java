@@ -22,8 +22,6 @@ package com.ethlo.lamebda;
 
 public class HttpMimeType
 {
-    private HttpMimeType(){}
-    
     public static final String HTML = "text/html";
     public static final String JSON = "application/json";
     public static final String JAVASCRIPT = "application/javascript";
@@ -34,8 +32,9 @@ public class HttpMimeType
     public static final String JPG = "image/jpg";
     public static final String PNG = "image/png";
     public static final String GIF = "image/gif";
-
     public static final String APPLICATION = "application/octet-stream";
+
+    private HttpMimeType(){}
 
     public static String fromExtension(String extension)
     {

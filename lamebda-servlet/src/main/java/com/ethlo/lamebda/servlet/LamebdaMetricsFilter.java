@@ -87,11 +87,11 @@ public class LamebdaMetricsFilter implements Filter
     @Override
     public void destroy()
     {
-
+        // Nothing to destroy
     }
 
     @Override public void init(final FilterConfig filterConfig) throws ServletException
     {
-
+        // Nothing to init
     }
 }
