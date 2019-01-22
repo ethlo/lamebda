@@ -19,10 +19,9 @@ import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
-import com.ethlo.lamebda.functions.RedirectFunction;
+import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.functions.SingleFileResourceFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
-import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
@@ -110,15 +109,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             logger.info("Specification file changed: {}", n.getPath());
             if (n.getChangeType() != ChangeType.DELETED)
             {
-                try
-                {
-                    generateHumanReadableApiDoc(projectConfiguration, n.getPath());
-                    generateModels(n.getPath());
-                }
-                catch (IOException exc)
-                {
-                    throw new UncheckedIOException(exc);
-                }
+                initialApiProcessing();
                 reloadFunctions(n.getPath());
             }
         });
@@ -147,22 +138,15 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             final Path lamebdaTplDir = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
 
             // Static project welcome page
-            createStaticOverrideableResource("welcome", "/","welcome.html", lamebdaTplDir.resolve("welcome.html"));
+            createStaticOverrideableResource("welcome", "/", "welcome.html", lamebdaTplDir.resolve("welcome.html"));
             //addFunction(Paths.get("redirect-project"), withMinimalContext(new RedirectFunction("", "/")));
 
             // JSON data
             addFunction(Paths.get("status-info"), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService)));
 
             // Static page for viewing status
-            createStaticOverrideableResource("status", "/status/","status.html", lamebdaTplDir.resolve("status.html"));
+            createStaticOverrideableResource("status", "/status/", "status.html", lamebdaTplDir.resolve("status.html"));
             //addFunction(Paths.get("redirect-status"), withMinimalContext(new RedirectFunction("/status", "/status/")));
-        }
-
-        final Path apiPath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY).resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
-        if (Files.exists(apiPath))
-        {
-            generateModels(apiPath);
-            generateHumanReadableApiDoc(projectConfiguration, apiPath);
         }
     }
 
@@ -237,6 +221,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void initialize()
     {
+        initialApiProcessing();
+
         for (ServerFunctionInfo f : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
         {
             try
@@ -256,6 +242,23 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         catch (IOException e)
         {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    private void initialApiProcessing()
+    {
+        final Path apiPath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY).resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
+        if (Files.exists(apiPath))
+        {
+            try
+            {
+                generateModels(apiPath);
+                generateHumanReadableApiDoc(projectConfiguration, apiPath);
+            }
+            catch (IOException exc)
+            {
+                throw new UncheckedIOException(exc);
+            }
         }
     }
 
