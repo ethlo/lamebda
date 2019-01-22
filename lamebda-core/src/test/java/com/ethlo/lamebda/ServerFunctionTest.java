@@ -34,7 +34,7 @@ public class ServerFunctionTest extends BaseTest
     {
         final MockHttpRequest req = new MockHttpRequest();
         final MockHttpResponse res = new MockHttpResponse();
-        req.path("/static/incorrect.html");
+        req.path("/lamebda-unit-test/static/incorrect.html");
         req.method("GET");
         functionManager.handle(req, res);
         assertThat(res.body()).contains("incorrect.html");
