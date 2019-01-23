@@ -192,7 +192,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
         addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile))));
 
-        addFunction(Paths.get("api-human-readable"), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api", targetPath)));
+        addFunction(Paths.get("api-human-readable"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api/", HttpMimeType.HTML, IoUtil.toByteArray(targetPath))));
     }
 
     private <T extends ServerFunction & FunctionContextAware> T withMinimalContext(final T function)
