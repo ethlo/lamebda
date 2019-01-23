@@ -4,14 +4,14 @@
     <parent>
         <groupId>com.ethlo.lamebda</groupId>
         <artifactId>lamebda</artifactId>
-        <version>0.5.3</version>
+        <version>0.5.4-SNAPSHOT</version>
     </parent>
     <artifactId>lamebda-servlet</artifactId>
     <dependencies>
         <dependency>
             <groupId>com.ethlo.lamebda</groupId>
             <artifactId>lamebda-core</artifactId>
-            <version>0.5.3</version>
+            <version>0.5.4-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
