@@ -26,12 +26,18 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
-public class ExecModelGenerator
+public class GeneratorHelper
 {
-    public static URL generateModels(final Path specificationFile, final Path target) throws IOException
+    private final Path generatorCliJarPath;
+
+    public GeneratorHelper(final Path generatorCliJarPath)
     {
-        final String jarPath= "/home/morten/Downloads/openapi-generator-cli-3.3.4.jar";
-        Process process = new ProcessBuilder(System.getProperty("java.home") + "/bin/java", "-jar", jarPath, "generate",  "-i",  specificationFile.toAbsolutePath().toString(), "-g",  "jaxrs-spec",  "-o", target.toAbsolutePath().toString(), "-Dmodel",  "-DdateLibrary=java8",  "--model-package=spec", "-DuseSwaggerAnnotations=false")
+        this.generatorCliJarPath = generatorCliJarPath;
+    }
+
+    public URL generateModels(final Path specificationFile, final Path target) throws IOException
+    {
+        Process process = new ProcessBuilder(System.getProperty("java.home") + "/bin/java", "-jar", generatorCliJarPath.toAbsolutePath().toString(), "generate",  "-i",  specificationFile.toAbsolutePath().toString(), "-g",  "jaxrs-spec",  "-o", target.toAbsolutePath().toString(), "-Dmodel",  "-DdateLibrary=java8",  "--model-package=spec", "-DuseSwaggerAnnotations=false")
                 .inheritIO()
                 .start();
         try
@@ -49,7 +55,7 @@ public class ExecModelGenerator
         return target.toUri().toURL();
     }
 
-    public static void generateApiDoc(final Path specificationFile, final Path target)
+    public void generateApiDoc(final Path specificationFile, final Path target)
     {
 
     }
