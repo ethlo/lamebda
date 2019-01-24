@@ -10,7 +10,7 @@
     <dependencies>
         <dependency>
             <groupId>com.ethlo.lamebda</groupId>
-            <artifactId>lamebda-servlet</artifactId>
+            <artifactId>lamebda-loader</artifactId>
             <version>0.5.4-SNAPSHOT</version>
         </dependency>
         <dependency>

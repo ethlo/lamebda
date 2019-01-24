@@ -52,6 +52,28 @@ public class FunctionManagerDirector
     private Map<Path, FunctionManager> functionManagers = new ConcurrentHashMap<>();
     private WatchDir watchDir;
 
+    public FunctionManagerDirector(final Path rootDirectory, String rootContext) throws IOException
+    {
+        this(rootDirectory, rootContext, s->s);
+    }
+
+    public FunctionManagerDirector(final Path rootDirectory, String rootContext, String functionPostProcessorClassName) throws IOException
+    {
+        this(rootDirectory, rootContext, loadClass(functionPostProcessorClassName));
+    }
+
+    private static FunctionPostProcessor loadClass(final String functionPostProcessorClassName)
+    {
+        try
+        {
+            return (FunctionPostProcessor) Class.forName(functionPostProcessorClassName).newInstance();
+        }
+        catch (Exception e)
+        {
+            throw new IllegalStateException("Cannot load post processor " + functionPostProcessorClassName, e);
+        }
+    }
+
     public FunctionManagerDirector(final Path rootDirectory, String rootContext, FunctionPostProcessor functionPostProcessor) throws IOException
     {
         this.rootDirectory = rootDirectory;

@@ -30,6 +30,8 @@ import java.util.Properties;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.openapitools.codegen.languages.StaticDocCodegen;
+import org.openapitools.codegen.languages.StaticHtmlGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -176,7 +178,7 @@ public class ProjectConfiguration
             this.projectPath = projectPath;
 
             // Set defaults
-            this.apiDocGenerator = "html";
+            this.apiDocGenerator = StaticHtmlGenerator.class.getCanonicalName();
 
             this.projectName = projectPath.getFileName().toString();
             this.projectContextPath = projectPath.getFileName().toString();

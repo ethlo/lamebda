@@ -31,6 +31,7 @@ import java.util.List;
 import org.openapitools.codegen.ClientOptInput;
 import org.openapitools.codegen.DefaultGenerator;
 import org.openapitools.codegen.config.CodegenConfigurator;
+import org.openapitools.codegen.languages.JavaJAXRSSpecServerCodegen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,10 @@ public class ModelGenerator
 
         final CodegenConfigurator configurator = new CodegenConfigurator();
         configurator.setInputSpec(specPath.toString());
-        configurator.setGeneratorName("jaxrs-spec");
+
+        final String genName = JavaJAXRSSpecServerCodegen.class.getCanonicalName();
+        configurator.setGeneratorName(genName);
+
         configurator.setOutputDir(targetBaseDir.toString());
         configurator.setModelPackage("spec");
         configurator.setValidateSpec(true);

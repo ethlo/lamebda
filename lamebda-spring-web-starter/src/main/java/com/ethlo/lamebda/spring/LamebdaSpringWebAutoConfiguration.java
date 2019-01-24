@@ -38,12 +38,14 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.servlet.HandlerMapping;
 
 import com.ethlo.lamebda.DelegatingFunctionManager;
 import com.ethlo.lamebda.FunctionManagerDirector;
+import com.ethlo.lamebda.LamebdaLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
@@ -55,8 +57,6 @@ import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
 @ConditionalOnProperty(prefix = "lamebda", name = "enabled")
 public class LamebdaSpringWebAutoConfiguration
 {
-    public static final String DEFAULT_PATH = "/lamebda";
-
     private static final Logger logger = LoggerFactory.getLogger(LamebdaSpringWebAutoConfiguration.class);
 
     @Value("${lamebda.request-path:/lamebda}")
@@ -70,49 +70,16 @@ public class LamebdaSpringWebAutoConfiguration
         this.rootContextPath = rootContextPath;
     }
 
+    @Lazy(false)
     @Bean
-    @ConditionalOnMissingBean
-    public FunctionPostProcessor functionPostProcessor()
+    public Object lamebdaSystem() throws Exception
     {
-        return AutowireHelper.postProcessor(applicationContext);
+        final Object fmd = new LamebdaLoader().getInstance();
+        //return AutowireHelper.postProcessor(applicationContext);
+        return fmd;
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public FunctionSourcePreProcessor functionLoadPreNotification()
-    {
-        return ((classLoader, source) -> source);
-    }
-
-    @Validated
-    @Component
-    @ConditionalOnMissingBean(LamebdaResourceLoader.class)
-    @ConditionalOnProperty("lamebda.source.directory")
-    @ConfigurationProperties("lamebda.source")
-    public class FileSourceConfiguration
-    {
-        @NotNull
-        private Path directory;
-
-        public Path getDirectory()
-        {
-            return directory;
-        }
-
-        public void setDirectory(Path directory)
-        {
-            this.directory = directory;
-        }
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnBean(FileSourceConfiguration.class)
-    public FunctionManagerDirector functionManagerDirector(FileSourceConfiguration cfg) throws IOException
-    {
-        return new FunctionManagerDirector(cfg.getDirectory(), rootContextPath, AutowireHelper.postProcessor(applicationContext));
-    }
-
+    /*
     @Bean
     public FilterRegistrationBean metricsFilter()
     {
@@ -137,4 +104,5 @@ public class LamebdaSpringWebAutoConfiguration
         logger.info("Registering handler mapping for request path prefix: {}", rootContextPath);
         return new LamebdaHandlerMapping(handler, rootContextPath);
     }
+    */
 }

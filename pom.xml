@@ -27,6 +27,8 @@
 		<module>lamebda-spring-web-starter</module>
         <module>lamebda-springmvc</module>
         <module>lamebda-server</module>
+        <module>lamebda-loader</module>
+        <module>lamebda-model</module>
     </modules>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

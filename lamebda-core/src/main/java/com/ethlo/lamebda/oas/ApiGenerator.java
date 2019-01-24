@@ -30,6 +30,7 @@ import java.util.List;
 import org.openapitools.codegen.ClientOptInput;
 import org.openapitools.codegen.DefaultGenerator;
 import org.openapitools.codegen.config.CodegenConfigurator;
+import org.openapitools.codegen.languages.StaticHtmlGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +79,7 @@ public class ApiGenerator
     public static final class ApiGeneratorBuilder
     {
         private Path templatesPath = null; // Use built-in by default
-        private String generatorName = "html";
+        private String generatorName = StaticHtmlGenerator.class.getCanonicalName();
         private Path specPath;
         private Path targetPath;
 
