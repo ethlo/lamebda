@@ -23,6 +23,7 @@ package com.ethlo.lamebda.servlet;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
+import java.net.URI;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -95,6 +96,12 @@ public class ServletHttpRequest implements HttpRequest
     public String path()
     {
         return path;
+    }
+
+    @Override
+    public URI requestURI()
+    {
+        return URI.create(request.getRequestURI());
     }
 
     @Override
@@ -202,5 +209,11 @@ public class ServletHttpRequest implements HttpRequest
     public String contentType()
     {
         return request.getContentType();
+    }
+
+    @Override
+    public String parentContext()
+    {
+        return request.getContextPath();
     }
 }

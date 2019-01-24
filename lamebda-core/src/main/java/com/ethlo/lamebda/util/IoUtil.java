@@ -28,7 +28,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.charset.Charset;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -36,6 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,11 +72,6 @@ public class IoUtil
     public static String toString(InputStream in, Charset charset)
     {
         return new String(toByteArray(in), charset);
-    }
-
-    public static String classPathResourceAsString(String path, Charset charset)
-    {
-        return new String(classPathResource(path), charset);
     }
 
     public static void deleteDirectory(final Path directory) throws IOException
@@ -120,7 +115,7 @@ public class IoUtil
             {
                 Path rel = src.relativize(path);
                 final Path target = dest.resolve(rel);
-                if (! Files.exists(target.getParent()))
+                if (!Files.exists(target.getParent()))
                 {
                     Files.createDirectories(target.getParent());
                 }
@@ -151,8 +146,14 @@ public class IoUtil
 
     public static void copyClasspathResource(final String src, final Path target) throws IOException
     {
-        final byte[] data = classPathResource(src);
-        Files.copy(new ByteArrayInputStream(data), target, StandardCopyOption.REPLACE_EXISTING);
+        final Optional<byte[]> data = classPathResource(src);
+        if (!data.isPresent())
+        {
+            throw new FileNotFoundException(src);
+        }
+
+        Files.copy(new ByteArrayInputStream(data.get()), target, StandardCopyOption.REPLACE_EXISTING);
+
     }
 
     public static Path ensureDirectoryExists(final Path path) throws IOException
@@ -173,16 +174,15 @@ public class IoUtil
         }
     }
 
-    public static byte[] classPathResource(final String path)
+    public static Optional<byte[]> classPathResource(final String path)
     {
-        final String correctedPath = (! path.startsWith("/")) ? "/" + path : path;
+        final String correctedPath = (!path.startsWith("/")) ? "/" + path : path;
         final InputStream in = IoUtil.class.getResourceAsStream(correctedPath);
         if (in != null)
         {
-            return toByteArray(in);
+            return Optional.of(toByteArray(in));
         }
-        logger.info("Classpath URLs: {}", (Object[]) ((URLClassLoader)IoUtil.class.getClassLoader()).getURLs());
-        throw new UncheckedIOException(new FileNotFoundException(correctedPath));
+        return Optional.empty();
     }
 
     public static byte[] toByteArray(final Path file)

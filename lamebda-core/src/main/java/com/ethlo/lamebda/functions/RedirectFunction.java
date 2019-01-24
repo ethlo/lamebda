@@ -21,7 +21,8 @@ package com.ethlo.lamebda.functions;
  */
 
 import java.io.IOException;
-import java.net.URI;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
@@ -44,5 +45,17 @@ public class RedirectFunction extends SimpleServerFunction implements BuiltInSer
     {
         response.setStatus(HttpStatus.MOVED_TEMPORARILY);
         response.addHeader("Location", targetUrlPath);
+    }
+
+    @Override
+    public void init(final ProjectConfiguration projectConfiguration)
+    {
+        pattern = getUrl(projectConfiguration, pattern);
+        targetUrlPath = getUrl(projectConfiguration, targetUrlPath);
+    }
+
+    private String getUrl(final ProjectConfiguration projectConfiguration, String relUrl)
+    {
+        return StringUtils.stripEnd("/" + projectConfiguration.getRootContextPath() + "/" + projectConfiguration.getContextPath() + "/" + relUrl, "/");
     }
 }

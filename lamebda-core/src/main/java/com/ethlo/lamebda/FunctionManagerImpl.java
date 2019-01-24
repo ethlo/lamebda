@@ -20,8 +20,8 @@ import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
-import com.ethlo.lamebda.functions.SingleFileResourceFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
+import com.ethlo.lamebda.functions.TemplatedResourceFunction;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
@@ -137,29 +137,21 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         {
             final Path lamebdaTplDir = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
 
-            // Static project welcome page
-            createStaticOverrideableResource("welcome", "/", "welcome.html", lamebdaTplDir.resolve("welcome.html"));
-            //addFunction(Paths.get("redirect-project"), withMinimalContext(new RedirectFunction("", "/")));
+            // Project welcome page
+            createTemplatedResource("welcome", "/");
 
             // JSON data
             addFunction(Paths.get("status-info"), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService)));
 
-            // Static page for viewing status
-            createStaticOverrideableResource("status", "/status/", "status.html", lamebdaTplDir.resolve("status.html"));
-            //addFunction(Paths.get("redirect-status"), withMinimalContext(new RedirectFunction("/status", "/status/")));
+            // Page for viewing status
+            createTemplatedResource("status", "/status/");
         }
     }
 
-    private void createStaticOverrideableResource(String name, String urlPath, String classPathResource, Path overrideFile)
+    private void createTemplatedResource(String name, String urlPath)
     {
-        if (Files.exists(overrideFile))
-        {
-            addFunction(Paths.get("custom-" + name), withMinimalContext(new SingleFileResourceFunction(urlPath, overrideFile)));
-        }
-        else
-        {
-            addFunction(Paths.get(name), withMinimalContext(new SingleResourceFunction(urlPath, HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/" + classPathResource))));
-        }
+        final TemplatedResourceFunction func = withMinimalContext(new TemplatedResourceFunction(urlPath, projectConfiguration, name + ".html", HttpMimeType.HTML));
+        addFunction(Paths.get(name), func);
     }
 
     private void load(final LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
@@ -192,7 +184,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
         addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile))));
 
-        addFunction(Paths.get("api-human-readable"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api/", HttpMimeType.HTML, IoUtil.toByteArray(targetPath))));
+        addFunction(Paths.get("api-human-readable"), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath)));
     }
 
     private <T extends ServerFunction & FunctionContextAware> T withMinimalContext(final T function)

@@ -45,7 +45,7 @@ public class DirectoryResourceFunction extends SimpleServerFunction implements B
 
     public DirectoryResourceFunction(final String prefix, final Path basePath)
     {
-        super(prefix + "/**");
+        super(StringUtils.stripEnd(prefix, "/") + "/**");
         this.basePath = basePath.toAbsolutePath();
     }
 

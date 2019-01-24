@@ -23,6 +23,7 @@ package com.ethlo.lamebda.test;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -46,6 +47,8 @@ public class MockHttpRequest implements HttpRequest
     private InetAddress remoteIp;
     private Charset charset = StandardCharsets.UTF_8;
     private String contentType;
+    private URI uri;
+    private String parentContext;
 
     @Override
     public String method()
@@ -104,6 +107,12 @@ public class MockHttpRequest implements HttpRequest
     }
 
     @Override
+    public URI requestURI()
+    {
+        return uri;
+    }
+
+    @Override
     public byte[] rawBody()
     {
         return body.toByteArray();
@@ -145,9 +154,21 @@ public class MockHttpRequest implements HttpRequest
         return contentType;
     }
 
+    @Override
+    public String parentContext()
+    {
+        return parentContext;
+    }
+
     public MockHttpRequest path(final String path)
     {
         this.path = path;
+        return this;
+    }
+
+    public MockHttpRequest requestURI(URI uri)
+    {
+        this.uri = uri;
         return this;
     }
 

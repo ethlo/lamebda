@@ -17,6 +17,18 @@
             <artifactId>itu</artifactId>
             <version>1.2</version>
         </dependency>
+        <!--
+        <dependency>
+            <groupId>io.pebbletemplates</groupId>
+            <artifactId>pebble</artifactId>
+            <version>3.0.7</version>
+        </dependency>
+        -->
+        <dependency>
+            <groupId>com.mitchellbosecke</groupId>
+            <artifactId>pebble</artifactId>
+            <version>1.5.2</version>
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>

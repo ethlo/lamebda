@@ -34,30 +34,11 @@ import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.FileNameUtil;
 
-public class SingleFileResourceFunction extends SimpleServerFunction implements BuiltInServerFunction
+public class SingleFileResourceFunction extends FallbackSingleFileResourceFunction
 {
-    private final Path filePath;
-    private final String contentType;
-
     public SingleFileResourceFunction(String urlPath, Path filePath)
     {
-        super(urlPath);
+        super(urlPath, filePath, null);
         Assert.notNull(filePath, "filePath cannot be null");
-        this.filePath = filePath;
-        this.contentType = HttpMimeType.fromExtension(FileNameUtil.getExtension(filePath.getFileName().toString()));
-    }
-
-    @Override
-    public void doHandle(HttpRequest request, HttpResponse response) throws IOException
-    {
-        response.setContentType(contentType);
-        try
-        {
-            response.write(Files.readAllBytes(filePath));
-        }
-        catch (FileNotFoundException e)
-        {
-            response.error(HttpStatus.NOT_FOUND, "File not found");
-        }
     }
 }

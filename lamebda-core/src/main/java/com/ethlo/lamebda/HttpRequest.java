@@ -1,6 +1,7 @@
 package com.ethlo.lamebda;
 
 import java.net.InetAddress;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.List;
 
@@ -58,11 +59,16 @@ public interface HttpRequest
     String param(String name, String defaultValue);
     
     /**
-     * Returns the request path
+     * Returns the relative request path
      * @return
      */
     String path();
-    
+
+    /**
+     * Returns the full request path
+     */
+    URI requestURI();
+
     /**
      * Returns the raw body as a byte array
      * @return
@@ -100,4 +106,6 @@ public interface HttpRequest
     Charset charset();
 
     String contentType();
+
+    String parentContext();
 }
