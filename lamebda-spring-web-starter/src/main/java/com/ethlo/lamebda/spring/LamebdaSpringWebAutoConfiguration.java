@@ -25,7 +25,6 @@ import java.nio.file.Path;
 
 import javax.validation.constraints.NotNull;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +48,7 @@ import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
+import com.ethlo.lamebda.util.StringUtil;
 
 @Configuration
 @ConfigurationProperties("lamebda")
@@ -118,7 +118,7 @@ public class LamebdaSpringWebAutoConfiguration
     {
         final FilterRegistrationBean b = new FilterRegistrationBean();
         b.setFilter(new LamebdaMetricsFilter(FunctionMetricsService.getInstance()));
-        final String urlPattern = "/" + StringUtils.strip(this.rootContextPath, "/") + "/*";
+        final String urlPattern = "/" + StringUtil.strip(this.rootContextPath, "/") + "/*";
         b.addUrlPatterns(urlPattern);
         b.setOrder(FilterRegistrationBean.HIGHEST_PRECEDENCE);
         return b;

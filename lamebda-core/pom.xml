@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.ethlo.lamebda</groupId>
         <artifactId>lamebda</artifactId>
-        <version>0.5.4-SNAPSHOT</version>
+        <version>0.6.0-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -16,18 +16,6 @@
             <groupId>com.ethlo.time</groupId>
             <artifactId>itu</artifactId>
             <version>1.2</version>
-        </dependency>
-        <!--
-        <dependency>
-            <groupId>io.pebbletemplates</groupId>
-            <artifactId>pebble</artifactId>
-            <version>3.0.7</version>
-        </dependency>
-        -->
-        <dependency>
-            <groupId>com.mitchellbosecke</groupId>
-            <artifactId>pebble</artifactId>
-            <version>1.5.2</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -40,11 +28,6 @@
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-all</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openapitools</groupId>
-            <artifactId>openapi-generator</artifactId>
-            <version>3.3.4</version>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>

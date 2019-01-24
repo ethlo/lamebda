@@ -31,11 +31,11 @@ import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.SimpleServerFunction;
-import com.ethlo.lamebda.template.Renderer;
 
 /**
  * Simple single templated resource function that will attempt to load the file first, then the classpath resource if not found
  */
+/*
 public class TemplatedResourceFunction extends SimpleServerFunction implements BuiltInServerFunction
 {
     private final Renderer renderer;
@@ -70,3 +70,4 @@ public class TemplatedResourceFunction extends SimpleServerFunction implements B
         response.write(render(tplName, data));
     }
 }
+*/

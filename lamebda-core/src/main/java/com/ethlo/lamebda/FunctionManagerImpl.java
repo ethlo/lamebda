@@ -21,12 +21,10 @@ import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
-import com.ethlo.lamebda.functions.TemplatedResourceFunction;
+import com.ethlo.lamebda.generator.ExecModelGenerator;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
-import com.ethlo.lamebda.oas.ApiGenerator;
-import com.ethlo.lamebda.oas.ModelGenerator;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
@@ -150,8 +148,9 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void createTemplatedResource(String name, String urlPath)
     {
-        final TemplatedResourceFunction func = withMinimalContext(new TemplatedResourceFunction(urlPath, projectConfiguration, name + ".html", HttpMimeType.HTML));
-        addFunction(Paths.get(name), func);
+        // TODO: Add server function of API DOC
+        //final TemplatedResourceFunction func = withMinimalContext(new TemplatedResourceFunction(urlPath, projectConfiguration, name + ".html", HttpMimeType.HTML));
+        //addFunction(Paths.get(name), func);
     }
 
     private void load(final LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
@@ -162,25 +161,16 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void generateModels(Path specificationFile) throws IOException
     {
-        final URL classPathEntry = new ModelGenerator().generateModels(specificationFile);
+        final Path modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models");
+        final URL classPathEntry = ExecModelGenerator.generateModels(specificationFile, modelPath);
         groovyClassLoader.addURL(classPathEntry);
         logger.info("Adding model classpath {}", classPathEntry);
-
     }
 
     private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration, Path specificationFile) throws IOException
     {
         final Path targetPath = Files.createTempDirectory("oas-tmp");
-
-        final Path candidate = projectConfiguration.getPath().resolve("templates").resolve("api-doc");
-        final Path tplPath = Files.exists(candidate) ? candidate : null;
-        final ApiGenerator gen = ApiGenerator.builder()
-                .generatorName(projectConfiguration.getApiDocGenerator())
-                .specPath(specificationFile)
-                .targetPath(targetPath)
-                .templatesPath(tplPath)
-                .build();
-        gen.generateApiDocumentation();
+        ExecModelGenerator.generateApiDoc(specificationFile, targetPath);
 
         addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile))));
 

@@ -26,8 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.ethlo.lamebda.HttpMimeType;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
@@ -37,6 +35,7 @@ import com.ethlo.lamebda.SimpleServerFunction;
 import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.util.FileNameUtil;
 import com.ethlo.lamebda.util.IoUtil;
+import com.ethlo.lamebda.util.StringUtil;
 
 public class DirectoryResourceFunction extends SimpleServerFunction implements BuiltInServerFunction
 {
@@ -45,14 +44,14 @@ public class DirectoryResourceFunction extends SimpleServerFunction implements B
 
     public DirectoryResourceFunction(final String prefix, final Path basePath)
     {
-        super(StringUtils.stripEnd(prefix, "/") + "/**");
+        super(StringUtil.stripEnd(prefix, "/") + "/**");
         this.basePath = basePath.toAbsolutePath();
     }
 
     @Override
     public void init(final ProjectConfiguration projectConfiguration)
     {
-        basePattern = Paths.get("/" + projectConfiguration.getContextPath() + "/" + StringUtils.strip(pattern, "*/")).normalize().toString();
+        basePattern = Paths.get("/" + projectConfiguration.getContextPath() + "/" + StringUtil.strip(pattern, "*/")).normalize().toString();
     }
 
     @Override

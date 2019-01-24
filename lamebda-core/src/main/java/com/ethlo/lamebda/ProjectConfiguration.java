@@ -26,10 +26,11 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.SecureRandom;
 import java.util.Properties;
+import java.util.Random;
 import java.util.UUID;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -281,7 +282,7 @@ public class ProjectConfiguration
                 String adminPassword = p.getProperty("admin.credentials.password");
                 if (adminPassword == null)
                 {
-                    adminPassword = RandomStringUtils.randomAlphanumeric(12);
+                    adminPassword = generateRandomString(new SecureRandom(), 12);
                     logger.info("Using generated admin password: {}. Please set it using 'admin.credentials.password=' in project.properties", adminPassword);
                 }
                 adminCredentials = new UsernamePasswordCredentials(adminUsername, adminPassword);
@@ -291,6 +292,16 @@ public class ProjectConfiguration
             }
             return this;
         }
+    }
+
+    private static String generateRandomString(Random random, int length)
+    {
+        return random.ints(48, 122)
+                .filter(i -> (i < 57 || i > 65) && (i < 90 || i > 97))
+                .mapToObj(i -> (char) i)
+                .limit(length)
+                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+                .toString();
     }
 
     @Override
