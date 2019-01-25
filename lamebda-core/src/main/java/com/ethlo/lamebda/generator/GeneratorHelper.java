@@ -29,6 +29,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.ethlo.lamebda.util.IoUtil;
+import sun.nio.ch.IOUtil;
+
 public class GeneratorHelper extends BaseExecHelper
 {
     public GeneratorHelper(final String javaCmd, final Path jarPath)
@@ -40,7 +43,7 @@ public class GeneratorHelper extends BaseExecHelper
     {
         final List<String> cmd = new ArrayList<>(Arrays.asList("generate",
                 "-i",  specificationFile.toAbsolutePath().toString(), "-g",  "jaxrs-spec",
-                "-o", target.toAbsolutePath().toString(), "-Dmodel",  "-DdateLibrary=java8",
+                "-o", target.toAbsolutePath().toString(), "-Dmodels",  "-DdateLibrary=java8",
                 "--model-package=spec", "-DuseSwaggerAnnotations=false"));
 
         if (tplOverride != null)
@@ -50,7 +53,10 @@ public class GeneratorHelper extends BaseExecHelper
         }
 
         doExec(cmd.toArray(new String[cmd.size()]));
-        return target.toUri().toURL();
+
+        final Path modelDir = target.resolve("src/gen/java");
+        IoUtil.changeExtension(modelDir, "java", "groovy");
+        return modelDir.toUri().toURL();
     }
 
     public void generateApiDoc(final Path specificationFile, final Path target, Path tplOverride) throws IOException

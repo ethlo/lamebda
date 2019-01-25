@@ -58,13 +58,25 @@ public class TemplatedResourceFunction extends SimpleServerFunction implements B
         this.tplName = tplName;
         this.contentType = contentType;
         this.templateDirectory = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
-        this.renderer = new RendererExec(projectConfiguration.getJavaCmd(), projectConfiguration.getPath().getParent().resolve("lamebda-renderer.jar"), templateDirectory);
+        final Path rendererJar = projectConfiguration.getPath().getParent().resolve("lamebda-renderer.jar");
+        if (Files.exists(rendererJar))
+        {
+            this.renderer = new RendererExec(projectConfiguration.getJavaCmd(), rendererJar, templateDirectory);
+        }
+        else
+        {
+            this.renderer = null;
+        }
     }
 
     private byte[] render(String tplName, Map<String, Serializable> data) throws IOException
     {
+        if (renderer == null)
+        {
+            return "No renderer available for template".getBytes(StandardCharsets.UTF_8);
+        }
         final Path tplFile = templateDirectory.resolve(tplName);
-        if (! Files.exists(tplFile))
+        if (!Files.exists(tplFile))
         {
             return ("No " + tplName + " page found in " + templateDirectory.toString()).getBytes(StandardCharsets.UTF_8);
         }

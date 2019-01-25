@@ -23,6 +23,9 @@ package com.ethlo.lamebda;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,6 +40,10 @@ import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 
 public class FunctionLoaderTest extends BaseTest
 {
+    public FunctionLoaderTest() throws IOException
+    {
+    }
+
     @Test
     public void testLoadOnCreate() throws Exception
     {

@@ -100,6 +100,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
                 case DELETED:
                     unload(n.getPath());
+                    break;
 
                 default:
                     throw new IllegalArgumentException("Unhandled event type: " + n.getChangeType());

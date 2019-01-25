@@ -22,6 +22,8 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+import java.io.IOException;
+
 import org.junit.Test;
 
 import com.ethlo.lamebda.test.MockHttpRequest;
@@ -29,6 +31,10 @@ import com.ethlo.lamebda.test.MockHttpResponse;
 
 public class ServerFunctionTest extends BaseTest
 {
+    public ServerFunctionTest() throws IOException
+    {
+    }
+
     @Test
     public void testServingStaticResource() throws Exception
     {

@@ -21,7 +21,9 @@ package com.ethlo.lamebda.generator;
  */
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -29,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.StringUtil;
 
 public abstract class BaseExecHelper
@@ -39,7 +42,9 @@ public abstract class BaseExecHelper
 
     public BaseExecHelper(final String javaCmd, final Path jarPath)
     {
+        Assert.isTrue(Files.exists(Paths.get(javaCmd)), "Java command " + javaCmd + " does not exist");
         this.javaCmd = javaCmd;
+        Assert.isTrue(Files.exists(jarPath), "JAR " + jarPath + " does not exist");
         this.jarPath = jarPath;
     }
 
