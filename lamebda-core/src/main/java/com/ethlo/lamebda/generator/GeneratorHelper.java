@@ -24,39 +24,46 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class GeneratorHelper
+public class GeneratorHelper extends BaseExecHelper
 {
-    private final Path generatorCliJarPath;
-
-    public GeneratorHelper(final Path generatorCliJarPath)
+    public GeneratorHelper(final String javaCmd, final Path jarPath)
     {
-        this.generatorCliJarPath = generatorCliJarPath;
+        super(javaCmd, jarPath);
     }
 
-    public URL generateModels(final Path specificationFile, final Path target) throws IOException
+    public URL generateModels(final Path specificationFile, final Path target, Path tplOverride) throws IOException
     {
-        Process process = new ProcessBuilder(System.getProperty("java.home") + "/bin/java", "-jar", generatorCliJarPath.toAbsolutePath().toString(), "generate",  "-i",  specificationFile.toAbsolutePath().toString(), "-g",  "jaxrs-spec",  "-o", target.toAbsolutePath().toString(), "-Dmodel",  "-DdateLibrary=java8",  "--model-package=spec", "-DuseSwaggerAnnotations=false")
-                .inheritIO()
-                .start();
-        try
+        final List<String> cmd = new ArrayList<>(Arrays.asList("generate",
+                "-i",  specificationFile.toAbsolutePath().toString(), "-g",  "jaxrs-spec",
+                "-o", target.toAbsolutePath().toString(), "-Dmodel",  "-DdateLibrary=java8",
+                "--model-package=spec", "-DuseSwaggerAnnotations=false"));
+
+        if (tplOverride != null)
         {
-            if (! process.waitFor(30_000, TimeUnit.MILLISECONDS))
-            {
-                throw new IOException("Execution failed");
-            }
-        }
-        catch (InterruptedException e)
-        {
-            e.notifyAll();
+            cmd.add("-t");
+            cmd.add(tplOverride.toAbsolutePath().toString());
         }
 
+        doExec(cmd.toArray(new String[cmd.size()]));
         return target.toUri().toURL();
     }
 
-    public void generateApiDoc(final Path specificationFile, final Path target)
+    public void generateApiDoc(final Path specificationFile, final Path target, Path tplOverride) throws IOException
     {
+        final List<String> cmd = new ArrayList<>(Arrays.asList("generate",
+                "-i",  specificationFile.toAbsolutePath().toString(), "-g",  "html",
+                "-o", target.toAbsolutePath().toString()));
+        if (tplOverride != null)
+        {
+            cmd.add("-t");
+            cmd.add(tplOverride.toAbsolutePath().toString());
+        }
 
+        doExec(cmd.toArray(new String[cmd.size()]));
     }
 }

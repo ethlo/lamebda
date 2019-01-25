@@ -21,9 +21,13 @@ package com.ethlo.lamebda.functions;
  */
 
 import java.io.IOException;
+import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -31,17 +35,21 @@ import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.SimpleServerFunction;
+import com.ethlo.lamebda.generator.RendererExec;
+import com.ethlo.lamebda.util.IoUtil;
 
 /**
- * Simple single templated resource function that will attempt to load the file first, then the classpath resource if not found
+ * Simple single templated resource function that will attempt to load the file first
  */
-/*
 public class TemplatedResourceFunction extends SimpleServerFunction implements BuiltInServerFunction
 {
-    private final Renderer renderer;
+    private final RendererExec renderer;
     private final ProjectConfiguration projectConfiguration;
+    private final Path templateDirectory;
     private final String tplName;
     private final String contentType;
+    private byte[] cache = null;
+    private long lastModified = 0;
 
     public TemplatedResourceFunction(String urlPath, ProjectConfiguration projectConfiguration, String tplName, String contentType)
     {
@@ -49,25 +57,60 @@ public class TemplatedResourceFunction extends SimpleServerFunction implements B
         this.projectConfiguration = projectConfiguration;
         this.tplName = tplName;
         this.contentType = contentType;
-        final Path tplPath = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
-        this.renderer = new Renderer(tplPath);
-
+        this.templateDirectory = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
+        this.renderer = new RendererExec(projectConfiguration.getJavaCmd(), projectConfiguration.getPath().getParent().resolve("lamebda-renderer.jar"), templateDirectory);
     }
 
-    private byte[] render(String tplName, Map<String, Object> data)
+    private byte[] render(String tplName, Map<String, Serializable> data) throws IOException
     {
-        return renderer.render(tplName, data).getBytes(StandardCharsets.UTF_8);
+        final Path tplFile = templateDirectory.resolve(tplName);
+        if (! Files.exists(tplFile))
+        {
+            return ("No " + tplName + " page found in " + templateDirectory.toString()).getBytes(StandardCharsets.UTF_8);
+        }
+        return doRender(tplName, data, tplFile);
+    }
+
+    private void extractTpl(String name) throws IOException
+    {
+        final Path builtInTplFile = templateDirectory.resolve("." + name);
+        IoUtil.copyClasspathResource("/lamebda/templates/" + tplName, builtInTplFile);
+    }
+
+    private byte[] doRender(final String tplName, final Map<String, Serializable> data, final Path tplFile) throws IOException
+    {
+        final FileTime lastModified = Files.getLastModifiedTime(tplFile);
+        if (cache == null || cache.length == 0 || lastModified.toMillis() > this.lastModified)
+        {
+            final Path tmpFile = Files.createTempFile("tpl_" + tplName, ".rendered");
+            try
+            {
+                renderer.render(tplName, data, tmpFile);
+                cache = IoUtil.toByteArray(tmpFile);
+                this.lastModified = lastModified.toMillis();
+            } finally
+            {
+                Files.deleteIfExists(tmpFile);
+            }
+        }
+        return cache;
     }
 
     @Override
-    public void doHandle(HttpRequest request, HttpResponse response) throws IOException
+    public void doHandle(HttpRequest request, HttpResponse response)
     {
         final String parentContext = request.parentContext();
-        final Map<String, Object> data = new TreeMap<>();
+        final Map<String, Serializable> data = new TreeMap<>();
         data.put("projectConfig", projectConfiguration);
         data.put("baseUrl", Paths.get(parentContext, projectConfiguration.getRootContextPath(), projectConfiguration.getContextPath()).normalize().toString() + "/");
         response.setContentType(contentType);
-        response.write(render(tplName, data));
+        try
+        {
+            response.write(render(tplName, data));
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
     }
 }
-*/

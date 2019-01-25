@@ -21,7 +21,7 @@ package com.ethlo.lamebda.template;
  */
 
 import java.io.IOException;
-import java.io.Reader;
+import java.io.Serializable;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
@@ -29,59 +29,45 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mitchellbosecke.pebble.PebbleEngine;
-import com.mitchellbosecke.pebble.error.LoaderException;
 import com.mitchellbosecke.pebble.error.PebbleException;
-import com.mitchellbosecke.pebble.loader.ClasspathLoader;
 import com.mitchellbosecke.pebble.loader.DelegatingLoader;
 import com.mitchellbosecke.pebble.loader.FileLoader;
 import com.mitchellbosecke.pebble.loader.Loader;
 import com.mitchellbosecke.pebble.template.PebbleTemplate;
+import jdk.nashorn.internal.runtime.logging.DebugLogger;
 
 public class Renderer
 {
+    private static final Logger logger = LoggerFactory.getLogger(Renderer.class);
+
     private PebbleEngine engine;
 
     public Renderer(Path baseTplPath)
     {
-        final ClasspathLoader classpathLoader = new ClasspathLoader();
-        classpathLoader.setPrefix("lamebda/templates/");
+        //classpathLoader.setPrefix("lamebda/templates/");
 
         final FileLoader fileLoader = new FileLoader();
         fileLoader.setPrefix(baseTplPath.toAbsolutePath().toString());
 
-        engine = new PebbleEngine();
-        engine.setTemplateCache(null);
-        final List<Loader> loaders = Arrays.asList(fileLoader, classpathLoader);
-        engine.setLoader(new DelegatingLoader(loaders)
-        {
-            @Override
-            public Reader getReader(final String templateName) throws LoaderException
-            {
-                for (Loader loader : loaders)
-                {
-                    try
-                    {
-                        return loader.getReader(templateName);
-                    }
-                    catch (LoaderException e)
-                    {
-                        // do nothing
-                    }
-                }
-                throw new LoaderException(null, "Could not find template \"" + templateName + "\"");
-            }
-        });
+        final List<Loader<?>> loaders = Arrays.asList(fileLoader); //, classpathLoader);
+
+        engine = new PebbleEngine.Builder().templateCache(null).loader(new DelegatingLoader(loaders)).build();
     }
 
-    public String render(String templateName, Map<String, Object> context)
+    public String render(String templateName, Map<String, Serializable> context)
     {
+        logger.info("Rendering template {}: {}", templateName, context);
         final Writer writer = new StringWriter();
         try
         {
             final PebbleTemplate compiledTemplate = engine.getTemplate(templateName);
-            compiledTemplate.evaluate(writer, context);
+            compiledTemplate.evaluate(writer, wrap(context));
             return writer.toString();
         }
         catch (IOException e)
@@ -92,5 +78,12 @@ public class Renderer
         {
             throw new UncheckedPebbleException(e);
         }
+    }
+
+    private Map<String, Object> wrap(Map<String, Serializable> in)
+    {
+        final Map<String, Object> retVal = new TreeMap<>();
+        in.forEach(retVal::put);
+        return retVal;
     }
 }

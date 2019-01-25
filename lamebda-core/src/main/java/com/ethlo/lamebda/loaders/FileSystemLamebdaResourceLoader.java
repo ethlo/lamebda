@@ -43,9 +43,6 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
 import com.ethlo.lamebda.ApiSpecificationModificationNotice;
 import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.FunctionModificationNotice;
@@ -105,9 +102,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor) throws IOException
     {
-        // TODO: This seems to be unstable, so leaving it off for now
-        //configureLogback(projectConfiguration.getPath());
-
         this.projectConfiguration = projectConfiguration;
         this.functionSourcePreProcessor = Assert.notNull(functionSourcePreProcessor, "functionSourcePreProcesor cannot be null");
         this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
@@ -132,32 +126,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
         listenForChanges(projectPath, scriptPath, specificationPath, libPath);
     }
-
-    private static void configureLogback(Path projectPath)
-    {
-        final Path logbackConfig = projectPath.resolve("logback.xml");
-        if (!Files.exists(logbackConfig))
-        {
-            return;
-        }
-
-        final LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-        final JoranConfigurator configurator = new JoranConfigurator();
-        configurator.setContext(context);
-        try
-        {
-            configurator.doConfigure(logbackConfig.toUri().toURL());
-        }
-        catch (JoranException exc)
-        {
-            throw new IllegalArgumentException("Unable to reconfigure logback using " + logbackConfig.toString() + "logback.xml file", exc);
-        }
-        catch (MalformedURLException exc)
-        {
-            throw new UncheckedIOException("Unable to reconfigure logback using " + logbackConfig.toString() + "logback.xml file", exc);
-        }
-    }
-
 
     @Override
     public void setFunctionChangeListener(Consumer<FunctionModificationNotice> l)

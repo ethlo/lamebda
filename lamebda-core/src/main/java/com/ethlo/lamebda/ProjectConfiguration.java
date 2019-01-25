@@ -20,26 +20,18 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.SecureRandom;
-import java.util.Properties;
-import java.util.Random;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.security.UsernamePasswordCredentials;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class ProjectConfiguration
+public class ProjectConfiguration implements Serializable
 {
     private static final Logger logger = LoggerFactory.getLogger(ProjectConfiguration.class);
 
@@ -51,18 +43,30 @@ public class ProjectConfiguration
 
     private boolean enableStaticResourceFunction;
     private String staticResourcesPrefix;
-    private Path staticResourceDirectory;
+    private String staticResourceDirectory;
 
     private boolean enableUrlProjectContextPrefix;
-    private Path path;
+    private String path;
     private String name;
-    private UsernamePasswordCredentials adminCredentials;
+    private transient UsernamePasswordCredentials adminCredentials;
     private String version;
 
     private String apiDocGenerator;
 
-    private ProjectConfiguration()
+    ProjectConfiguration(ProjectConfigurationBuilder b)
     {
+        rootContextPath = b.getRootContextPath();
+        path = b.getProjectPath();
+        staticResourcesPrefix = b.getStaticResourcesPrefix();
+        contextPath = b.getProjectContextPath();
+        staticResourceDirectory = b.getStaticResourceDirectory().toAbsolutePath().toString();
+        enableInfoFunction = b.isEnableInfoFunction();
+        enableStaticResourceFunction = b.isEnableStaticResourceFunction();
+        enableUrlProjectContextPrefix = b.isEnableUrlProjectContextPrefix();
+        name = b.getProjectName();
+        version = b.getProjectVersion();
+        adminCredentials = b.getAdminCredentials();
+        apiDocGenerator = b.getApiDocGenerator();
     }
 
     /**
@@ -99,13 +103,13 @@ public class ProjectConfiguration
     @JsonProperty("function.static.path")
     public Path getStaticResourceDirectory()
     {
-        return staticResourceDirectory.toAbsolutePath();
+        return Paths.get(staticResourceDirectory).toAbsolutePath();
     }
 
     @JsonIgnore
     public Path getPath()
     {
-        return path;
+        return Paths.get(path);
     }
 
     @JsonProperty("mapping.use-project-context-path")
@@ -153,155 +157,9 @@ public class ProjectConfiguration
         return this.adminCredentials;
     }
 
-    public static final class ProjectConfigurationBuilder
+    public String getJavaCmd()
     {
-        private UsernamePasswordCredentials adminCredentials;
-        private String rootContextPath;
-        private Path projectPath;
-
-        private String projectName;
-        private String projectContextPath;
-        private boolean enableInfoFunction;
-        private boolean enableStaticResourceFunction;
-        private boolean enableUrlProjectContextPrefix;
-
-        private String staticResourcesPrefix;
-        private Path staticResourceDirectory;
-        private String projectVersion;
-
-        private String apiDocGenerator;
-
-        private ProjectConfigurationBuilder(String rootContextPath, Path projectPath)
-        {
-            this.rootContextPath = rootContextPath;
-            this.projectPath = projectPath;
-
-            // Set defaults
-            this.apiDocGenerator = "html";
-
-            this.projectName = projectPath.getFileName().toString();
-            this.projectContextPath = projectPath.getFileName().toString();
-            this.enableInfoFunction = true;
-            this.enableStaticResourceFunction = true;
-            this.enableUrlProjectContextPrefix = true;
-            this.staticResourcesPrefix = "static";
-            this.staticResourceDirectory = projectPath.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY);
-            this.adminCredentials = new UsernamePasswordCredentials("admin", UUID.randomUUID().toString());
-        }
-
-        public ProjectConfigurationBuilder projectContextPath(String projectContextPath)
-        {
-            this.projectContextPath = projectContextPath;
-            return this;
-        }
-
-        public ProjectConfigurationBuilder enableInfoFunction(boolean enableInfoFunction)
-        {
-            this.enableInfoFunction = enableInfoFunction;
-            return this;
-        }
-
-        public ProjectConfigurationBuilder enableStaticResourceFunction(boolean enableStaticResourceFunction)
-        {
-            this.enableStaticResourceFunction = enableStaticResourceFunction;
-            return this;
-        }
-
-        public ProjectConfigurationBuilder enableUrlProjectContextPrefix(boolean enableUrlProjectContextPrefix)
-        {
-            this.enableUrlProjectContextPrefix = enableUrlProjectContextPrefix;
-            return this;
-        }
-
-        public ProjectConfigurationBuilder staticResourcesPrefix(String staticResourcesPrefix)
-        {
-            this.staticResourcesPrefix = staticResourcesPrefix;
-            return this;
-        }
-
-        public ProjectConfigurationBuilder staticResourceDirectory(Path staticResourceDirectory)
-        {
-            this.staticResourceDirectory = staticResourceDirectory;
-            return this;
-        }
-
-        public ProjectConfigurationBuilder projectName(String projectName)
-        {
-            this.projectName = projectName;
-            return this;
-        }
-
-        public ProjectConfiguration build()
-        {
-            ProjectConfiguration projectConfiguration = new ProjectConfiguration();
-            projectConfiguration.rootContextPath = this.rootContextPath;
-            projectConfiguration.path = this.projectPath;
-            projectConfiguration.staticResourcesPrefix = this.staticResourcesPrefix;
-            projectConfiguration.contextPath = this.projectContextPath;
-            projectConfiguration.staticResourceDirectory = this.staticResourceDirectory.toAbsolutePath();
-            projectConfiguration.enableInfoFunction = this.enableInfoFunction;
-            projectConfiguration.enableStaticResourceFunction = this.enableStaticResourceFunction;
-            projectConfiguration.enableUrlProjectContextPrefix = this.enableUrlProjectContextPrefix;
-            projectConfiguration.name = this.projectName;
-            projectConfiguration.version = this.projectVersion;
-            projectConfiguration.adminCredentials = this.adminCredentials;
-            projectConfiguration.apiDocGenerator = this.apiDocGenerator;
-            return projectConfiguration;
-        }
-
-        public ProjectConfigurationBuilder loadIfExists()
-        {
-            final Path projectConfigFile = projectPath.resolve(FileSystemLamebdaResourceLoader.PROJECT_FILENAME);
-            if (Files.exists(projectConfigFile))
-            {
-                final Properties p = new Properties();
-                try (InputStream in = Files.newInputStream(projectConfigFile))
-                {
-                    p.load(in);
-                }
-                catch (IOException exc)
-                {
-                    throw new UncheckedIOException(exc);
-                }
-
-                projectName = p.getProperty("project.name", projectName);
-                projectVersion = p.getProperty("project.version");
-
-                // URL mapping
-                projectContextPath = p.getProperty("mapping.project-context-path", projectContextPath);
-                enableUrlProjectContextPrefix = Boolean.parseBoolean(p.getProperty("mapping.use-project-context-path", Boolean.toString(enableUrlProjectContextPrefix)));
-
-                // Static resource function
-                enableStaticResourceFunction = Boolean.parseBoolean(p.getProperty("functions.static.enabled", Boolean.toString(enableStaticResourceFunction)));
-                staticResourcesPrefix = p.getProperty("functions.static.prefix", staticResourcesPrefix);
-                staticResourceDirectory = Paths.get(p.getProperty("function.static.path", staticResourceDirectory.toString()));
-
-                apiDocGenerator = p.getProperty("specification.api.doc.generator", apiDocGenerator);
-
-                final String adminUsername = p.getProperty("admin.credentials.username", "admin");
-                String adminPassword = p.getProperty("admin.credentials.password");
-                if (adminPassword == null)
-                {
-                    adminPassword = generateRandomString(new SecureRandom(), 12);
-                    logger.info("Using generated admin password: {}. Please set it using 'admin.credentials.password=' in project.properties", adminPassword);
-                }
-                adminCredentials = new UsernamePasswordCredentials(adminUsername, adminPassword);
-
-                // Info function
-                enableInfoFunction = Boolean.parseBoolean(p.getProperty("functions.info.enabled", Boolean.toString(enableInfoFunction)));
-            }
-            return this;
-        }
-    }
-
-    private static String generateRandomString(Random random, int length)
-    {
-        return random.ints(48, 122)
-                .filter(i -> (i < 57 || i > 65) && (i < 90 || i > 97))
-                .mapToObj(i -> (char) i)
-                .limit(length)
-                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
-                .toString();
+        return System.getProperty("java.home") + "/bin/java";
     }
 
     @Override
@@ -334,4 +192,6 @@ public class ProjectConfiguration
                 "\nstaticResourceDirectory=" + staticResourceDirectory
                 + "";
     }
+
+
 }

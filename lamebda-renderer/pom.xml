@@ -7,28 +7,27 @@
         <groupId>com.ethlo.lamebda</groupId>
         <version>0.6.0-SNAPSHOT</version>
     </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>lamebda-renderer</artifactId>
     <dependencies>
         <dependency>
             <groupId>com.ethlo.lamebda</groupId>
-            <artifactId>lamebda-spring-web-starter</artifactId>
+            <artifactId>lamebda-core</artifactId>
             <version>0.6.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
+            <groupId>io.pebbletemplates</groupId>
+            <artifactId>pebble</artifactId>
+            <version>3.0.7</version>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>3.9.0</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
@@ -47,6 +46,4 @@
             </plugin>
         </plugins>
     </build>
-    <modelVersion>4.0.0</modelVersion>
-    <artifactId>lamebda-server</artifactId>
 </project>

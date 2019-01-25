@@ -21,6 +21,7 @@ import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
+import com.ethlo.lamebda.functions.TemplatedResourceFunction;
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
@@ -66,8 +67,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     public FunctionManagerImpl(LamebdaResourceLoader lamebdaResourceLoader)
     {
         this.projectConfiguration = lamebdaResourceLoader.getProjectConfiguration();
-
-        this.generatorHelper = new GeneratorHelper(projectConfiguration.getPath().getParent().resolve("openapi-generator-cli.jar"));
+        final Path generatorJarPath = projectConfiguration.getPath().getParent().resolve("openapi-generator-cli.jar");
+        this.generatorHelper = new GeneratorHelper(projectConfiguration.getJavaCmd(), generatorJarPath);
 
         logger.info("Loading project: {}\n{}", projectConfiguration.getName(), projectConfiguration.toPrettyString());
         this.lamebdaResourceLoader = lamebdaResourceLoader;
@@ -152,9 +153,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void createTemplatedResource(String name, String urlPath)
     {
-        // TODO: Add server function of API DOC
-        //final TemplatedResourceFunction func = withMinimalContext(new TemplatedResourceFunction(urlPath, projectConfiguration, name + ".html", HttpMimeType.HTML));
-        //addFunction(Paths.get(name), func);
+        final TemplatedResourceFunction func = withMinimalContext(new TemplatedResourceFunction(urlPath, projectConfiguration, name + ".html", HttpMimeType.HTML));
+        addFunction(Paths.get(name), func);
     }
 
     private void load(final LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
@@ -166,7 +166,10 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     private void generateModels(Path specificationFile) throws IOException
     {
         final Path modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models");
-        final URL classPathEntry = generatorHelper.generateModels(specificationFile, modelPath);
+        final Path tmpTplDir = Files.createTempDirectory("model-gen");
+        IoUtil.copyClasspathResource("/openapi-generator/templates/jaxrs/spec/beanValidationCore.mustache", tmpTplDir.resolve("beanValidationCore.mustache"));
+        final URL classPathEntry = generatorHelper.generateModels(specificationFile, modelPath, tmpTplDir);
+        IoUtil.deleteDirectory(tmpTplDir);
         groovyClassLoader.addURL(classPathEntry);
         logger.info("Adding model classpath {}", classPathEntry);
     }
@@ -174,7 +177,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration, Path specificationFile) throws IOException
     {
         final Path targetPath = Files.createTempDirectory("oas-tmp");
-        generatorHelper.generateApiDoc(specificationFile, targetPath);
+        final Path tplDir = projectConfiguration.getPath().resolve("templates").resolve("api-doc");
+        generatorHelper.generateApiDoc(specificationFile, targetPath, Files.exists(tplDir) ? tplDir : null);
 
         addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile))));
 
