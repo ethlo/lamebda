@@ -73,7 +73,7 @@ public class DirectoryResourceFunction extends SimpleServerFunction implements B
             if (Files.exists(indexFile))
             {
                 response.setContentType(HttpMimeType.HTML);
-                response.write(IoUtil.toByteArray(indexFile));
+                response.write(IoUtil.toByteArray(indexFile).get());
                 return;
             }
             response.error(new ErrorResponse(HttpStatus.FORBIDDEN, "Directory listing denied"));
@@ -86,7 +86,7 @@ public class DirectoryResourceFunction extends SimpleServerFunction implements B
             {
                 final String ext = FileNameUtil.getExtension(requestedPath.getFileName().toString());
                 response.setContentType(HttpMimeType.fromExtension(ext));
-                response.write(IoUtil.toByteArray(requestedPath));
+                response.write(IoUtil.toByteArray(requestedPath).get());
             }
             else
             {

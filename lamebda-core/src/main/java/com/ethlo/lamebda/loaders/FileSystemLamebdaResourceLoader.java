@@ -70,7 +70,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private static final String DEFAULT_CONFIG_FILENAME = "config.properties";
 
     private static final String SCRIPT_EXTENSION = "groovy";
-    private static final String JAR_EXTENSION = "jar";
+    public static final String JAR_EXTENSION = "jar";
 
     public static final String SCRIPT_DIRECTORY = "scripts";
     public static final String STATIC_DIRECTORY = "static";
@@ -389,15 +389,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         {
             return Collections.emptyList();
         }
-
-        try
-        {
-            return Files.list(this.libPath).filter(p -> FileNameUtil.getExtension(p.getFileName().toString()).equals(JAR_EXTENSION)).map(IoUtil::toURL).collect(Collectors.toList());
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
+        return IoUtil.toClassPathList(libPath);
     }
 
     @Override

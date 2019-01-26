@@ -21,54 +21,22 @@ package com.ethlo.lamebda.generator;
  */
 
 import java.io.IOException;
-import java.net.URL;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import com.ethlo.lamebda.util.IoUtil;
 
 public class GeneratorHelper extends BaseExecHelper
 {
-    public GeneratorHelper(final String javaCmd, final Path jarPath)
+    public GeneratorHelper(final String javaCmd, final Path jarDirectory)
     {
-        super(javaCmd, jarPath);
+        super(javaCmd, jarDirectory);
     }
 
-    public URL generateModels(final Path specificationFile, final Path target, Path tplOverride) throws IOException
+    public void generate(Path dir, String... args) throws IOException
     {
-        final List<String> cmd = new ArrayList<>(Arrays.asList("generate",
-                "-i", specificationFile.toAbsolutePath().toString(), "-g", "jaxrs-spec",
-                "-o", target.toAbsolutePath().toString(), "-Dmodels", "-DdateLibrary=java8",
-                "--model-package=spec", "-DuseSwaggerAnnotations=false"
-        ));
-
-        if (tplOverride != null)
+        final int exitCode = doExec(dir, args);
+        if (exitCode != 0)
         {
-            cmd.add("-t");
-            cmd.add(tplOverride.toAbsolutePath().toString());
+            throw new UncheckedIOException(new IOException("Generator returrned exit code " + exitCode));
         }
-
-        doExec(cmd.toArray(new String[cmd.size()]));
-
-        final Path modelDir = target.resolve("src/gen/java");
-        IoUtil.changeExtension(modelDir, "java", "groovy");
-        return modelDir.toUri().toURL();
-    }
-
-    public void generateApiDoc(final Path specificationFile, final Path target, Path tplOverride) throws IOException
-    {
-        final List<String> cmd = new ArrayList<>(Arrays.asList("generate",
-                "-i", specificationFile.toAbsolutePath().toString(), "-g", "html",
-                "-o", target.toAbsolutePath().toString()
-        ));
-        if (tplOverride != null)
-        {
-            cmd.add("-t");
-            cmd.add(tplOverride.toAbsolutePath().toString());
-        }
-
-        doExec(cmd.toArray(new String[cmd.size()]));
     }
 }

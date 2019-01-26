@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.codehaus.groovy.control.CompilationFailedException;
@@ -21,7 +22,6 @@ import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
-import com.ethlo.lamebda.functions.TemplatedResourceFunction;
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
@@ -59,16 +59,21 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     private Map<Path, ServerFunction> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
     private final FunctionMetricsService functionMetricsService = FunctionMetricsService.getInstance();
-    private final String statusBasePath = "/status";
-    private final String specificationBasePath = "/specification";
 
     private final GeneratorHelper generatorHelper;
 
     public FunctionManagerImpl(LamebdaResourceLoader lamebdaResourceLoader)
     {
         this.projectConfiguration = lamebdaResourceLoader.getProjectConfiguration();
-        final Path generatorJarPath = projectConfiguration.getPath().getParent().resolve("openapi-generator-cli.jar");
-        this.generatorHelper = new GeneratorHelper(projectConfiguration.getJavaCmd(), generatorJarPath);
+        final Path jarDir = projectConfiguration.getPath().getParent().resolve(".generator");
+        if (Files.exists(jarDir))
+        {
+            this.generatorHelper = new GeneratorHelper(projectConfiguration.getJavaCmd(), jarDir);
+        }
+        else
+        {
+            generatorHelper = null;
+        }
 
         logger.info("Loading project: {}\n{}", projectConfiguration.getName(), projectConfiguration.toPrettyString());
         this.lamebdaResourceLoader = lamebdaResourceLoader;
@@ -130,7 +135,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         initialize();
     }
 
-    private void addBuiltinFunctions() throws IOException
+    private void addBuiltinFunctions()
     {
         if (projectConfiguration.enableStaticResourceFunction())
         {
@@ -142,20 +147,15 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             final Path lamebdaTplDir = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
 
             // Project welcome page
-            createTemplatedResource("welcome", "/");
+            //createTemplatedResource("welcome", "/");
 
             // JSON data
+            final String statusBasePath = "/status";
             addFunction(Paths.get("status-info"), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService)));
 
             // Page for viewing status
-            createTemplatedResource("status", "/status/");
+            //createTemplatedResource("status", "/status/");
         }
-    }
-
-    private void createTemplatedResource(String name, String urlPath)
-    {
-        final TemplatedResourceFunction func = withMinimalContext(new TemplatedResourceFunction(urlPath, projectConfiguration, name + ".html", HttpMimeType.HTML));
-        addFunction(Paths.get(name), func);
     }
 
     private void load(final LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
@@ -164,26 +164,39 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         addFunction(sourcePath, loaded);
     }
 
-    private void generateModels(Path specificationFile) throws IOException
+    private void generateModels() throws IOException
     {
-        final Path modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models");
-        final Path tmpTplDir = Files.createTempDirectory("model-gen");
-        IoUtil.copyClasspathResource("/openapi-generator/templates/jaxrs/spec/beanValidationCore.mustache", tmpTplDir.resolve("beanValidationCore.mustache"));
-        final URL classPathEntry = generatorHelper.generateModels(specificationFile, modelPath, tmpTplDir);
-        IoUtil.deleteDirectory(tmpTplDir);
-        groovyClassLoader.addURL(classPathEntry);
-        logger.info("Adding model classpath {}", classPathEntry);
+        final URL modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toUri().toURL();
+
+        if (generatorHelper != null)
+        {
+            runRegen(projectConfiguration, ".models.gen");
+        }
+        groovyClassLoader.addURL(modelPath);
+        logger.info("Adding model classpath {}", modelPath);
     }
 
     private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration, Path specificationFile) throws IOException
     {
-        final Path targetPath = Files.createTempDirectory("oas-tmp");
-        final Path tplDir = projectConfiguration.getPath().resolve("templates").resolve("api-doc");
-        generatorHelper.generateApiDoc(specificationFile, targetPath, Files.exists(tplDir) ? tplDir : null);
+        addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleResourceFunction("/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile).get())));
 
-        addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleResourceFunction(specificationBasePath + "/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile))));
+        if (generatorHelper != null)
+        {
+            runRegen(projectConfiguration, ".apidoc.gen");
 
-        addFunction(Paths.get("api-human-readable"), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath)));
+            final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
+            final String specificationBasePath = "/specification";
+            addFunction(Paths.get("api-human-readable"), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath)));
+        }
+    }
+
+    private void runRegen(final ProjectConfiguration projectConfiguration, final String s) throws IOException
+    {
+        final Optional<String> genFile = IoUtil.toString(projectConfiguration.getPath().resolve(s));
+        if (genFile.isPresent())
+        {
+            generatorHelper.generate(projectConfiguration.getPath(), genFile.get().split(" "));
+        }
     }
 
     private <T extends ServerFunction & FunctionContextAware> T withMinimalContext(final T function)
@@ -226,14 +239,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             }
         }
 
-        try
-        {
-            addBuiltinFunctions();
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
+        addBuiltinFunctions();
     }
 
     private void initialApiProcessing()
@@ -243,7 +249,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         {
             try
             {
-                generateModels(apiPath);
+                generateModels();
                 generateHumanReadableApiDoc(projectConfiguration, apiPath);
             }
             catch (IOException exc)

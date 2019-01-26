@@ -29,16 +29,21 @@ import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 
 public class IoUtil
 {
@@ -185,15 +190,44 @@ public class IoUtil
         return Optional.empty();
     }
 
-    public static byte[] toByteArray(final Path file)
+    public static Optional<byte[]> toByteArray(final Path file)
     {
         try
         {
-            return Files.readAllBytes(file);
+            return Optional.of(Files.readAllBytes(file));
+        }
+        catch (IOException e)
+        {
+            return Optional.empty();
+        }
+    }
+
+    public static void moveDirectory(final Path source, final Path target) throws IOException
+    {
+        Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+    }
+
+    public static List<URL> toClassPathList(final Path jarPath)
+    {
+        try
+        {
+            return Files.list(jarPath).filter(p -> FileNameUtil.getExtension(p.getFileName().toString()).equals(FileSystemLamebdaResourceLoader.JAR_EXTENSION)).map(IoUtil::toURL).collect(Collectors.toList());
         }
         catch (IOException e)
         {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    public static Optional<String> toString(final Path file)
+    {
+        try
+        {
+            return Optional.of(new String(Files.readAllBytes(file), StandardCharsets.UTF_8));
+        }
+        catch (IOException e)
+        {
+            return Optional.empty();
         }
     }
 }

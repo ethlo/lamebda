@@ -20,56 +20,59 @@ package com.ethlo.lamebda.generator;
  * #L%
  */
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.util.Assert;
+import com.ethlo.lamebda.util.IoUtil;
 import com.ethlo.lamebda.util.StringUtil;
 
 public abstract class BaseExecHelper
 {
     private final String javaCmd;
-    private final Path jarPath;
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final List<String> classPath;
 
     public BaseExecHelper(final String javaCmd, final Path jarPath)
     {
         Assert.isTrue(Files.exists(Paths.get(javaCmd)), "Java command " + javaCmd + " does not exist");
         this.javaCmd = javaCmd;
-        Assert.isTrue(Files.exists(jarPath), "JAR " + jarPath + " does not exist");
-        this.jarPath = jarPath;
+        Assert.isTrue(Files.exists(jarPath), "JAR directory" + jarPath + " does not exist");
+        this.classPath = IoUtil.toClassPathList(jarPath).stream().map(u -> u.getPath()).collect(Collectors.toList());
     }
 
-    protected void doExec(String... cmd) throws IOException
+    protected int doExec(Path dir, String... cmd) throws IOException
     {
-        this.doExec(cmd, Duration.ofSeconds(30));
+        return this.doExec(dir, cmd, Duration.ofSeconds(30));
     }
 
-    protected void doExec(String[] cmd, Duration timeout) throws IOException
+    protected int doExec(Path dir, String[] cmd, Duration timeout) throws IOException
     {
         Process process = null;
 
         try
         {
-            final String[] fullCmd = combine(new String[]{javaCmd, "-jar", jarPath.toAbsolutePath().toString()}, cmd);
+            final String[] fullCmd = combine(new String[]{javaCmd, "-cp",  StringUtil.join(classPath, File.pathSeparator), "org.openapitools.codegen.OpenAPIGenerator"}, cmd);
             logger.info("Running {}", StringUtil.join(Arrays.asList(fullCmd), " "));
             process = new ProcessBuilder(fullCmd)
                     .inheritIO()
+                    .directory(dir.toFile())
                     .start();
             try
             {
-                if (!process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS))
-                {
-                    throw new IOException("Execution failed");
-                }
+                process.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
+                return process.exitValue();
             }
             catch (InterruptedException e)
             {
@@ -82,6 +85,7 @@ public abstract class BaseExecHelper
                 process.destroy();
             }
         }
+        return process.exitValue();
     }
 
     private String[] combine(final String[] a, final String[] b)
