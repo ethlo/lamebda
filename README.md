@@ -8,7 +8,7 @@ Simple HTTP handler supporting dynamic loading of HTTP handler functions. Intend
 
 > It Really Whips The Lambda's Ass!
 
-### Example use-cases
+# Example use-cases
 
 * Ad-hoc API services and integration projects - Changes in the integration code can evolve freely from the core service
 * Transactional support across multiple API calls
@@ -16,46 +16,27 @@ Simple HTTP handler supporting dynamic loading of HTTP handler functions. Intend
 * API prototyping
 * A powerful support tool for extracting data or changing state (think JMX on steroids)
 
-### A simple example script
-```groovy
-class MyFunction extends SimpleServerFunction {
+# Getting started
 
-    @Autowired
-    private MyService service;
-
-    @Override
-    void get(HttpRequest request, HttpResponse response) {
-        response.json(HttpStatus.OK, [methods: request.methods, message:'Hello world'])
-    }
-
-    @Override
-    void post(HttpRequest request, HttpResponse response) {
-      def json = request.json()
-      def id = service.register(json.mypayload)
-      response.json(HttpStatus.CREATED, [id: id])
-    }
-}
-```
-
-This scripts responds to `GET` and `POST`, and the url mapping is based on the class name hyphenated, i.e. `/my-function`.
+## Integrating with your project
 
 ### Usage with Spring Boot and Spring MVC
 
+Add dependency to your `pom.xml`
 ```xml
 <dependency>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda-spring-web-starter</artifactId>
-    <version>0.5.1</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 
+Add the following properties to `application.properties`:
 ```properties
 lamebda.enabled=true
-lamebda.source.directory=/my/scripts
-lamebda.request-path=/mypath
+lamebda.source.directory=/var/lib/lamebda
+lamebda.request-path=/gateway
 ```
-
-Your function should be available under `/servlet/mypath/my-function`
 
 ### Invocation/delegation from a standard HttpServlet
 
@@ -63,7 +44,7 @@ Your function should be available under `/servlet/mypath/my-function`
 <dependency>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda-servlet</artifactId>
-    <version>0.5.1</version>
+    <version>0.6.0</version>
 </dependency>
 ```
 
@@ -71,7 +52,7 @@ Your function should be available under `/servlet/mypath/my-function`
 public class MyLamebdaServlet implements HttpServlet
 {
     String contextPath = "/servlet"
-    String sourceDir = "/my/scripts"
+    String sourceDir = "/var/lib/lamebda"
     final ClassResourceLoader classResourceLoader = new FileSystemClassResourceLoader(f->f, sourceDir);
     return new FunctionManager(classResourceLoader);
 
@@ -85,6 +66,33 @@ public class MyLamebdaServlet implements HttpServlet
 }
 ```
 
-Add the example script below to the `sourcDir` folder.
+## Extra preparations if you have an Open API Specification (OAS) file
 
-Your function should be available under `/servlet/my-function`
+1. Create a home directory for Lamebda. We will use `/var/lib/lamebda` as an example.
+
+2. Create `.generator` in the root folder, so we have `/var/lib/lamebda/.generator`. 
+
+3. Download [`openapi-generator-cli`](http://central.maven.org/maven2/org/openapitools/openapi-generator-cli/3.3.4/openapi-generator-cli-3.3.4.jar) and [`groovy-models`](https://repo1.maven.org/maven2/com/ethlo/openapi-tools/groovy-models/0.1/groovy-models-0.1.jar) and put it into the `.generator` folder.
+
+## Setup a project folder
+Create a project folder. This folder is a logical grouping for your API functions. We will go with the create `test` for now. We now have the folder `/var/lib/lamebda/test`.
+
+
+## Add your first script
+1. Create a folder for the functions in the test project: `/var/lib/lamebda/test/scripts`
+
+2. Add a simple script in the scripts folder:
+
+```groovy
+class MyFunction extends SimpleServerFunction {
+
+    @Override
+    void get(HttpRequest request, HttpResponse response) {
+        response.json(HttpStatus.OK, [methods: request.methods, message:'Hello world'])
+    }
+```
+
+## Access your first function
+
+Your function should be available under `/gateway/test/my-function`
+
