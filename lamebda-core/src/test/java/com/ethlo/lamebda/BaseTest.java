@@ -64,11 +64,19 @@ public abstract class BaseTest
 
     private void deployGenerator() throws IOException
     {
-        final Path target = rootPath.resolve("openapi-generator-cli.jar");
-        if (!Files.exists(target))
+        final Path targetDir = rootPath.resolve(".generator");
+        download("http://central.maven.org/maven2/org/openapitools/openapi-generator-cli/3.3.4/openapi-generator-cli-3.3.4.jar", targetDir);
+        download("https://repo1.maven.org/maven2/com/ethlo/openapi-tools/groovy-models/0.1/groovy-models-0.1.jar", targetDir);
+    }
+
+    private void download(String url, Path dir) throws IOException
+    {
+        Files.createDirectories(dir);
+        final String filename = Paths.get(url).getFileName().toString();
+        final Path target = dir.resolve(filename);
+        if (! Files.exists(target))
         {
-            final String url = "http://central.maven.org/maven2/org/openapitools/openapi-generator-cli/3.3.4/openapi-generator-cli-3.3.4.jar";
-            logger.info("Downloading {}", url);
+            logger.info("Downloading {} to {}", url, target);
             try (InputStream in = new URL(url).openStream())
             {
                 Files.copy(in, target);

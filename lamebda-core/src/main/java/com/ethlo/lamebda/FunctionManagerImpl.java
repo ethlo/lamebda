@@ -81,10 +81,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
         groovyClassLoader.addURL(lamebdaResourceLoader.getSharedClassPath());
 
-        lamebdaResourceLoader.getLibUrls().forEach(url -> {
-            logger.info("Adding lib classpath URL {}", url);
-            groovyClassLoader.addURL(url);
-        });
+        lamebdaResourceLoader.getLibUrls().forEach(groovyClassLoader::addURL);
 
         lamebdaResourceLoader.setFunctionChangeListener(n -> {
             switch (n.getChangeType())
@@ -128,7 +125,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         {
             if (n.getChangeType() == ChangeType.CREATED)
             {
-                groovyClassLoader.addURL(IoUtil.toURL(n.getPath()));
+                lamebdaResourceLoader.getLibUrls().forEach(groovyClassLoader::addURL);
             }
         });
 
@@ -190,13 +187,12 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         }
     }
 
-    private void runRegen(final ProjectConfiguration projectConfiguration, final String s) throws IOException
+    private void runRegen(final ProjectConfiguration projectConfiguration, final String generationCommandFile) throws IOException
     {
-        final Optional<String> genFile = IoUtil.toString(projectConfiguration.getPath().resolve(s));
-        if (genFile.isPresent())
-        {
-            generatorHelper.generate(projectConfiguration.getPath(), genFile.get().split(" "));
-        }
+        final Optional<String> genFile = IoUtil.toString(projectConfiguration.getPath().resolve(generationCommandFile));
+        final Optional<String> defaultGenFile = IoUtil.toString("/generation/" + generationCommandFile);
+        final String[] args = genFile.isPresent()  ? genFile.get().split(" ") : defaultGenFile.get().split(" ");
+        generatorHelper.generate(projectConfiguration.getPath(), args);
     }
 
     private <T extends ServerFunction & FunctionContextAware> T withMinimalContext(final T function)

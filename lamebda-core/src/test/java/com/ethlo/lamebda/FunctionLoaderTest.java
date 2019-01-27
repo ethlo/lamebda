@@ -52,8 +52,8 @@ public class FunctionLoaderTest extends BaseTest
         ioWait();
         final Path sourcePath = deployFunc("Correct.groovy");
         ioWait();
+        ioWait();
         final Map<Path, ServerFunction> functions = functionManager.getFunctions();
-
         assertThat(functions.keySet()).contains(sourcePath);
 
         final ServerFunction func = functions.get(sourcePath);
@@ -129,7 +129,7 @@ public class FunctionLoaderTest extends BaseTest
         ioWait();
         final Path sourcePath = deployFunc("Correct.groovy");
         ioWait();
-
+        ioWait();
         assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
 
         // Remove it and assert unloaded

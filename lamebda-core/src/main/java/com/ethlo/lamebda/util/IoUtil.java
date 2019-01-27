@@ -230,4 +230,16 @@ public class IoUtil
             return Optional.empty();
         }
     }
+
+    public static Optional<String> toString(final String path)
+    {
+        final String correctedPath = (!path.startsWith("/")) ? "/" + path : path;
+        final InputStream in = IoUtil.class.getResourceAsStream(correctedPath);
+        if (in != null)
+        {
+            final byte[] bytes = toByteArray(in);
+            return Optional.of(new String(bytes, StandardCharsets.UTF_8));
+        }
+        return Optional.empty();
+    }
 }

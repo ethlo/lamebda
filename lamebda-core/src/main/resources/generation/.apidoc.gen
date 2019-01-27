@@ -1,0 +1,1 @@
+generate -ispecification/oas.yaml -ghtml -otarget/api-doc
