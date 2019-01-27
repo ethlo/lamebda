@@ -20,9 +20,7 @@ package com.ethlo.lamebda.functions;
  * #L%
  */
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -32,7 +30,6 @@ import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.HttpStatus;
 import com.ethlo.lamebda.SimpleServerFunction;
-import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.FileNameUtil;
 import com.ethlo.lamebda.util.IoUtil;
 

@@ -26,14 +26,12 @@
 		<module>lamebda-servlet</module>
 		<module>lamebda-spring-web-starter</module>
         <module>lamebda-springmvc</module>
-        <module>lamebda-server</module>
-		<module>lamebda-renderer</module>
 	</modules>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<maven.compiler.source>1.8</maven.compiler.source>
-		<spring.boot.version>2.0.3.RELEASE</spring.boot.version>
+		<spring.boot.version>2.0.8.RELEASE</spring.boot.version>
 		<gpg.skip>true</gpg.skip>
 	</properties>
 	<dependencyManagement>

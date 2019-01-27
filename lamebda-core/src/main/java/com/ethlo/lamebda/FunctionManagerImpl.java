@@ -21,6 +21,7 @@ import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
+import com.ethlo.lamebda.functions.SingleFileResourceFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.io.ChangeType;
@@ -143,15 +144,12 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         {
             final Path lamebdaTplDir = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
 
-            // Project welcome page
-            //createTemplatedResource("welcome", "/");
-
             // JSON data
             final String statusBasePath = "/status";
             addFunction(Paths.get("status-info"), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService)));
 
             // Page for viewing status
-            //createTemplatedResource("status", "/status/");
+            addFunction(Paths.get("status-info-page"), withMinimalContext(new SingleResourceFunction(statusBasePath + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/status.html").get())));
         }
     }
 
@@ -175,14 +173,15 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration, Path specificationFile) throws IOException
     {
-        addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleResourceFunction("/api/api.yaml", HttpMimeType.YAML, IoUtil.toByteArray(specificationFile).get())));
+        final String specificationBasePath = "/specification";
+
+        addFunction(Paths.get("api-yaml"), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", specificationFile)));
 
         if (generatorHelper != null)
         {
             runRegen(projectConfiguration, ".apidoc.gen");
 
             final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
-            final String specificationBasePath = "/specification";
             addFunction(Paths.get("api-human-readable"), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath)));
         }
     }
@@ -191,7 +190,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         final Optional<String> genFile = IoUtil.toString(projectConfiguration.getPath().resolve(generationCommandFile));
         final Optional<String> defaultGenFile = IoUtil.toString("/generation/" + generationCommandFile);
-        final String[] args = genFile.isPresent()  ? genFile.get().split(" ") : defaultGenFile.get().split(" ");
+        final String[] args = genFile.isPresent() ? genFile.get().split(" ") : defaultGenFile.get().split(" ");
         generatorHelper.generate(projectConfiguration.getPath(), args);
     }
 

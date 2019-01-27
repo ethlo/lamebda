@@ -20,19 +20,9 @@ package com.ethlo.lamebda.functions;
  * #L%
  */
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
-import com.ethlo.lamebda.HttpMimeType;
-import com.ethlo.lamebda.HttpRequest;
-import com.ethlo.lamebda.HttpResponse;
-import com.ethlo.lamebda.HttpStatus;
-import com.ethlo.lamebda.SimpleServerFunction;
-import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.util.Assert;
-import com.ethlo.lamebda.util.FileNameUtil;
 
 public class SingleFileResourceFunction extends FallbackSingleFileResourceFunction
 {
