@@ -64,7 +64,7 @@ public abstract class BaseTest
 
     private void deployGenerator() throws IOException
     {
-        final Path targetDir = rootPath.resolve(".generator");
+        final Path targetDir = projectPath.resolve(".generator");
         download("http://central.maven.org/maven2/org/openapitools/openapi-generator-cli/3.3.4/openapi-generator-cli-3.3.4.jar", targetDir);
         download("https://repo1.maven.org/maven2/com/ethlo/openapi-tools/groovy-models/0.1/groovy-models-0.1.jar", targetDir);
     }

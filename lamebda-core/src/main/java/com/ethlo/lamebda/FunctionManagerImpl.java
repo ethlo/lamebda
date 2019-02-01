@@ -66,7 +66,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     public FunctionManagerImpl(LamebdaResourceLoader lamebdaResourceLoader)
     {
         this.projectConfiguration = lamebdaResourceLoader.getProjectConfiguration();
-        final Path jarDir = projectConfiguration.getPath().getParent().resolve(".generator");
+        final Path jarDir = projectConfiguration.getPath().resolve(".generator");
         if (Files.exists(jarDir))
         {
             this.generatorHelper = new GeneratorHelper(projectConfiguration.getJavaCmd(), jarDir);

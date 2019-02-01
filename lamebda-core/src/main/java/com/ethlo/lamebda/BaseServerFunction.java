@@ -20,6 +20,11 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+import javax.annotation.PostConstruct;
+
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.util.Assert;
@@ -61,4 +66,23 @@ public abstract class BaseServerFunction implements ServerFunction, FunctionCont
     }
 
     protected abstract void initInternal(FunctionContext functionContext);
+
+    protected void handlePostConstructMethods()
+    {
+        for (Method method : getClass().getDeclaredMethods())
+        {
+            if (method.getAnnotation(PostConstruct.class) != null && method.getParameterCount() == 0)
+            {
+                try
+                {
+                    method.setAccessible(true);
+                    method.invoke(this);
+                }
+                catch (IllegalAccessException | InvocationTargetException e)
+                {
+                    throw new IllegalArgumentException("Cannot call @PostConstruct annotated method " + method, e);
+                }
+            }
+        }
+    }
 }

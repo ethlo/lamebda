@@ -183,6 +183,8 @@ public abstract class SimpleServerFunction extends BaseServerFunction implements
         final ProjectConfiguration cfg = context.getProjectConfiguration();
         final String projectContext = (cfg.enableUrlProjectContextPrefix() ? (cfg.getContextPath() + "/") : "");
         this.pattern = URI.create("/" + projectContext + pattern).normalize().toString();
+
+        super.handlePostConstructMethods();
     }
 
     public FunctionContext getContext()

@@ -69,7 +69,6 @@ public class SpringMvcServerFunction extends BaseServerFunction implements URLMa
     @Autowired
     private RequestMappingHandlerAdapter adapter;
 
-
     @Autowired(required = false)
     protected final void postConstruct(final ListableBeanFactory beanFactory, final List<MethodInterceptor> methodInterceptors)
     {
@@ -78,6 +77,8 @@ public class SpringMvcServerFunction extends BaseServerFunction implements URLMa
 
         final Object proxyObject = createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors);
         detectAndRegisterRequestHandlerMethods(this.getClass(), proxyObject);
+
+        super.handlePostConstructMethods();
     }
 
     private Object createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)

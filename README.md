@@ -71,7 +71,7 @@ public class MyLamebdaServlet implements HttpServlet
 * A Project configuration file: `/var/lib/lamebda/project.properties`
 
 ### Project configuration
-* `project.name` - Human redable name of the project
+* `project.name` - Human-readable name of the project
 * `project.version` - The project version  
 * `mapping.project-context-path` - Project context path. Default is the project directory name.
 * `mapping.use-project-context-path` - Whether to prepend the request path with the project context name, i.e `/servlet/gateway/<project>/my-function`
