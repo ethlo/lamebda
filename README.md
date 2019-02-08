@@ -20,6 +20,15 @@ Simple HTTP handler supporting dynamic loading of HTTP handler functions. Intend
 
 ### Integrating with your project
 
+NOTE: If you want to try the bleeding edge, please add this snapshot repository
+```xml
+<repository>
+  <id>sonatype-snapshots</id>     
+  <snapshots><enabled>true</enabled></snapshots>
+  <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+</repository>
+```
+
 #### Usage with Spring Boot and Spring MVC
 
 Add dependency to your `pom.xml`
