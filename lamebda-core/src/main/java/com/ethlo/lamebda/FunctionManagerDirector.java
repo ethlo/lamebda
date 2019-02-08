@@ -54,6 +54,13 @@ public class FunctionManagerDirector
 
     public FunctionManagerDirector(final Path rootDirectory, String rootContext, FunctionPostProcessor functionPostProcessor) throws IOException
     {
+        logger.info("Initializing Lamebda");
+
+        if (! Files.isDirectory(rootDirectory))
+        {
+            throw new IOException("Specified root directory is not a directory: " + rootDirectory);
+        }
+
         this.rootDirectory = rootDirectory;
         this.rootContext = rootContext;
         this.functionPostProcessor = functionPostProcessor;

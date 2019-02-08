@@ -67,7 +67,7 @@ public abstract class BaseServerFunction implements ServerFunction, FunctionCont
 
     protected abstract void initInternal(FunctionContext functionContext);
 
-    protected void handlePostConstructMethods()
+    public void handlePostConstructMethods()
     {
         for (Method method : getClass().getDeclaredMethods())
         {

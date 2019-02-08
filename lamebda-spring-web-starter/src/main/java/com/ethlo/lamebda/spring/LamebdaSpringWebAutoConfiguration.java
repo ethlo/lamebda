@@ -41,8 +41,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.servlet.HandlerMapping;
 
+import com.ethlo.lamebda.BaseServerFunction;
 import com.ethlo.lamebda.DelegatingFunctionManager;
 import com.ethlo.lamebda.FunctionManagerDirector;
+import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
@@ -110,7 +112,20 @@ public class LamebdaSpringWebAutoConfiguration
     @ConditionalOnBean(FileSourceConfiguration.class)
     public FunctionManagerDirector functionManagerDirector(FileSourceConfiguration cfg) throws IOException
     {
-        return new FunctionManagerDirector(cfg.getDirectory(), rootContextPath, AutowireHelper.postProcessor(applicationContext));
+        return new FunctionManagerDirector(cfg.getDirectory(), rootContextPath, new FunctionPostProcessor()
+        {
+            @Override
+            public ServerFunction process(final ServerFunction function)
+            {
+                AutowireHelper.postProcessor(applicationContext).process(function);
+                if (function instanceof BaseServerFunction)
+                {
+                    ((BaseServerFunction) function).handlePostConstructMethods();
+                }
+
+                return function;
+            }
+        });
     }
 
     @Bean

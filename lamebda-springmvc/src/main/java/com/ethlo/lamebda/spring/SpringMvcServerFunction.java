@@ -77,8 +77,6 @@ public class SpringMvcServerFunction extends BaseServerFunction implements URLMa
 
         final Object proxyObject = createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors);
         detectAndRegisterRequestHandlerMethods(this.getClass(), proxyObject);
-
-        super.handlePostConstructMethods();
     }
 
     private Object createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)
