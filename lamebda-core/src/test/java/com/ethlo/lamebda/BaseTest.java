@@ -54,7 +54,7 @@ public abstract class BaseTest
             Files.createDirectories(projectPath);
 
             final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).build();
-            functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, (cl, s) -> s, f -> f));
+            functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, f -> f));
         }
         catch (IOException exc)
         {
@@ -74,7 +74,7 @@ public abstract class BaseTest
         Files.createDirectories(dir);
         final String filename = Paths.get(url).getFileName().toString();
         final Path target = dir.resolve(filename);
-        if (! Files.exists(target))
+        if (!Files.exists(target))
         {
             logger.info("Downloading {} to {}", url, target);
             try (InputStream in = new URL(url).openStream())

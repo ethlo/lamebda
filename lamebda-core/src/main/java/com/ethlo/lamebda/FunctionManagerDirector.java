@@ -37,7 +37,6 @@ import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
-import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 
 public class FunctionManagerDirector
 {
@@ -46,7 +45,6 @@ public class FunctionManagerDirector
     private final Path rootDirectory;
     private final String rootContext;
 
-    private FunctionSourcePreProcessor preNotification = (c, s) -> s;
     private FunctionPostProcessor functionPostProcessor;
 
     private Map<Path, FunctionManager> functionManagers = new ConcurrentHashMap<>();
@@ -56,7 +54,7 @@ public class FunctionManagerDirector
     {
         logger.info("Initializing Lamebda");
 
-        if (! Files.isDirectory(rootDirectory))
+        if (!Files.isDirectory(rootDirectory))
         {
             throw new IOException("Specified root directory is not a directory: " + rootDirectory);
         }
@@ -162,7 +160,7 @@ public class FunctionManagerDirector
         final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
         try
         {
-            return new FileSystemLamebdaResourceLoader(cfg, preNotification, functionPostProcessor);
+            return new FileSystemLamebdaResourceLoader(cfg, functionPostProcessor);
         }
         catch (IOException exc)
         {

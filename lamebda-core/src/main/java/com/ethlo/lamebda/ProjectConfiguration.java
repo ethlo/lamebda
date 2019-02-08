@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.security.UsernamePasswordCredentials;
+import com.ethlo.lamebda.util.Assert;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -162,7 +163,9 @@ public class ProjectConfiguration implements Serializable
         final String osName = System.getProperty("os.name").toLowerCase();
         final boolean isWindows = osName.contains("win");
         final String javaHome = System.getProperty("java.home");
-        return Paths.get(javaHome).resolve((isWindows ? "/bin/java.exe" : "/bin/java")).toAbsolutePath().toString();
+        Assert.isTrue(javaHome != null, "java.home system property must be set");
+        final String execPath = isWindows ? "bin/java.exe" : "bin/java";
+        return Paths.get(javaHome).resolve(execPath).toAbsolutePath().toString();
     }
 
     @Override

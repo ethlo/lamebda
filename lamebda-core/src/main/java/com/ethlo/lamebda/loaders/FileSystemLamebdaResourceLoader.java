@@ -84,7 +84,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private final Path sharedPath;
     private final Path libPath;
 
-    private final FunctionSourcePreProcessor functionSourcePreProcessor;
     private final FunctionPostProcessor functionPostProcessor;
     private final ProjectConfiguration projectConfiguration;
 
@@ -97,13 +96,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration) throws IOException
     {
-        this(projectConfiguration, (c, s) -> s, s -> s);
+        this(projectConfiguration, s -> s);
     }
 
-    public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionSourcePreProcessor functionSourcePreProcessor, FunctionPostProcessor functionPostProcessor) throws IOException
+    public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionPostProcessor functionPostProcessor) throws IOException
     {
         this.projectConfiguration = projectConfiguration;
-        this.functionSourcePreProcessor = Assert.notNull(functionSourcePreProcessor, "functionSourcePreProcesor cannot be null");
         this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
 
         final Path projectPath = projectConfiguration.getPath();
@@ -154,6 +152,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     @Override
     public ServerFunction load(GroovyClassLoader classLoader, Path sourcePath)
     {
+        classLoader.addClasspath(sourcePath.getParent().toString());
         final Class<ServerFunction> clazz = parseClass(classLoader, sourcePath);
         final ServerFunction instance = instantiate(clazz);
         setContextIfApplicable(instance);
@@ -217,21 +216,14 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     {
         try
         {
-            final String source = readSource(sourcePath);
-            final String modifiedSource = functionSourcePreProcessor.process(classLoader, source);
-
-            final Class<?> clazz = classLoader.parseClass(modifiedSource != null ? modifiedSource : source);
-            Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
-
-            final String actualClassName = clazz.getCanonicalName();
             final String expectedClassName = toClassName(sourcePath);
-            Assert.isTrue(actualClassName.equals(expectedClassName), "Unexpected class name '" + actualClassName + "' in file " + sourcePath + ". Expected " + expectedClassName);
-
+            final Class<?> clazz = classLoader.loadClass(expectedClassName, true, false, true);
+            Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
             return (Class<ServerFunction>) clazz;
         }
-        catch (IOException exc)
+        catch (ClassNotFoundException exc)
         {
-            throw new IllegalStateException("Cannot parse class " + sourcePath, exc);
+            throw new IllegalStateException("Cannot load class " + sourcePath, exc);
         }
     }
 
