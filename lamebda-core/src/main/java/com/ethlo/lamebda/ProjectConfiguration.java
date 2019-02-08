@@ -159,7 +159,10 @@ public class ProjectConfiguration implements Serializable
 
     public String getJavaCmd()
     {
-        return System.getProperty("java.home") + "/bin/java";
+        final String osName = System.getProperty("os.name").toLowerCase();
+        final boolean isWindows = osName.contains("win");
+        final String javaHome = System.getProperty("java.home");
+        return Paths.get(javaHome).resolve((isWindows ? "/bin/java.exe" : "/bin/java")).toAbsolutePath().toString();
     }
 
     @Override

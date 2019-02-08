@@ -36,7 +36,7 @@ public class GeneratorHelper extends BaseExecHelper
         final int exitCode = doExec(dir, args);
         if (exitCode != 0)
         {
-            throw new UncheckedIOException(new IOException("Generator returrned exit code " + exitCode));
+            throw new UncheckedIOException(new IOException("Generator returned exit code " + exitCode));
         }
     }
 }

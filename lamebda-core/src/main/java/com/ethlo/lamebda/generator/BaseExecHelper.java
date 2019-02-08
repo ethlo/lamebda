@@ -64,7 +64,7 @@ public abstract class BaseExecHelper
         try
         {
             final String[] fullCmd = combine(new String[]{javaCmd, "-cp",  StringUtil.join(classPath, File.pathSeparator), "org.openapitools.codegen.OpenAPIGenerator"}, cmd);
-            logger.info("Running {}", StringUtil.join(Arrays.asList(fullCmd), " "));
+            logger.debug("Running {}", StringUtil.join(Arrays.asList(fullCmd), " "));
             process = new ProcessBuilder(fullCmd)
                     .inheritIO()
                     .directory(dir.toFile())
@@ -78,7 +78,8 @@ public abstract class BaseExecHelper
             {
                 e.notifyAll();
             }
-        } finally
+        }
+        finally
         {
             if (process != null)
             {
