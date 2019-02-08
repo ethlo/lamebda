@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>com.ethlo.lamebda</groupId>
 		<artifactId>lamebda</artifactId>
-		<version>0.6.0</version>
+		<version>0.6.1-SNAPSHOT</version>
 	</parent>
 	<artifactId>lamebda-spring-web-starter</artifactId>
 	<dependencies>
@@ -33,7 +33,7 @@
 		<dependency>
 			<groupId>com.ethlo.lamebda</groupId>
 			<artifactId>lamebda-springmvc</artifactId>
-			<version>0.6.0</version>
+			<version>0.6.1-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 </project>
