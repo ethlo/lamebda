@@ -43,15 +43,16 @@ public abstract class BaseTest
 
     public BaseTest() throws IOException
     {
-        deployGenerator();
-
         try
         {
             if (Files.exists(projectPath))
             {
                 IoUtil.deleteDirectory(projectPath);
             }
+
             Files.createDirectories(projectPath);
+
+            deployGenerator();
 
             final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).build();
             functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, f -> f));

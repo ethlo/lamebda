@@ -164,7 +164,7 @@ public class WatchDir implements AutoCloseable
                 final Path child = dir.resolve(name);
 
                 final FileSystemEvent e = new FileSystemEvent(ChangeType.from(event.kind()), child);
-                logger.debug("File system changed: {}", e);
+                logger.info("File system changed: {}", e);
                 listener.accept(e);
 
                 // if directory is created, and watching recursively, then

@@ -153,7 +153,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public ServerFunction load(GroovyClassLoader classLoader, Path sourcePath)
     {
         classLoader.addClasspath(sourcePath.getParent().toString());
-        final Class<ServerFunction> clazz = parseClass(classLoader, sourcePath);
+        final Class<ServerFunction> clazz = loadClass(classLoader, sourcePath);
         final ServerFunction instance = instantiate(clazz);
         setContextIfApplicable(instance);
         return functionPostProcessor.process(instance);
@@ -212,16 +212,21 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     }
 
     @Override
-    public Class<ServerFunction> parseClass(GroovyClassLoader classLoader, Path sourcePath)
+    public Class<ServerFunction> loadClass(GroovyClassLoader classLoader, Path sourcePath)
     {
         try
         {
-            final String expectedClassName = toClassName(sourcePath);
-            final Class<?> clazz = classLoader.loadClass(expectedClassName, true, false, true);
+            final String source = readSource(sourcePath);
+            final Class<?> clazz = classLoader.parseClass(source);
             Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
+
+            final String actualClassName = clazz.getCanonicalName();
+            final String expectedClassName = toClassName(sourcePath);
+            Assert.isTrue(actualClassName.equals(expectedClassName), "Unexpected class name '" + actualClassName + "' in file " + sourcePath + ". Expected " + expectedClassName);
+
             return (Class<ServerFunction>) clazz;
         }
-        catch (ClassNotFoundException exc)
+        catch (IOException exc)
         {
             throw new IllegalStateException("Cannot load class " + sourcePath, exc);
         }
@@ -251,7 +256,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private void listenForChanges(Path... paths) throws IOException
     {
         this.watchDir = new WatchDir(e -> {
-            logger.debug("{}", e);
+            logger.info("{}", e);
 
             try
             {

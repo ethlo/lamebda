@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.codehaus.groovy.control.CompilationFailedException;
+import org.codehaus.groovy.control.CompilerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,14 +74,17 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         }
         else
         {
+            logger.warn("No directory for code generation: {}", jarDir);
             generatorHelper = null;
         }
 
         logger.info("Loading project: {}\n{}", projectConfiguration.getName(), projectConfiguration.toPrettyString());
         this.lamebdaResourceLoader = lamebdaResourceLoader;
-        this.groovyClassLoader = new GroovyClassLoader();
+        this.groovyClassLoader = new GroovyClassLoader(); //FunctionManagerImpl.class.getClassLoader(), CompilerConfiguration.DEFAULT.);
 
-        groovyClassLoader.addURL(lamebdaResourceLoader.getSharedClassPath());
+        final URL sharedClassPath = lamebdaResourceLoader.getSharedClassPath();
+        groovyClassLoader.addURL(sharedClassPath);
+        logger.info("Adding shared classpath {}", sharedClassPath);
 
         lamebdaResourceLoader.getLibUrls().forEach(groovyClassLoader::addURL);
 

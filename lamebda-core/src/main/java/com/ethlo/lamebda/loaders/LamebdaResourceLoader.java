@@ -65,7 +65,7 @@ public interface LamebdaResourceLoader extends AutoCloseable
 
     ServerFunction load(GroovyClassLoader classLoader, Path sourcePath);
 
-    Class<ServerFunction> parseClass(GroovyClassLoader classLoader, Path sourcePath);
+    Class<ServerFunction> loadClass(GroovyClassLoader classLoader, Path sourcePath);
 
     Optional<Path> getApiSpecification();
 

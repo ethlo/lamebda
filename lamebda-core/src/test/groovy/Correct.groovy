@@ -21,6 +21,7 @@
 import com.ethlo.lamebda.*
 import mypackage.*
 import spec.*
+import other.Other
 
 @PropertyFile("config.properties")
 class Correct extends SimpleServerFunction {
@@ -32,6 +33,7 @@ class Correct extends SimpleServerFunction {
 
     @Override
     void get(HttpRequest request, HttpResponse response) {
+        Other.Nested p = null
         response.json(HttpStatus.OK, [method: request.method, message: 'Hello world'])
     }
 }

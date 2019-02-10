@@ -37,6 +37,7 @@ import org.junit.Test;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
+import com.ethlo.lamebda.util.IoUtil;
 
 public class FunctionLoaderTest extends BaseTest
 {
@@ -47,6 +48,7 @@ public class FunctionLoaderTest extends BaseTest
     @Test
     public void testLoadOnCreate() throws Exception
     {
+
         deployConfig();
         deploySpec();
         ioWait();
@@ -80,10 +82,7 @@ public class FunctionLoaderTest extends BaseTest
     private void addShared() throws IOException
     {
         final Path libTargetDir = projectPath.resolve(FileSystemLamebdaResourceLoader.SHARED_DIRECTORY);
-        final Path packageTargetDir = libTargetDir.resolve("mypackage");
-        Files.createDirectories(packageTargetDir);
-        Files.createDirectories(libTargetDir);
-        Files.copy(Paths.get("src/test/groovy/shared", "MyLib.groovy"), packageTargetDir.resolve("MyLib.groovy"), StandardCopyOption.REPLACE_EXISTING);
+        IoUtil.copyFolder(Paths.get("src/test/groovy/shared"), libTargetDir);
     }
 
     @Test
