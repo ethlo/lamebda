@@ -20,7 +20,15 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import java.nio.file.Path;
+
 public interface ConfigurableFunctionManager extends FunctionManager
 {
     ProjectConfiguration getProjectConfiguration();
+
+    void functionChanged(Path sourcePath);
+
+    void functionRemoved(Path sourcePath);
+
+    void specificationChanged(Path path);
 }

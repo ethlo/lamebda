@@ -41,7 +41,7 @@ public abstract class BaseTest
     protected final FunctionManagerImpl functionManager;
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public BaseTest() throws IOException
+    public BaseTest()
     {
         try
         {
@@ -54,7 +54,7 @@ public abstract class BaseTest
 
             deployGenerator();
 
-            final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).build();
+            final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).listenForChanges(false).build();
             functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, f -> f));
         }
         catch (IOException exc)

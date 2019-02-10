@@ -3,6 +3,7 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,7 +14,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.codehaus.groovy.control.CompilationFailedException;
-import org.codehaus.groovy.control.CompilerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,18 +95,18 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
                 case MODIFIED:
                     try
                     {
-                        load(lamebdaResourceLoader, n.getPath());
+                        functionChanged(n.getPath());
                     }
                     catch (CompilationFailedException exc)
                     {
                         logger.warn("Unloading function {} due to script compilation error", n.getPath());
-                        unload(n.getPath());
+                        functionRemoved(n.getPath());
                         throw exc;
                     }
                     break;
 
                 case DELETED:
-                    unload(n.getPath());
+                    functionRemoved(n.getPath());
                     break;
 
                 default:
@@ -120,8 +120,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             logger.info("Specification file changed: {}", n.getPath());
             if (n.getChangeType() != ChangeType.DELETED)
             {
-                initialApiProcessing();
-                reloadFunctions(n.getPath());
+                specificationChanged(n.getPath());
             }
         });
 
@@ -157,7 +156,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         }
     }
 
-    private void load(final LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
+    @Override
+    public void functionChanged(final Path sourcePath)
     {
         final ServerFunction loaded = lamebdaResourceLoader.load(groovyClassLoader, sourcePath);
         addFunction(sourcePath, loaded);
@@ -165,14 +165,14 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void generateModels() throws IOException
     {
-        final URL modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toUri().toURL();
-
         if (generatorHelper != null)
         {
             runRegen(projectConfiguration, ".models.gen");
         }
-        groovyClassLoader.addURL(modelPath);
-        logger.info("Adding model classpath {}", modelPath);
+
+        final String modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath().toString();
+        groovyClassLoader.addClasspath(modelPath);
+        logger.info("Added model classpath {}", modelPath);
     }
 
     private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration, Path specificationFile) throws IOException
@@ -210,7 +210,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         functions.forEach((p, func) -> {
             if (!(func instanceof BuiltInServerFunction))
             {
-                load(lamebdaResourceLoader, p);
+                functionChanged(p);
             }
         });
     }
@@ -258,13 +258,21 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         }
     }
 
-    private void unload(final Path sourcePath)
+    @Override
+    public void functionRemoved(final Path sourcePath)
     {
         final ServerFunction func = functions.remove(sourcePath);
         if (func != null)
         {
             logger.info("'{}' was unloaded", sourcePath);
         }
+    }
+
+    @Override
+    public void specificationChanged(final Path path)
+    {
+        initialApiProcessing();
+        reloadFunctions(path);
     }
 
     @Override

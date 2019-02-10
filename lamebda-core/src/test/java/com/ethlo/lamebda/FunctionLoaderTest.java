@@ -23,15 +23,14 @@ package com.ethlo.lamebda;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
 
+import org.codehaus.groovy.control.MultipleCompilationErrorsException;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.ethlo.lamebda.context.FunctionConfiguration;
@@ -48,13 +47,10 @@ public class FunctionLoaderTest extends BaseTest
     @Test
     public void testLoadOnCreate() throws Exception
     {
-
         deployConfig();
         deploySpec();
-        ioWait();
         final Path sourcePath = deployFunc("Correct.groovy");
-        ioWait();
-        ioWait();
+        functionManager.functionChanged(sourcePath);
         final Map<Path, ServerFunction> functions = functionManager.getFunctions();
         assertThat(functions.keySet()).contains(sourcePath);
 
@@ -76,7 +72,8 @@ public class FunctionLoaderTest extends BaseTest
 
     private void deploySpec() throws IOException
     {
-        moveResource("petstore-oas3.yaml", "specification", FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
+        final Path path = moveResource("petstore-oas3.yaml", "specification", FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
+        functionManager.specificationChanged(path);
     }
 
     private void addShared() throws IOException
@@ -96,9 +93,8 @@ public class FunctionLoaderTest extends BaseTest
     {
         deployConfig();
         deploySpec();
-        ioWait();
         final Path sourcePath = deployFunc("Correct.groovy");
-        ioWait();
+        functionManager.functionChanged(sourcePath);
 
         final Map<Path, ServerFunction> functions = functionManager.getFunctions();
         final ServerFunction func = functions.get(sourcePath);
@@ -108,32 +104,18 @@ public class FunctionLoaderTest extends BaseTest
         assertThat(context.getConfiguration().getProperty("foo")).isNull();
     }
 
-    private void ioWait()
-    {
-        try
-        {
-            Thread.sleep(3000);
-        }
-        catch (InterruptedException e)
-        {
-            Thread.currentThread().interrupt();
-        }
-    }
-
     @Test
     public void testUnloadOnRemoval() throws Exception
     {
         deployConfig();
         deploySpec();
-        ioWait();
         final Path sourcePath = deployFunc("Correct.groovy");
-        ioWait();
-        ioWait();
+        functionManager.functionChanged(sourcePath);
         assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
 
         // Remove it and assert unloaded
         remove(sourcePath);
-        ioWait();
+        functionManager.functionRemoved(sourcePath);
         assertThat(functionManager.getFunctions().keySet()).doesNotContain(sourcePath);
     }
 
@@ -142,16 +124,24 @@ public class FunctionLoaderTest extends BaseTest
     {
         deployConfig();
         deploySpec();
-        ioWait();
         final Path sourcePath = deployFunc("Correct.groovy");
-        ioWait();
+        functionManager.functionChanged(sourcePath);
 
         assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
 
         // Replace content with incorrect script
         Files.copy(Paths.get("src/test/groovy/Incorrect.groovy"), sourcePath, StandardCopyOption.REPLACE_EXISTING);
-        ioWait();
-        assertThat(functionManager.getFunctions().keySet()).doesNotContain(sourcePath);
+
+        try
+        {
+            functionManager.functionChanged(sourcePath);
+            Assert.fail("Should not reload");
+        }
+        catch (MultipleCompilationErrorsException exc)
+        {
+            // Expected
+        }
+        //assertThat(functionManager.getFunctions().keySet()).doesNotContain(sourcePath);
     }
 
     private Path deployFunc(final String name) throws IOException
@@ -171,7 +161,6 @@ public class FunctionLoaderTest extends BaseTest
     {
         final Path target = projectPath.resolve(folder).resolve(filename);
         Files.createDirectories(target.getParent());
-        ioWait();
         return Files.copy(Paths.get("src/test/resources", name), target, StandardCopyOption.REPLACE_EXISTING);
     }
 

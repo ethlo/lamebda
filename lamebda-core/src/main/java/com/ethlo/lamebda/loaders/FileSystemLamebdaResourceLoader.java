@@ -122,7 +122,10 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         logger.debug("Shared path: {}", sharedPath);
         logger.debug("Library path: {}", libPath);
 
-        listenForChanges(projectPath, scriptPath, specificationPath, libPath);
+        if (projectConfiguration.isListenForChanges())
+        {
+            listenForChanges(projectPath, scriptPath, specificationPath, libPath);
+        }
     }
 
     @Override
@@ -216,12 +219,18 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     {
         try
         {
+            final String expectedClassName = toClassName(sourcePath);
+
+            //final Class<?> clazz = classLoader.loadClass(expectedClassName, true, true, false);
+
             final String source = readSource(sourcePath);
+
+            // NOTE: We need this to make sure the script itself is still parseable, else we unload it
             final Class<?> clazz = classLoader.parseClass(source);
             Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
 
             final String actualClassName = clazz.getCanonicalName();
-            final String expectedClassName = toClassName(sourcePath);
+
             Assert.isTrue(actualClassName.equals(expectedClassName), "Unexpected class name '" + actualClassName + "' in file " + sourcePath + ". Expected " + expectedClassName);
 
             return (Class<ServerFunction>) clazz;
@@ -230,6 +239,11 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         {
             throw new IllegalStateException("Cannot load class " + sourcePath, exc);
         }
+        /*catch (ClassNotFoundException exc)
+        {
+            throw new IllegalStateException("Cannot load class " + sourcePath, exc);
+        }
+        */
     }
 
     private String toClassName(final Path sourcePath)
@@ -256,7 +270,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private void listenForChanges(Path... paths) throws IOException
     {
         this.watchDir = new WatchDir(e -> {
-            logger.info("{}", e);
+            logger.debug("{}", e);
 
             try
             {

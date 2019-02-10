@@ -9,9 +9,9 @@ package com.ethlo.lamebda;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -29,7 +29,6 @@ import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.Properties;
 import java.util.Random;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +56,8 @@ public class ProjectConfigurationBuilder
 
     private String apiDocGenerator;
 
+    private boolean listenForChanges;
+
     protected ProjectConfigurationBuilder(String rootContextPath, Path projectPath)
     {
         this.rootContextPath = rootContextPath;
@@ -72,7 +73,8 @@ public class ProjectConfigurationBuilder
         this.enableUrlProjectContextPrefix = true;
         this.staticResourcesPrefix = "static";
         this.staticResourceDirectory = projectPath.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY);
-        this.adminCredentials = new UsernamePasswordCredentials("admin", UUID.randomUUID().toString());
+        this.adminCredentials = new UsernamePasswordCredentials("admin", generateRandomString(new SecureRandom(), 12));
+        this.listenForChanges = true;
     }
 
     public ProjectConfigurationBuilder projectContextPath(String projectContextPath)
@@ -114,6 +116,12 @@ public class ProjectConfigurationBuilder
     public ProjectConfigurationBuilder projectName(String projectName)
     {
         this.projectName = projectName;
+        return this;
+    }
+
+    public ProjectConfigurationBuilder listenForChanges(boolean listenForChanges)
+    {
+        this.listenForChanges = listenForChanges;
         return this;
     }
 
@@ -162,6 +170,8 @@ public class ProjectConfigurationBuilder
 
             // Info function
             enableInfoFunction = Boolean.parseBoolean(p.getProperty("functions.info.enabled", Boolean.toString(enableInfoFunction)));
+
+            listenForChanges = Boolean.parseBoolean(p.getProperty("system.listen-for-changes", Boolean.toString(listenForChanges)));
         }
         return this;
     }
@@ -235,5 +245,10 @@ public class ProjectConfigurationBuilder
     public String getApiDocGenerator()
     {
         return apiDocGenerator;
+    }
+
+    public boolean isListenForChanges()
+    {
+        return listenForChanges;
     }
 }

@@ -20,7 +20,7 @@
 
 import com.ethlo.lamebda.*
 import mypackage.*
-import spec.*
+import spec.Pet
 import other.Other
 
 @PropertyFile("config.properties")

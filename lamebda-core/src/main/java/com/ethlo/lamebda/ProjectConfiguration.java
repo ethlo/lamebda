@@ -35,6 +35,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class ProjectConfiguration implements Serializable
 {
     private static final Logger logger = LoggerFactory.getLogger(ProjectConfiguration.class);
+    private final boolean listenForChanges;
 
     private String rootContextPath;
 
@@ -68,6 +69,7 @@ public class ProjectConfiguration implements Serializable
         version = b.getProjectVersion();
         adminCredentials = b.getAdminCredentials();
         apiDocGenerator = b.getApiDocGenerator();
+        listenForChanges = b.isListenForChanges();
     }
 
     /**
@@ -141,6 +143,13 @@ public class ProjectConfiguration implements Serializable
     {
         return apiDocGenerator;
     }
+
+    @JsonProperty("system.listen-for-changes")
+    public boolean isListenForChanges()
+    {
+        return listenForChanges;
+    }
+
 
     /**
      * Returns the left-most URL path component, typically after the servlet context path. For example /servlet-name/<root-context-path>/my-function
