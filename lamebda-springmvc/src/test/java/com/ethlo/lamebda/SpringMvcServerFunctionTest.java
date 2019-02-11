@@ -71,18 +71,13 @@ public class SpringMvcServerFunctionTest
         functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, AutowireHelper.postProcessor(applicationContext)));
     }
 
-    private void ioWait() throws InterruptedException
-    {
-        Thread.sleep(2_000);
-    }
-
     @Test
     public void testInvokeSpringMvc() throws Exception
     {
         final Path sourcePath = move("SpringMvc.groovy");
-        ioWait();
-        final Map<Path, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).contains(sourcePath);
+        functionManager.functionChanged(sourcePath);
+        final Map<Path, FunctionBundle> functions = functionManager.getFunctions();
+        assertThat(functionManager.getFunction(sourcePath)).isPresent();
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
         req.setRequestURI("/lamebda/lamebda-unit-test/test/123");

@@ -47,7 +47,6 @@ public class FunctionMetricsServiceTest
 
         final Map<HttpStatusWithReason, Long> perPattern = metricsService.getMetrics(requestMapping);
         assertThat(perPattern).isNotNull();
-        System.out.println(perPattern);
     }
 
     private MethodAndPattern invoke()

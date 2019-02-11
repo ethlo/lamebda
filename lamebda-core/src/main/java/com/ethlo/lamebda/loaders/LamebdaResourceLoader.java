@@ -33,6 +33,7 @@ import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.io.FileSystemEvent;
+import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
 public interface LamebdaResourceLoader extends AutoCloseable
@@ -76,4 +77,6 @@ public interface LamebdaResourceLoader extends AutoCloseable
     ProjectConfiguration getProjectConfiguration();
 
     void close();
+
+    Path getScriptsPath();
 }

@@ -24,9 +24,11 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.ethlo.lamebda.ConfigurableFunctionManager;
+import com.ethlo.lamebda.FunctionBundle;
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.HttpRequest;
@@ -66,18 +68,22 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
         final int page = Integer.parseInt(request.param("page", "0"));
         final int size = Integer.parseInt(request.param("size", "25"));
         final FunctionManagerImpl fm = (FunctionManagerImpl) functionManager;
-        final Map<Path, ServerFunction> functions = fm.getFunctions();
+        final Map<Path, FunctionBundle> functions = fm.getFunctions();
         final List<FunctionStatusInfo> functionList = getFunctionInfoList(page, size).stream().map(s ->
         {
             final FunctionStatusInfo info = new FunctionStatusInfo(projectConfiguration.getPath(), s);
 
-            final boolean isLoaded = functions.get(s.getSourcePath()) != null;
+            final Optional<ServerFunction> funcOpt = ((FunctionManagerImpl) functionManager).getFunction(s.getSourcePath());
+            final boolean isLoaded = funcOpt.isPresent();
             info.setRunning(isLoaded);
 
-            final ServerFunction func = ((FunctionManagerImpl) functionManager).getFunctions().get(s.getSourcePath());
-            if (func instanceof URLMappedServerFunction)
+            if (funcOpt.isPresent())
             {
-                info.setRequestMappings(((URLMappedServerFunction) func).getUrlMapping());
+                final ServerFunction func = funcOpt.get();
+                if (func instanceof URLMappedServerFunction)
+                {
+                    info.setRequestMappings(((URLMappedServerFunction) func).getUrlMapping());
+                }
             }
 
             return info;

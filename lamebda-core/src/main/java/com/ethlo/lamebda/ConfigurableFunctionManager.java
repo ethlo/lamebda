@@ -21,6 +21,7 @@ package com.ethlo.lamebda;
  */
 
 import java.nio.file.Path;
+import java.util.Optional;
 
 public interface ConfigurableFunctionManager extends FunctionManager
 {
@@ -31,4 +32,6 @@ public interface ConfigurableFunctionManager extends FunctionManager
     void functionRemoved(Path sourcePath);
 
     void specificationChanged(Path path);
+
+    Optional<ServerFunction> getFunction(Path sourcePath);
 }

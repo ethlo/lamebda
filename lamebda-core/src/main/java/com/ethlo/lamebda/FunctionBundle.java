@@ -1,8 +1,10 @@
+package com.ethlo.lamebda;
+
 /*-
  * #%L
  * lamebda-core
  * %%
- * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,28 +20,24 @@
  * #L%
  */
 
-import com.ethlo.lamebda.*
-import mypackage.*
-import spec.Pet
-import other.Other
+public class FunctionBundle
+{
+    private final ServerFunctionInfo info;
+    private final ServerFunction function;
 
-@PropertyFile("config.properties")
-class Correct extends SimpleServerFunction {
-
-    Correct() {
-
-        // From /shared
-        new MyLib().helloWorld("John Smith")
-
-        // Nested class in /shared
-        Other.Nested p = new Other.Nested()
-
-        // From generated model
-        def pet = new Pet()
+    public FunctionBundle(final ServerFunctionInfo info, final ServerFunction function)
+    {
+        this.info = info;
+        this.function = function;
     }
 
-    @Override
-    void get(HttpRequest request, HttpResponse response) {
-        response.json(HttpStatus.OK, [method: request.method, message: 'Hello world'])
+    public ServerFunctionInfo getInfo()
+    {
+        return info;
+    }
+
+    public ServerFunction getFunction()
+    {
+        return function;
     }
 }

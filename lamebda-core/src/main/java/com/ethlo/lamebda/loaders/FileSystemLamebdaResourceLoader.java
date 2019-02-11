@@ -30,8 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -155,7 +153,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     @Override
     public ServerFunction load(GroovyClassLoader classLoader, Path sourcePath)
     {
-        classLoader.addClasspath(sourcePath.getParent().toString());
         final Class<ServerFunction> clazz = loadClass(classLoader, sourcePath);
         final ServerFunction instance = instantiate(clazz);
         setContextIfApplicable(instance);
@@ -219,18 +216,13 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     {
         try
         {
-            final String expectedClassName = toClassName(sourcePath);
-
-            //final Class<?> clazz = classLoader.loadClass(expectedClassName, true, true, false);
-
             final String source = readSource(sourcePath);
-
-            // NOTE: We need this to make sure the script itself is still parseable, else we unload it
             final Class<?> clazz = classLoader.parseClass(source);
             Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
 
             final String actualClassName = clazz.getCanonicalName();
 
+            final String expectedClassName = toClassName(sourcePath);
             Assert.isTrue(actualClassName.equals(expectedClassName), "Unexpected class name '" + actualClassName + "' in file " + sourcePath + ". Expected " + expectedClassName);
 
             return (Class<ServerFunction>) clazz;
@@ -239,11 +231,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         {
             throw new IllegalStateException("Cannot load class " + sourcePath, exc);
         }
-        /*catch (ClassNotFoundException exc)
-        {
-            throw new IllegalStateException("Cannot load class " + sourcePath, exc);
-        }
-        */
     }
 
     private String toClassName(final Path sourcePath)
@@ -348,19 +335,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
                     .sorted(Comparator.comparing(Path::getFileName))
                     .skip(offset)
                     .limit(size)
-                    .map(n ->
-                    {
-                        final ServerFunctionInfo info = new ServerFunctionInfo(n);
-                        try
-                        {
-                            info.setLastModified(OffsetDateTime.ofInstant(Files.getLastModifiedTime(n).toInstant(), ZoneOffset.UTC));
-                        }
-                        catch (IOException e)
-                        {
-                            logger.warn("Cannot get last modified time of {}: {}", n, e);
-                        }
-                        return info;
-                    })
+                    .map(n -> ServerFunctionInfo.of(n))
                     .collect(Collectors.toList());
         }
         catch (IOException e)
@@ -413,5 +388,11 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public void close()
     {
         this.watchDir.close();
+    }
+
+    @Override
+    public Path getScriptsPath()
+    {
+        return projectPath.resolve(SCRIPT_DIRECTORY);
     }
 }

@@ -27,7 +27,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Map;
 
 import org.codehaus.groovy.control.MultipleCompilationErrorsException;
 import org.junit.Assert;
@@ -51,10 +50,9 @@ public class FunctionLoaderTest extends BaseTest
         deploySpec();
         final Path sourcePath = deployFunc("Correct.groovy");
         functionManager.functionChanged(sourcePath);
-        final Map<Path, ServerFunction> functions = functionManager.getFunctions();
-        assertThat(functions.keySet()).contains(sourcePath);
+        assertThat(functionManager.getFunction(sourcePath)).isPresent();
 
-        final ServerFunction func = functions.get(sourcePath);
+        final ServerFunction func = functionManager.getFunction(sourcePath).get();
         final FunctionContext context = ((SimpleServerFunction) func).getContext();
         assertThat(context).isNotNull();
         final FunctionConfiguration cfg = context.getConfiguration();
@@ -96,8 +94,7 @@ public class FunctionLoaderTest extends BaseTest
         final Path sourcePath = deployFunc("Correct.groovy");
         functionManager.functionChanged(sourcePath);
 
-        final Map<Path, ServerFunction> functions = functionManager.getFunctions();
-        final ServerFunction func = functions.get(sourcePath);
+        final ServerFunction func = functionManager.getFunction(sourcePath).get();
         final FunctionContext context = ((SimpleServerFunction) func).getContext();
         assertThat(context).isNotNull();
         assertThat(context.getConfiguration()).isNotNull();
@@ -111,12 +108,12 @@ public class FunctionLoaderTest extends BaseTest
         deploySpec();
         final Path sourcePath = deployFunc("Correct.groovy");
         functionManager.functionChanged(sourcePath);
-        assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
+        assertThat(functionManager.getFunction(sourcePath)).isPresent();
 
         // Remove it and assert unloaded
         remove(sourcePath);
         functionManager.functionRemoved(sourcePath);
-        assertThat(functionManager.getFunctions().keySet()).doesNotContain(sourcePath);
+        assertThat(functionManager.getFunction(sourcePath)).isNotPresent();
     }
 
     @Test
@@ -127,7 +124,7 @@ public class FunctionLoaderTest extends BaseTest
         final Path sourcePath = deployFunc("Correct.groovy");
         functionManager.functionChanged(sourcePath);
 
-        assertThat(functionManager.getFunctions().keySet()).contains(sourcePath);
+        assertThat(functionManager.getFunction(sourcePath)).isPresent();
 
         // Replace content with incorrect script
         Files.copy(Paths.get("src/test/groovy/Incorrect.groovy"), sourcePath, StandardCopyOption.REPLACE_EXISTING);
@@ -135,13 +132,12 @@ public class FunctionLoaderTest extends BaseTest
         try
         {
             functionManager.functionChanged(sourcePath);
-            Assert.fail("Should not reload");
         }
         catch (MultipleCompilationErrorsException exc)
         {
             // Expected
         }
-        //assertThat(functionManager.getFunctions().keySet()).doesNotContain(sourcePath);
+        assertThat(functionManager.getFunction(sourcePath)).isNotPresent();
     }
 
     private Path deployFunc(final String name) throws IOException
