@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.codehaus.groovy.control.CompilationFailedException;
-import org.codehaus.groovy.control.MultipleCompilationErrorsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +24,7 @@ import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
+import com.ethlo.lamebda.loaders.FileSystemNotificationAware;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.util.IoUtil;
@@ -88,52 +88,61 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
         lamebdaResourceLoader.getLibUrls().forEach(groovyClassLoader::addURL);
 
-        lamebdaResourceLoader.setFunctionChangeListener(n -> {
-            switch (n.getChangeType())
-            {
-                case CREATED:
-                case MODIFIED:
-                    try
-                    {
-                        functionChanged(n.getPath());
-                    }
-                    catch (CompilationFailedException exc)
-                    {
-                        logger.warn("Unloading function {} due to script compilation error", n.getPath());
-                        functionRemoved(n.getPath());
-                        throw exc;
-                    }
-                    break;
-
-                case DELETED:
-                    functionRemoved(n.getPath());
-                    break;
-
-                default:
-                    throw new IllegalArgumentException("Unhandled event type: " + n.getChangeType());
-            }
-        });
-
-        // Listen for specification changes
-        lamebdaResourceLoader.setApiSpecificationChangeListener(n ->
-        {
-            logger.info("Specification file changed: {}", n.getPath());
-            if (n.getChangeType() != ChangeType.DELETED)
-            {
-                specificationChanged(n.getPath());
-            }
-        });
-
-        // Listen for lib folder changes
-        lamebdaResourceLoader.setLibChangeListener(n ->
-        {
-            if (n.getChangeType() == ChangeType.CREATED)
-            {
-                lamebdaResourceLoader.getLibUrls().forEach(groovyClassLoader::addURL);
-            }
-        });
+        registerChangeListenersIfApplicable(lamebdaResourceLoader);
 
         initialize();
+    }
+
+    private void registerChangeListenersIfApplicable(final LamebdaResourceLoader lamebdaResourceLoader)
+    {
+        if (lamebdaResourceLoader instanceof FileSystemNotificationAware)
+        {
+            final FileSystemNotificationAware fs = (FileSystemNotificationAware) lamebdaResourceLoader;
+            fs.setFunctionChangeListener(n -> {
+                switch (n.getChangeType())
+                {
+                    case CREATED:
+                    case MODIFIED:
+                        try
+                        {
+                            functionChanged(n.getPath());
+                        }
+                        catch (CompilationFailedException exc)
+                        {
+                            logger.warn("Unloading function {} due to script compilation error", n.getPath());
+                            functionRemoved(n.getPath());
+                            throw exc;
+                        }
+                        break;
+
+                    case DELETED:
+                        functionRemoved(n.getPath());
+                        break;
+
+                    default:
+                        throw new IllegalArgumentException("Unhandled event type: " + n.getChangeType());
+                }
+            });
+
+            // Listen for specification changes
+            fs.setApiSpecificationChangeListener(n ->
+            {
+                logger.info("Specification file changed: {}", n.getPath());
+                if (n.getChangeType() != ChangeType.DELETED)
+                {
+                    specificationChanged(n.getPath());
+                }
+            });
+
+            // Listen for lib folder changes
+            fs.setLibChangeListener(n ->
+            {
+                if (n.getChangeType() == ChangeType.CREATED)
+                {
+                    lamebdaResourceLoader.getLibUrls().forEach(groovyClassLoader::addURL);
+                }
+            });
+        }
     }
 
     private void addBuiltinFunctions()
@@ -317,13 +326,12 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         try
         {
             this.groovyClassLoader.close();
+            this.lamebdaResourceLoader.close();
         }
         catch (IOException e)
         {
             throw new UncheckedIOException(e);
         }
-
-        this.lamebdaResourceLoader.close();
     }
 
     @Override

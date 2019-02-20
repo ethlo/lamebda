@@ -56,14 +56,6 @@ public interface LamebdaResourceLoader extends AutoCloseable
      */
     List<ServerFunctionInfo> findAll(long offset, int size);
 
-    void setProjectChangeListener(Consumer<FileSystemEvent> l);
-
-    void setApiSpecificationChangeListener(Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener);
-
-    void setLibChangeListener(Consumer<FileSystemEvent> listener);
-
-    void setFunctionChangeListener(Consumer<FunctionModificationNotice> l);
-
     ServerFunction load(GroovyClassLoader classLoader, Path sourcePath);
 
     Class<ServerFunction> loadClass(GroovyClassLoader classLoader, Path sourcePath);
@@ -76,7 +68,7 @@ public interface LamebdaResourceLoader extends AutoCloseable
 
     ProjectConfiguration getProjectConfiguration();
 
-    void close();
+    void close() throws IOException;
 
     Path getScriptsPath();
 }
