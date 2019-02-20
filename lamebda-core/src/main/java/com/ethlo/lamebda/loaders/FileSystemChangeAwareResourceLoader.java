@@ -18,7 +18,6 @@ public class FileSystemChangeAwareResourceLoader extends FileSystemLamebdaResour
     private Consumer<FunctionModificationNotice> functionChangeListener;
     private Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener;
     private Consumer<FileSystemEvent> libChangeListener;
-    private Consumer<FileSystemEvent> projectChangeListener;
 
     private WatchDir watchDir;
 
@@ -36,12 +35,6 @@ public class FileSystemChangeAwareResourceLoader extends FileSystemLamebdaResour
     public void setFunctionChangeListener(Consumer<FunctionModificationNotice> l)
     {
         this.functionChangeListener = l;
-    }
-
-    @Override
-    public void setProjectChangeListener(Consumer<FileSystemEvent> l)
-    {
-        this.projectChangeListener = l;
     }
 
     @Override
@@ -116,19 +109,8 @@ public class FileSystemChangeAwareResourceLoader extends FileSystemLamebdaResour
         {
             apiSpecificationChanged(event.getPath(), changeType);
         }
-        else if (filename.equals(PROJECT_FILENAME) && event.getPath().getParent().equals(projectPath) && changeType == ChangeType.MODIFIED)
-        {
-            projectConfigurationChanged(event);
-        }
     }
 
-    private void projectConfigurationChanged(FileSystemEvent e)
-    {
-        if (projectChangeListener != null)
-        {
-            projectChangeListener.accept(e);
-        }
-    }
 
     private void libChanged(FileSystemEvent event)
     {
