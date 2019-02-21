@@ -3,9 +3,9 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.UndeclaredThrowableException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +28,6 @@ import com.ethlo.lamebda.loaders.FileSystemNotificationAware;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.util.IoUtil;
-import groovy.lang.GroovyClassLoader;
 
 /*-
  * #%L
@@ -53,10 +52,9 @@ import groovy.lang.GroovyClassLoader;
 public class FunctionManagerImpl implements ConfigurableFunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
-    private final GroovyClassLoader groovyClassLoader;
     private final ProjectConfiguration projectConfiguration;
 
-    private Map<Path, FunctionBundle> functions = new ConcurrentHashMap<>();
+    private Map<String, FunctionBundle> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
     private final FunctionMetricsService functionMetricsService = FunctionMetricsService.getInstance();
 
@@ -76,17 +74,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             generatorHelper = null;
         }
 
-        logger.info("Loading project: {}\n{}", projectConfiguration.getName(), projectConfiguration.toPrettyString());
         this.lamebdaResourceLoader = lamebdaResourceLoader;
-        this.groovyClassLoader = new GroovyClassLoader();
-
-        this.groovyClassLoader.addClasspath(lamebdaResourceLoader.getScriptsPath().toString());
-
-        final URL sharedClassPath = lamebdaResourceLoader.getSharedClassPath();
-        groovyClassLoader.addURL(sharedClassPath);
-        logger.info("Adding shared classpath {}", sharedClassPath);
-
-        lamebdaResourceLoader.getLibUrls().forEach(groovyClassLoader::addURL);
 
         registerChangeListenersIfApplicable(lamebdaResourceLoader);
 
@@ -133,15 +121,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
                     specificationChanged(n.getPath());
                 }
             });
-
-            // Listen for lib folder changes
-            fs.setLibChangeListener(n ->
-            {
-                if (n.getChangeType() == ChangeType.CREATED)
-                {
-                    lamebdaResourceLoader.getLibUrls().forEach(groovyClassLoader::addURL);
-                }
-            });
         }
     }
 
@@ -149,7 +128,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         if (projectConfiguration.enableStaticResourceFunction())
         {
-            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("static-data"), withMinimalContext(new DirectoryResourceFunction("/" + projectConfiguration.getStaticResourcesContext(), projectConfiguration.getStaticResourceDirectory()))));
+            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("static-data", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction("/" + projectConfiguration.getStaticResourcesContext(), projectConfiguration.getStaticResourceDirectory()))));
         }
 
         if (projectConfiguration.enableInfoFunction())
@@ -158,20 +137,20 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
             // JSON data
             final String statusBasePath = "/status";
-            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("status-info"), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService))));
+            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("status-info", ProjectStatusFunction.class), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService))));
 
             // Page for viewing status
-            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("status-info-page"), withMinimalContext(new SingleResourceFunction(statusBasePath + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/status.html").get()))));
+            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("status-info-page", SingleResourceFunction.class), withMinimalContext(new SingleResourceFunction(statusBasePath + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/status.html").get()))));
         }
     }
 
     @Override
     public void functionChanged(final Path sourcePath)
     {
-        final ServerFunctionInfo newInfo = ServerFunctionInfo.of(sourcePath);
+        final ScriptServerFunctionInfo newInfo = ScriptServerFunctionInfo.ofScript(lamebdaResourceLoader, sourcePath);
         try
         {
-            final ServerFunction function = lamebdaResourceLoader.load(groovyClassLoader, sourcePath);
+            final ServerFunction function = lamebdaResourceLoader.load(sourcePath);
             addFunction(new FunctionBundle(newInfo, function));
         }
         catch (CompilationFailedException exc)
@@ -189,7 +168,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         }
 
         final String modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath().toString();
-        groovyClassLoader.addClasspath(modelPath);
+        lamebdaResourceLoader.addClasspath(modelPath);
         logger.info("Added model classpath {}", modelPath);
     }
 
@@ -197,14 +176,14 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         final String specificationBasePath = "/specification";
 
-        addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-yaml"), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", specificationFile))));
+        addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", specificationFile))));
 
         if (generatorHelper != null)
         {
             runRegen(projectConfiguration, ".apidoc.gen");
 
             final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
-            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-human-readable"), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
+            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
         }
     }
 
@@ -222,15 +201,16 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         return function;
     }
 
-    private void reloadFunctions(final Path path)
+    private void reloadFunctions()
     {
-        logger.info("Reloading functions due to API specification change: {}", path);
-        functions.forEach((sourcePath, func) -> {
-            if (!func.getInfo().isBuiltin())
+        functions.forEach((name, func) -> {
+            final FunctionBundle oldInfo = functions.get(name);
+            if (oldInfo.getInfo() instanceof ScriptServerFunctionInfo)
             {
-                final FunctionBundle oldInfo = functions.get(sourcePath);
-                final ServerFunctionInfo newInfo = ServerFunctionInfo.of(sourcePath);
-                if (oldInfo == null || oldInfo.getInfo().getLastModified().plusSeconds(1).isBefore(newInfo.getLastModified()))
+                final Path sourcePath = ((ScriptServerFunctionInfo) oldInfo.getInfo()).getSourcePath();
+                final ScriptServerFunctionInfo newInfo = ScriptServerFunctionInfo.ofScript(lamebdaResourceLoader, sourcePath);
+                final OffsetDateTime lastModified = ((ScriptServerFunctionInfo) oldInfo.getInfo()).getLastModified();
+                if (lastModified.plusSeconds(1).isBefore(newInfo.getLastModified()))
                 {
                     // The old is more than 1 second older than the new
                     functionChanged(sourcePath);
@@ -241,8 +221,9 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     public FunctionManagerImpl addFunction(FunctionBundle bundle)
     {
-        final boolean exists = functions.put(bundle.getInfo().getSourcePath(), bundle) != null;
-        logger.info(exists ? "'{}' was reloaded" : "'{}' was loaded", bundle.getInfo().getSourcePath());
+        final String name = bundle.getInfo().getName();
+        final boolean exists = functions.put(name, bundle) != null;
+        logger.info(exists ? "'{}' was reloaded" : "'{}' was loaded", name);
         return this;
     }
 
@@ -250,11 +231,11 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         initialApiProcessing();
 
-        for (ServerFunctionInfo f : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
+        for (ScriptServerFunctionInfo f : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
         {
             try
             {
-                addFunction(new FunctionBundle(ServerFunctionInfo.of(f.getSourcePath()), lamebdaResourceLoader.load(groovyClassLoader, f.getSourcePath())));
+                addFunction(new FunctionBundle(ScriptServerFunctionInfo.ofScript(lamebdaResourceLoader, f.getSourcePath()), lamebdaResourceLoader.load(f.getSourcePath())));
             }
             catch (Exception exc)
             {
@@ -285,7 +266,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     @Override
     public void functionRemoved(final Path sourcePath)
     {
-        final FunctionBundle func = functions.remove(sourcePath);
+        final FunctionBundle func = functions.remove(sourcePath.toString());
         if (func != null)
         {
             logger.info("'{}' was unloaded", sourcePath);
@@ -296,14 +277,22 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     public void specificationChanged(final Path path)
     {
         initialApiProcessing();
-        reloadFunctions(path);
+
+        logger.info("Reloading functions due to API specification change: {}", path);
+        reloadFunctions();
+    }
+
+    @Override
+    public Optional<ServerFunction> getFunction(final String name)
+    {
+        final FunctionBundle res = functions.get(name);
+        return res != null ? Optional.of(res.getFunction()) : Optional.empty();
     }
 
     @Override
     public Optional<ServerFunction> getFunction(final Path sourcePath)
     {
-        final FunctionBundle res = functions.get(sourcePath);
-        return res != null ? Optional.of(res.getFunction()) : Optional.empty();
+        return getFunction(sourcePath.toString());
     }
 
     @Override
@@ -325,7 +314,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         try
         {
-            this.groovyClassLoader.close();
             this.lamebdaResourceLoader.close();
         }
         catch (IOException e)
@@ -372,7 +360,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         throw new RuntimeException(cause);
     }
 
-    public Map<Path, FunctionBundle> getFunctions()
+    public Map<String, FunctionBundle> getFunctions()
     {
         return Collections.unmodifiableMap(functions);
     }

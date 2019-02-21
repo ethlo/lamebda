@@ -36,16 +36,16 @@ import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
-public class FunctionLoaderFromJarTest
+public class FunctionLoaderFromArchiveTest
 {
-    public FunctionLoaderFromJarTest() throws IOException
+    public FunctionLoaderFromArchiveTest() throws IOException
     {
     }
 
     @Test
     public void testLoadFromZip() throws Exception
     {
-        final Path projectPath = Paths.get("/home/morten/development/kezzler/gateway/rfc/build/distributions/rfc.zip");
+        final Path projectPath = Paths.get("/home/morten/core-lamebda/rfc.zip");
         final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).listenForChanges(false).build();
         final FunctionManager functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, f -> f));
     }

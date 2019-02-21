@@ -20,7 +20,6 @@ package com.ethlo.lamebda.functions;
  * #L%
  */
 
-import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +35,7 @@ import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.HttpStatus;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
-import com.ethlo.lamebda.ServerFunctionInfo;
+import com.ethlo.lamebda.ScriptServerFunctionInfo;
 import com.ethlo.lamebda.URLMappedServerFunction;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
@@ -68,12 +67,12 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
         final int page = Integer.parseInt(request.param("page", "0"));
         final int size = Integer.parseInt(request.param("size", "25"));
         final FunctionManagerImpl fm = (FunctionManagerImpl) functionManager;
-        final Map<Path, FunctionBundle> functions = fm.getFunctions();
+        final Map<String, FunctionBundle> functions = fm.getFunctions();
         final List<FunctionStatusInfo> functionList = getFunctionInfoList(page, size).stream().map(s ->
         {
             final FunctionStatusInfo info = new FunctionStatusInfo(projectConfiguration.getPath(), s);
 
-            final Optional<ServerFunction> funcOpt = ((FunctionManagerImpl) functionManager).getFunction(s.getSourcePath());
+            final Optional<ServerFunction> funcOpt = ((FunctionManagerImpl) functionManager).getFunction(s.getName());
             final boolean isLoaded = funcOpt.isPresent();
             info.setRunning(isLoaded);
 
@@ -98,7 +97,7 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
         response.json(HttpStatus.OK, res);
     }
 
-    private List<ServerFunctionInfo> getFunctionInfoList(int page, int pageSize)
+    private List<ScriptServerFunctionInfo> getFunctionInfoList(int page, int pageSize)
     {
         return resourceLoader.findAll(page * pageSize, pageSize);
     }

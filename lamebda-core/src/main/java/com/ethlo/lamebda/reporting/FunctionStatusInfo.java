@@ -24,7 +24,7 @@ import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.Set;
 
-import com.ethlo.lamebda.ServerFunctionInfo;
+import com.ethlo.lamebda.ScriptServerFunctionInfo;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.util.FileNameUtil;
 
@@ -36,7 +36,7 @@ public class FunctionStatusInfo
     private String name;
     private Set<RequestMapping> requestMappings;
 
-    public FunctionStatusInfo(Path projectDir, final ServerFunctionInfo info)
+    public FunctionStatusInfo(Path projectDir, final ScriptServerFunctionInfo info)
     {
         name = FileNameUtil.removeExtension(info.getSourcePath().getFileName().toString());
         relPath = info.getSourcePath().toString().substring(projectDir.toString().length());

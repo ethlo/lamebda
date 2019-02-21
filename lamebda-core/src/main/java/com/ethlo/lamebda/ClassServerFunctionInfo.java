@@ -20,24 +20,19 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-public class FunctionBundle
+public class ClassServerFunctionInfo extends AbstractServerFunctionInfo
 {
-    private final AbstractServerFunctionInfo info;
-    private final ServerFunction function;
+    private final Class<? extends ServerFunction> clazz;
 
-    public FunctionBundle(final AbstractServerFunctionInfo info, final ServerFunction function)
+    @Override
+    public Class<?> getType()
     {
-        this.info = info;
-        this.function = function;
+        return clazz;
     }
 
-    public AbstractServerFunctionInfo getInfo()
+    public ClassServerFunctionInfo(String name, final Class<? extends ServerFunction> clazz)
     {
-        return info;
-    }
-
-    public ServerFunction getFunction()
-    {
-        return function;
+        super(name);
+        this.clazz = clazz;
     }
 }

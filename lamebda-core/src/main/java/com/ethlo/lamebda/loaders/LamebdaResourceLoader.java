@@ -21,20 +21,13 @@ package com.ethlo.lamebda.loaders;
  */
 
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 
-import com.ethlo.lamebda.ApiSpecificationModificationNotice;
-import com.ethlo.lamebda.FunctionModificationNotice;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
-import com.ethlo.lamebda.ServerFunctionInfo;
-import com.ethlo.lamebda.io.FileSystemEvent;
-import com.ethlo.lamebda.util.IoUtil;
-import groovy.lang.GroovyClassLoader;
+import com.ethlo.lamebda.ScriptServerFunctionInfo;
 
 public interface LamebdaResourceLoader extends AutoCloseable
 {
@@ -52,23 +45,19 @@ public interface LamebdaResourceLoader extends AutoCloseable
      *
      * @param offset The number of items to skip
      * @param size   The number of items to return
-     * @return A list of {@link ServerFunctionInfo}s
+     * @return A list of {@link ScriptServerFunctionInfo}s
      */
-    List<ServerFunctionInfo> findAll(long offset, int size);
+    List<ScriptServerFunctionInfo> findAll(long offset, int size);
 
-    ServerFunction load(GroovyClassLoader classLoader, Path sourcePath);
+    ServerFunction load(Path sourcePath);
 
-    Class<ServerFunction> loadClass(GroovyClassLoader classLoader, Path sourcePath);
+    Class<ServerFunction> loadClass(Path sourcePath);
 
     Optional<Path> getApiSpecification();
-
-    URL getSharedClassPath();
-
-    List<URL> getLibUrls();
 
     ProjectConfiguration getProjectConfiguration();
 
     void close() throws IOException;
 
-    Path getScriptsPath();
+    void addClasspath(String path);
 }

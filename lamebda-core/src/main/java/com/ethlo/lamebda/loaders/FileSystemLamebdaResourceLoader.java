@@ -24,14 +24,11 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,12 +37,13 @@ import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.PropertyFile;
 import com.ethlo.lamebda.ServerFunction;
-import com.ethlo.lamebda.ServerFunctionInfo;
+import com.ethlo.lamebda.ScriptServerFunctionInfo;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
+import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.util.FileNameUtil;
-import com.ethlo.lamebda.util.IoUtil;
-import groovy.lang.GroovyClassLoader;
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ScanResult;
 
 public class FileSystemLamebdaResourceLoader extends AbstractFileSystemResourceLoader
 {
@@ -60,9 +58,9 @@ public class FileSystemLamebdaResourceLoader extends AbstractFileSystemResourceL
     }
 
     @Override
-    public ServerFunction load(GroovyClassLoader classLoader, Path sourcePath)
+    public ServerFunction load(Path sourcePath)
     {
-        final Class<ServerFunction> clazz = loadClass(classLoader, sourcePath);
+        final Class<ServerFunction> clazz = loadClass(sourcePath);
         final ServerFunction instance = instantiate(clazz);
         setContextIfApplicable(instance);
         return functionPostProcessor.process(instance);
@@ -113,7 +111,44 @@ public class FileSystemLamebdaResourceLoader extends AbstractFileSystemResourceL
     }
 
     @Override
-    public List<ServerFunctionInfo> findAll(long offset, int size)
+    public List<ScriptServerFunctionInfo> findAll(long offset, int size)
+    {
+        if (Files.exists(scriptPath))
+        {
+            return getServerFunctionScripts(offset, size);
+        }
+        else
+        {
+            return scanForFunctions();
+        }
+    }
+
+    private List<ScriptServerFunctionInfo> scanForFunctions()
+    {
+        final List<ScriptServerFunctionInfo> result = new LinkedList<>();
+        try (ScanResult scanResult = new ClassGraph().enableClassInfo().overrideClassLoaders(groovyClassLoader).scan())
+        {
+            scanResult.getClassesImplementing(ServerFunction.class.getCanonicalName()).forEach(clazz ->
+            {
+                logger.info("Found {}", clazz);
+                if (! clazz.isAbstract() && !clazz.implementsInterface(BuiltInServerFunction.class.getCanonicalName()))
+                {
+                    try
+                    {
+                        result.add((ScriptServerFunctionInfo) instantiate((Class<ServerFunction>) Class.forName(clazz.getName(), false, groovyClassLoader)));
+                    }
+                    catch (ClassNotFoundException e)
+                    {
+                        logger.error("Cannot load class {}", clazz.getName());
+                    }
+                }
+            });
+        }
+
+        return result;
+    }
+
+    private List<ScriptServerFunctionInfo> getServerFunctionScripts(final long offset, final int size)
     {
         try
         {
@@ -121,7 +156,7 @@ public class FileSystemLamebdaResourceLoader extends AbstractFileSystemResourceL
                     .sorted(Comparator.comparing(Path::getFileName))
                     .skip(offset)
                     .limit(size)
-                    .map(ServerFunctionInfo::of)
+                    .map(s->ScriptServerFunctionInfo.ofScript(this, s))
                     .collect(Collectors.toList());
         }
         catch (IOException e)
@@ -142,37 +177,14 @@ public class FileSystemLamebdaResourceLoader extends AbstractFileSystemResourceL
     }
 
     @Override
-    public URL getSharedClassPath()
-    {
-        try
-        {
-            return sharedPath.toUri().toURL();
-        }
-        catch (MalformedURLException e)
-        {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    @Override
-    public List<URL> getLibUrls()
-    {
-        if (!Files.exists(libPath, LinkOption.NOFOLLOW_LINKS))
-        {
-            return Collections.emptyList();
-        }
-        return IoUtil.toClassPathList(libPath);
-    }
-
-    @Override
     public ProjectConfiguration getProjectConfiguration()
     {
         return projectConfiguration;
     }
-    
+
     @Override
-    public Path getScriptsPath()
+    public void addClasspath(final String path)
     {
-        return projectPath.resolve(SCRIPT_DIRECTORY);
+        this.groovyClassLoader.addClasspath(path);
     }
 }
