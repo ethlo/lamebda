@@ -75,8 +75,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private static final String DEFAULT_CONFIG_FILENAME = "config.properties";
     static final String SCRIPT_EXTENSION = "groovy";
     public static final String LIB_DIRECTORY = "lib";
-    private static final String ARCHIVE_FILENAME = "project.jar";
-    private static final String RESOURCE_DIRECTORY = "resources";
     private static final String PROPERTIES_EXTENSION = "properties";
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -103,7 +101,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
         this.groovyClassLoader = new GroovyClassLoader();
 
-        final Path archivePath = projectPath.resolve(ARCHIVE_FILENAME);
+        final Path archivePath = projectPath.resolve(projectPath.getFileName() + "." + JAR_EXTENSION);
         if (Files.exists(archivePath))
         {
             decompress(projectPath, archivePath);
@@ -152,7 +150,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
             {
                 Files.createDirectories(target.getParent());
                 final InputStream in = zipFile.getInputStream(ze);
-                final boolean overwrite = target.getFileName().toString().endsWith("." + FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION);
+                final boolean overwrite = !target.getFileName().toString().endsWith("." + FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION);
                 if (!Files.exists(target) || overwrite)
                 {
                     logger.info("Unpacking {} to {}", ze.getName(), target);

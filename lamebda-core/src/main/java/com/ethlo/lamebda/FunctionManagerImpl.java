@@ -174,16 +174,9 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration, Path specificationFile) throws IOException
     {
-        final String specificationBasePath = "/specification";
-
-        addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", specificationFile))));
-
         if (generatorHelper != null)
         {
             runRegen(projectConfiguration, ".apidoc.gen");
-
-            final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
-            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
         }
     }
 
@@ -262,7 +255,18 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             try
             {
                 generateModels();
+
                 generateHumanReadableApiDoc(projectConfiguration, apiPath);
+
+                final String specificationBasePath = "/specification";
+                final Optional<Path> specificationFile = lamebdaResourceLoader.getApiSpecification();
+                specificationFile.ifPresent(f->addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
+
+                final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
+                if (Files.exists(targetPath))
+                {
+                    addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
+                }
             }
             catch (IOException exc)
             {
