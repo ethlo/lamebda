@@ -59,7 +59,7 @@ import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.MethodAndPattern;
 import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
 
-public class SpringMvcServerFunction extends BaseServerFunction implements URLMappedServerFunction
+public abstract class SpringMvcServerFunction extends BaseServerFunction implements URLMappedServerFunction
 {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 

@@ -25,7 +25,7 @@ public class ClassServerFunctionInfo extends AbstractServerFunctionInfo
     private final Class<? extends ServerFunction> clazz;
 
     @Override
-    public Class<?> getType()
+    public Class<? extends ServerFunction> getType()
     {
         return clazz;
     }

@@ -112,26 +112,21 @@ public class LamebdaSpringWebAutoConfiguration
     @ConditionalOnBean(FileSourceConfiguration.class)
     public FunctionManagerDirector functionManagerDirector(FileSourceConfiguration cfg) throws IOException
     {
-        return new FunctionManagerDirector(cfg.getDirectory(), rootContextPath, new FunctionPostProcessor()
+        return new FunctionManagerDirector(cfg.getDirectory(), rootContextPath, function ->
         {
-            @Override
-            public ServerFunction process(final ServerFunction function)
+            AutowireHelper.postProcessor(applicationContext).process(function);
+            if (function instanceof BaseServerFunction)
             {
-                AutowireHelper.postProcessor(applicationContext).process(function);
-                if (function instanceof BaseServerFunction)
-                {
-                    ((BaseServerFunction) function).handlePostConstructMethods();
-                }
-
-                return function;
+                ((BaseServerFunction) function).handlePostConstructMethods();
             }
+            return function;
         });
     }
 
     @Bean
     public FilterRegistrationBean metricsFilter()
     {
-        final FilterRegistrationBean b = new FilterRegistrationBean();
+        final FilterRegistrationBean<LamebdaMetricsFilter> b = new FilterRegistrationBean<>();
         b.setFilter(new LamebdaMetricsFilter(FunctionMetricsService.getInstance()));
         final String urlPattern = "/" + StringUtil.strip(this.rootContextPath, "/") + "/*";
         b.addUrlPatterns(urlPattern);

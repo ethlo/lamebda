@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.ethlo.lamebda.AbstractServerFunctionInfo;
 import com.ethlo.lamebda.ConfigurableFunctionManager;
 import com.ethlo.lamebda.FunctionBundle;
 import com.ethlo.lamebda.FunctionManager;
@@ -35,7 +36,6 @@ import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.HttpStatus;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
-import com.ethlo.lamebda.ScriptServerFunctionInfo;
 import com.ethlo.lamebda.URLMappedServerFunction;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
@@ -97,7 +97,7 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
         response.json(HttpStatus.OK, res);
     }
 
-    private List<ScriptServerFunctionInfo> getFunctionInfoList(int page, int pageSize)
+    private List<? extends AbstractServerFunctionInfo> getFunctionInfoList(int page, int pageSize)
     {
         return resourceLoader.findAll(page * pageSize, pageSize);
     }

@@ -45,7 +45,7 @@ public class FunctionLoaderFromArchiveTest
     @Test
     public void testLoadFromZip() throws Exception
     {
-        final Path projectPath = Paths.get("/home/morten/core-lamebda/rfc.zip");
+        final Path projectPath = Paths.get("/home/morten/core-lamebda/rfc");
         final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).listenForChanges(false).build();
         final FunctionManager functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, f -> f));
     }

@@ -9,9 +9,9 @@ package com.ethlo.lamebda.loaders;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,7 +33,7 @@ import com.ethlo.lamebda.io.FileSystemEvent;
 import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.util.FileNameUtil;
 
-public class FileSystemChangeAwareResourceLoader extends FileSystemLamebdaResourceLoader implements FileSystemNotificationAware
+public class ChangeAwareFileSystemLamebdaResourceLoader extends FileSystemLamebdaResourceLoader implements FileSystemNotificationAware
 {
     private Consumer<FunctionModificationNotice> functionChangeListener;
     private Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener;
@@ -41,13 +41,13 @@ public class FileSystemChangeAwareResourceLoader extends FileSystemLamebdaResour
 
     private WatchDir watchDir;
 
-    public FileSystemChangeAwareResourceLoader(ProjectConfiguration projectConfiguration, FunctionPostProcessor functionPostProcessor) throws IOException
+    public ChangeAwareFileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionPostProcessor functionPostProcessor) throws IOException
     {
         super(projectConfiguration, functionPostProcessor);
 
         if (projectConfiguration.isListenForChanges())
         {
-            listenForChanges(projectPath, scriptPath, specificationPath, libPath);
+            listenForChanges(projectConfiguration.getPath(), projectConfiguration.getScriptPath(), projectConfiguration.getSpecificationPath(), projectConfiguration.getLibraryPath());
         }
 
         // Listen for lib folder changes
@@ -55,7 +55,7 @@ public class FileSystemChangeAwareResourceLoader extends FileSystemLamebdaResour
         {
             if (n.getChangeType() == ChangeType.CREATED)
             {
-                groovyClassLoader.addClasspath(n.getPath().toAbsolutePath().toString());
+                addClasspath(n.getPath().toAbsolutePath().toString());
             }
         });
     }
@@ -126,11 +126,11 @@ public class FileSystemChangeAwareResourceLoader extends FileSystemLamebdaResour
         final String filename = event.getPath().getFileName().toString();
         final ChangeType changeType = event.getChangeType();
 
-        if (FileNameUtil.getExtension(filename).equals(SCRIPT_EXTENSION) && event.getPath().getParent().equals(scriptPath))
+        if (FileNameUtil.getExtension(filename).equals(FileSystemLamebdaResourceLoader.SCRIPT_EXTENSION) && event.getPath().getParent().equals(getProjectConfiguration().getScriptPath()))
         {
             functionChanged(event.getPath(), changeType);
         }
-        else if (FileNameUtil.getExtension(filename).equals(JAR_EXTENSION) && event.getPath().getParent().equals(libPath))
+        else if (FileNameUtil.getExtension(filename).equals(JAR_EXTENSION) && event.getPath().getParent().equals(getProjectConfiguration().getLibraryPath()))
         {
             libChanged(event);
         }

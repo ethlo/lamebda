@@ -231,15 +231,23 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         initialApiProcessing();
 
-        for (ScriptServerFunctionInfo f : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
+        for (AbstractServerFunctionInfo info : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
         {
-            try
+            if (info instanceof ClassServerFunctionInfo)
             {
-                addFunction(new FunctionBundle(ScriptServerFunctionInfo.ofScript(lamebdaResourceLoader, f.getSourcePath()), lamebdaResourceLoader.load(f.getSourcePath())));
+                addFunction(new FunctionBundle(info, lamebdaResourceLoader.prepare(info.getType())));
             }
-            catch (Exception exc)
+            else
             {
-                logger.error("Error in function {}: {}", f.getSourcePath(), exc);
+                final ScriptServerFunctionInfo f = (ScriptServerFunctionInfo) info;
+                try
+                {
+                    addFunction(new FunctionBundle(info, lamebdaResourceLoader.load(f.getSourcePath())));
+                }
+                catch (Exception exc)
+                {
+                    logger.error("Error in function {}: {}", f.getSourcePath(), exc);
+                }
             }
         }
 

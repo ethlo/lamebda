@@ -25,9 +25,10 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
+import com.ethlo.lamebda.AbstractServerFunctionInfo;
 import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ScriptServerFunctionInfo;
+import com.ethlo.lamebda.ServerFunction;
 
 public interface LamebdaResourceLoader extends AutoCloseable
 {
@@ -47,9 +48,11 @@ public interface LamebdaResourceLoader extends AutoCloseable
      * @param size   The number of items to return
      * @return A list of {@link ScriptServerFunctionInfo}s
      */
-    List<ScriptServerFunctionInfo> findAll(long offset, int size);
+    List<? extends AbstractServerFunctionInfo> findAll(long offset, int size);
 
     ServerFunction load(Path sourcePath);
+
+    ServerFunction prepare(Class<? extends ServerFunction> clazz);
 
     Class<ServerFunction> loadClass(Path sourcePath);
 

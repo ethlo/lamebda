@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
+import com.ethlo.lamebda.loaders.ChangeAwareFileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 
@@ -159,7 +160,7 @@ public class FunctionManagerDirector
         final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
         try
         {
-            return new FileSystemLamebdaResourceLoader(cfg, functionPostProcessor);
+            return new ChangeAwareFileSystemLamebdaResourceLoader(cfg, functionPostProcessor);
         }
         catch (IOException exc)
         {

@@ -35,7 +35,7 @@ public abstract class AbstractServerFunctionInfo implements Comparable<AbstractS
 {
     private final String name;
 
-    public abstract Class<?> getType();
+    public abstract Class<? extends ServerFunction> getType();
 
     protected AbstractServerFunctionInfo(String name)
     {
@@ -60,7 +60,7 @@ public abstract class AbstractServerFunctionInfo implements Comparable<AbstractS
         }
     }
 
-    public static AbstractServerFunctionInfo ofClass(final Class<ServerFunction> function)
+    public static ClassServerFunctionInfo ofClass(final Class<ServerFunction> function)
     {
         return new ClassServerFunctionInfo(function.getCanonicalName(), function);
     }

@@ -4,7 +4,7 @@ package com.ethlo.lamebda.loaders;
  * #%L
  * lamebda-core
  * %%
- * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,59 +22,208 @@ package com.ethlo.lamebda.loaders;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.ethlo.lamebda.AbstractServerFunctionInfo;
+import com.ethlo.lamebda.ClassServerFunctionInfo;
 import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.PropertyFile;
-import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.ScriptServerFunctionInfo;
+import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
+import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.FileNameUtil;
+import com.ethlo.lamebda.util.IoUtil;
+import groovy.lang.GroovyClassLoader;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ScanResult;
 
-public class FileSystemLamebdaResourceLoader extends AbstractFileSystemResourceLoader
+public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 {
-    public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration) throws IOException
-    {
-        this(projectConfiguration, s -> s);
-    }
+    public static final String PROJECT_FILENAME = "project.properties";
+    public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
+    public static final String JAR_EXTENSION = "jar";
+    public static final String SCRIPT_DIRECTORY = "scripts";
+    public static final String STATIC_DIRECTORY = "static";
+    public static final String SPECIFICATION_DIRECTORY = "specification";
+    public static final String SHARED_DIRECTORY = "shared";
+    static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
+
+    private static final String DEFAULT_CONFIG_FILENAME = "config.properties";
+    static final String SCRIPT_EXTENSION = "groovy";
+    public static final String LIB_DIRECTORY = "lib";
+    private static final String ARCHIVE_FILENAME = "project.jar";
+    private static final String RESOURCE_DIRECTORY = "resources";
+    private static final String PROPERTIES_EXTENSION = "properties";
+
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+    private final GroovyClassLoader groovyClassLoader;
+    private final ProjectConfiguration projectConfiguration;
+    private final FunctionPostProcessor functionPostProcessor;
+
+    private Path scriptPath;
+    private Path libPath;
+    private List<ClassServerFunctionInfo> classFunctions;
 
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionPostProcessor functionPostProcessor) throws IOException
     {
-        super(projectConfiguration, functionPostProcessor);
-    }
+        this.projectConfiguration = projectConfiguration;
+        this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
 
-    @Override
-    public ServerFunction load(Path sourcePath)
-    {
-        final Class<ServerFunction> clazz = loadClass(sourcePath);
-        final ServerFunction instance = instantiate(clazz);
-        setContextIfApplicable(instance);
-        return functionPostProcessor.process(instance);
-    }
-
-    private void setContextIfApplicable(final ServerFunction func)
-    {
-        if (func instanceof FunctionContextAware)
+        final Path projectPath = projectConfiguration.getPath();
+        if (!Files.exists(projectPath))
         {
-            ((FunctionContextAware) func).setContext(loadContext(func.getClass()));
+            throw new FileNotFoundException("Cannot use " + projectPath.toAbsolutePath() + " as project directory as it does not exist");
+        }
+
+        logger.info("Loading project: {}", projectConfiguration.toPrettyString());
+
+        this.groovyClassLoader = new GroovyClassLoader();
+
+        final Path archivePath = projectPath.resolve(ARCHIVE_FILENAME);
+        if (Files.exists(archivePath))
+        {
+            decompress(projectPath, archivePath);
+        }
+
+        handleProject(projectPath);
+
+        logger.info("Project directory: {}", projectPath);
+    }
+
+    private void decompress(final Path projectPath, final Path archivePath) throws IOException
+    {
+        unzipDirectory(archivePath, projectPath);
+    }
+
+    private void handleProject(final Path projectPath) throws IOException
+    {
+        this.scriptPath = Files.createDirectories(projectPath.resolve(SCRIPT_DIRECTORY));
+        final Path sharedPath = Files.createDirectories(projectPath.resolve(SHARED_DIRECTORY));
+        this.libPath = Files.createDirectories(projectPath.resolve(LIB_DIRECTORY));
+
+        final String scriptClassPath = scriptPath.toAbsolutePath().toString();
+        this.groovyClassLoader.addClasspath(scriptClassPath);
+        logger.info("Adding script classpath {}", scriptClassPath);
+
+        final String sharedClassPath = sharedPath.toAbsolutePath().toString();
+        groovyClassLoader.addClasspath(sharedClassPath);
+        logger.info("Adding shared classpath {}", sharedClassPath);
+
+        getLibUrls().forEach(url ->
+        {
+            groovyClassLoader.addURL(url);
+            logger.info("Adding library classpath {}", url);
+        });
+    }
+
+    private void unzipDirectory(final Path archivePath, Path targetDir) throws IOException
+    {
+        final ZipFile zipFile = new ZipFile(archivePath.toString());
+        final Enumeration zipEntries = zipFile.entries();
+        while (zipEntries.hasMoreElements())
+        {
+            final ZipEntry ze = ((ZipEntry) zipEntries.nextElement());
+            final Path target = targetDir.resolve(ze.getName());
+            if (!ze.isDirectory())
+            {
+                Files.createDirectories(target.getParent());
+                final InputStream in = zipFile.getInputStream(ze);
+                final boolean overwrite = target.getFileName().toString().endsWith("." + FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION);
+                if (!Files.exists(target) || overwrite)
+                {
+                    logger.info("Unpacking {} to {}", ze.getName(), target);
+                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
         }
     }
 
-    public FunctionContext loadContext(final Class<?> functionClass)
+    private List<URL> getLibUrls()
+    {
+        if (!Files.exists(libPath, LinkOption.NOFOLLOW_LINKS))
+        {
+            return Collections.emptyList();
+        }
+        return IoUtil.toClassPathList(libPath);
+    }
+
+    ServerFunction instantiate(Class<? extends ServerFunction> clazz)
+    {
+        try
+        {
+            return ServerFunction.class.cast(clazz.newInstance());
+        }
+        catch (InstantiationException | IllegalAccessException exc)
+        {
+            throw new IllegalStateException("Cannot instantiate class " + clazz.getName(), exc);
+        }
+    }
+
+    @Override
+    public Class<ServerFunction> loadClass(Path sourcePath)
+    {
+        try
+        {
+            final String source = readSource(sourcePath);
+            final Class<?> clazz = groovyClassLoader.parseClass(source);
+            Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
+
+            final String actualClassName = clazz.getCanonicalName();
+
+            final String expectedClassName = toClassName(sourcePath);
+            Assert.isTrue(actualClassName.equals(expectedClassName), "Unexpected class name '" + actualClassName + "' in file " + sourcePath + ". Expected " + expectedClassName);
+
+            return (Class<ServerFunction>) clazz;
+        }
+        catch (IOException exc)
+        {
+            throw new IllegalStateException("Cannot load class " + sourcePath, exc);
+        }
+    }
+
+    String toClassName(final Path sourcePath)
+    {
+        return scriptPath.relativize(sourcePath).toString().replace('/', '.').replace("." + SCRIPT_EXTENSION, "");
+    }
+
+    @Override
+    public void close() throws IOException
+    {
+        this.groovyClassLoader.close();
+    }
+
+    FunctionContext loadContext(final Class<?> functionClass)
+    {
+        final FunctionConfiguration functionConfiguration = loadFunctionConfig(functionClass);
+        return new FunctionContext(projectConfiguration, functionConfiguration);
+    }
+
+
+    FunctionConfiguration loadFunctionConfig(final Class<?> functionClass)
     {
         final FunctionConfiguration functionConfiguration = new FunctionConfiguration();
 
@@ -101,68 +250,97 @@ public class FileSystemLamebdaResourceLoader extends AbstractFileSystemResourceL
             throw new UncheckedIOException(new FileNotFoundException(cfgFilePath.toString()));
         }
 
-        return new FunctionContext(projectConfiguration, functionConfiguration);
+        return functionConfiguration;
     }
 
     @Override
-    public String readSource(Path sourcePath) throws IOException
+    public List<? extends AbstractServerFunctionInfo> findAll(long offset, int size)
     {
-        return new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
-    }
-
-    @Override
-    public List<ScriptServerFunctionInfo> findAll(long offset, int size)
-    {
-        if (Files.exists(scriptPath))
-        {
-            return getServerFunctionScripts(offset, size);
-        }
-        else
-        {
-            return scanForFunctions();
-        }
-    }
-
-    private List<ScriptServerFunctionInfo> scanForFunctions()
-    {
-        final List<ScriptServerFunctionInfo> result = new LinkedList<>();
-        try (ScanResult scanResult = new ClassGraph().enableClassInfo().overrideClassLoaders(groovyClassLoader).scan())
-        {
-            scanResult.getClassesImplementing(ServerFunction.class.getCanonicalName()).forEach(clazz ->
-            {
-                logger.info("Found {}", clazz);
-                if (! clazz.isAbstract() && !clazz.implementsInterface(BuiltInServerFunction.class.getCanonicalName()))
-                {
-                    try
-                    {
-                        result.add((ScriptServerFunctionInfo) instantiate((Class<ServerFunction>) Class.forName(clazz.getName(), false, groovyClassLoader)));
-                    }
-                    catch (ClassNotFoundException e)
-                    {
-                        logger.error("Cannot load class {}", clazz.getName());
-                    }
-                }
-            });
-        }
-
-        return result;
+        final List<AbstractServerFunctionInfo> all = new LinkedList<>();
+        all.addAll(getServerFunctionScripts(offset, size));
+        all.addAll(scanForFunctions());
+        return all;
     }
 
     private List<ScriptServerFunctionInfo> getServerFunctionScripts(final long offset, final int size)
     {
+        if (!Files.exists(scriptPath))
+        {
+            return Collections.emptyList();
+        }
+
         try
         {
             return Files.list(scriptPath).filter(f -> FileNameUtil.getExtension(f.getFileName().toString()).equals(SCRIPT_EXTENSION))
                     .sorted(Comparator.comparing(Path::getFileName))
                     .skip(offset)
                     .limit(size)
-                    .map(s->ScriptServerFunctionInfo.ofScript(this, s))
+                    .map(s -> ScriptServerFunctionInfo.ofScript(this, s))
                     .collect(Collectors.toList());
         }
         catch (IOException e)
         {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private List<ClassServerFunctionInfo> scanForFunctions()
+    {
+        if (this.classFunctions != null)
+        {
+            return this.classFunctions;
+        }
+
+        this.classFunctions = new LinkedList<>();
+        try (ScanResult scanResult = new ClassGraph().enableClassInfo().overrideClassLoaders(groovyClassLoader).scan())
+        {
+            scanResult.getClassesImplementing(ServerFunction.class.getCanonicalName()).forEach(classInfo ->
+            {
+                if (!classInfo.isAbstract() && !classInfo.implementsInterface(BuiltInServerFunction.class.getCanonicalName()))
+                {
+                    logger.info("Found function class: {}", classInfo.getName());
+
+                    try
+                    {
+                        classFunctions.add(ClassServerFunctionInfo.ofClass((Class<ServerFunction>) Class.forName(classInfo.getName(), false, groovyClassLoader)));
+                    }
+                    catch (ClassNotFoundException e)
+                    {
+                        logger.error("Cannot load class {}", classInfo.getName());
+                    }
+                }
+            });
+        }
+
+        return classFunctions;
+    }
+
+    @Override
+    public ServerFunction load(Path sourcePath)
+    {
+        return prepare(loadClass(sourcePath));
+    }
+
+    @Override
+    public ServerFunction prepare(Class<? extends ServerFunction> clazz)
+    {
+        final ServerFunction instance = instantiate(clazz);
+        setContextIfApplicable(instance);
+        return functionPostProcessor.process(instance);
+    }
+
+    private void setContextIfApplicable(final ServerFunction func)
+    {
+        if (func instanceof FunctionContextAware)
+        {
+            ((FunctionContextAware) func).setContext(loadContext(func.getClass()));
+        }
+    }
+
+    @Override
+    public String readSource(Path sourcePath) throws IOException
+    {
+        return new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
     }
 
     @Override
