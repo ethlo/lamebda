@@ -44,7 +44,6 @@ import org.springframework.web.servlet.HandlerMapping;
 import com.ethlo.lamebda.BaseServerFunction;
 import com.ethlo.lamebda.DelegatingFunctionManager;
 import com.ethlo.lamebda.FunctionManagerDirector;
-import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;

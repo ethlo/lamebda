@@ -257,12 +257,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public List<? extends AbstractServerFunctionInfo> findAll(long offset, int size)
     {
         final List<AbstractServerFunctionInfo> all = new LinkedList<>();
-        all.addAll(getServerFunctionScripts(offset, size));
-        all.addAll(scanForFunctions());
-        return all;
+        all.addAll(getServerFunctionScripts());
+        all.addAll(getServerFunctionClasses());
+        return all.stream().skip(offset).limit(size).collect(Collectors.toList());
     }
 
-    private List<ScriptServerFunctionInfo> getServerFunctionScripts(final long offset, final int size)
+    private List<ScriptServerFunctionInfo> getServerFunctionScripts()
     {
         if (!Files.exists(scriptPath))
         {
@@ -273,8 +273,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         {
             return Files.list(scriptPath).filter(f -> FileNameUtil.getExtension(f.getFileName().toString()).equals(SCRIPT_EXTENSION))
                     .sorted(Comparator.comparing(Path::getFileName))
-                    .skip(offset)
-                    .limit(size)
                     .map(s -> ScriptServerFunctionInfo.ofScript(this, s))
                     .collect(Collectors.toList());
         }
@@ -284,7 +282,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         }
     }
 
-    private List<ClassServerFunctionInfo> scanForFunctions()
+    private List<ClassServerFunctionInfo> getServerFunctionClasses()
     {
         if (this.classFunctions != null)
         {

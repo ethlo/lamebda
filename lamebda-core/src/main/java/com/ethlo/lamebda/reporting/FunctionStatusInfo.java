@@ -25,6 +25,7 @@ import java.time.OffsetDateTime;
 import java.util.Set;
 
 import com.ethlo.lamebda.AbstractServerFunctionInfo;
+import com.ethlo.lamebda.ScriptServerFunctionInfo;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.util.FileNameUtil;
 
@@ -40,9 +41,12 @@ public class FunctionStatusInfo
     {
         name = FileNameUtil.removeExtension(info.getName());
 
-        // TODO: Optional info
-        //relPath = info.getSourcePath().toString().substring(projectDir.toString().length());
-        //lastModified = info.getLastModified();
+        if (info instanceof ScriptServerFunctionInfo)
+        {
+            final ScriptServerFunctionInfo si = (ScriptServerFunctionInfo) info;
+            relPath = si.toString().substring(projectDir.toString().length());
+            lastModified = si.getLastModified();
+        }
     }
 
     public boolean isRunning()

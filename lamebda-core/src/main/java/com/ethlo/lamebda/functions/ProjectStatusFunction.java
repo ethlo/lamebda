@@ -28,7 +28,6 @@ import java.util.stream.Collectors;
 
 import com.ethlo.lamebda.AbstractServerFunctionInfo;
 import com.ethlo.lamebda.ConfigurableFunctionManager;
-import com.ethlo.lamebda.FunctionBundle;
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.HttpRequest;
@@ -66,8 +65,6 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
     {
         final int page = Integer.parseInt(request.param("page", "0"));
         final int size = Integer.parseInt(request.param("size", "25"));
-        final FunctionManagerImpl fm = (FunctionManagerImpl) functionManager;
-        final Map<String, FunctionBundle> functions = fm.getFunctions();
         final List<FunctionStatusInfo> functionList = getFunctionInfoList(page, size).stream().map(s ->
         {
             final FunctionStatusInfo info = new FunctionStatusInfo(projectConfiguration.getPath(), s);
