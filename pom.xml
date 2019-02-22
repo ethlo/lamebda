@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.ethlo.lamebda</groupId>
 	<artifactId>lamebda</artifactId>
-	<version>0.6.2</version>
+	<version>0.6.3-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Lamebda</name>
 	<description>Simple HTTP handler supporting dynamic loading of HTTP handler functions</description>

@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.Comparator;
@@ -88,6 +89,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private Path scriptPath;
     private Path libPath;
     private List<ClassServerFunctionInfo> classFunctions;
+
+    // Simplified constructor primarily for tests
+    public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration) throws IOException
+    {
+        this(projectConfiguration, f->f);
+    }
 
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionPostProcessor functionPostProcessor) throws IOException
     {
@@ -222,7 +229,8 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         this.groovyClassLoader.close();
     }
 
-    private FunctionContext loadContext(final Class<?> functionClass)
+    // Keep public
+    public FunctionContext loadContext(final Class<?> functionClass)
     {
         final FunctionConfiguration functionConfiguration = loadFunctionConfig(functionClass);
         return new FunctionContext(projectConfiguration, functionConfiguration);
