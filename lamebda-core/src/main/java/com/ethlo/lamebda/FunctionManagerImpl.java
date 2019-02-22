@@ -157,6 +157,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         final ScriptServerFunctionInfo newInfo = ScriptServerFunctionInfo.ofScript(lamebdaResourceLoader, sourcePath);
         try
         {
+            logger.info("Function {} was modified", sourcePath);
             final ServerFunction function = lamebdaResourceLoader.load(sourcePath);
             addFunction(new FunctionBundle(newInfo, function));
         }
@@ -208,6 +209,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             if (oldInfo.getInfo() instanceof ScriptServerFunctionInfo)
             {
                 final Path sourcePath = ((ScriptServerFunctionInfo) oldInfo.getInfo()).getSourcePath();
+                logger.info("Function {}  was modified", sourcePath);
                 functionChanged(sourcePath);
             }
         });
