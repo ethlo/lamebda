@@ -47,7 +47,7 @@ public class ProjectConfigurationBuilder
     private String projectName;
     private String projectContextPath;
     private boolean enableInfoFunction;
-    private boolean isInfoProtected;
+    private boolean isInfoProtected = true;
     private boolean enableStaticResourceFunction;
     private boolean enableUrlProjectContextPrefix;
 
