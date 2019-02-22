@@ -144,9 +144,6 @@ repositories {
     maven {
         url 'https://oss.sonatype.org/content/repositories/snapshots'
     }
-    maven {
-        url 'https://maven.kezzler.org/repository/kezzler-all/'
-    }
 }
 
 configurations{
@@ -228,11 +225,6 @@ dependencies {
 
     compile 'com.ethlo.lamebda:lamebda-springmvc:0.6.3-SNAPSHOT'
     compile 'org.openapitools:openapi-generator:3.3.4'
-
-    // Project this script is for
-    compile('com.kezzler.ssp:ssp-servlet:0.0.0-develop-BUILD-SNAPSHOT') {
-        exclude group: 'org.jvnet.mimepull'
-    }
 }
 
 gitProperties {
