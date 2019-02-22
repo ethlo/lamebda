@@ -4,7 +4,7 @@ package com.ethlo.lamebda.loaders;
  * #%L
  * lamebda-core
  * %%
- * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,10 +20,17 @@ package com.ethlo.lamebda.loaders;
  * #L%
  */
 
-import com.ethlo.lamebda.ServerFunction;
+import java.util.function.Consumer;
 
-@FunctionalInterface
-public interface FunctionPostProcessor
+import com.ethlo.lamebda.ApiSpecificationModificationNotice;
+import com.ethlo.lamebda.FunctionModificationNotice;
+import com.ethlo.lamebda.io.FileSystemEvent;
+
+public interface FileSystemNotificationAware
 {
-    ServerFunction process(ServerFunction function);
+    void setApiSpecificationChangeListener(Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener);
+
+    void setLibChangeListener(Consumer<FileSystemEvent> listener);
+
+    void setFunctionChangeListener(Consumer<FunctionModificationNotice> l);
 }

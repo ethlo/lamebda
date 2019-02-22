@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
+import com.ethlo.lamebda.loaders.ChangeAwareFileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 
@@ -74,13 +75,14 @@ public class FunctionManagerDirector
             {
                 if (e.getChangeType() == ChangeType.DELETED)
                 {
-                    logger.info("Closing project due to directory deletion: {}", e.getPath());
+                    logger.info("Closing project due to deletion: {}", e.getPath());
                     close(e.getPath());
                 }
 
                 if (e.getChangeType() == ChangeType.MODIFIED)
                 {
-                    logger.info("Loading project due to directory created: {}", e.getPath());
+                    logger.info("Loading project due to modification {}", e.getPath());
+                    close(e.getPath());
                     create(e.getPath());
                 }
             }
@@ -124,7 +126,9 @@ public class FunctionManagerDirector
     {
         try
         {
-            return !Files.isHidden(p) && Files.isDirectory(p) && p.getParent().equals(rootDirectory);
+            final boolean validDirectory = !Files.isHidden(p) && Files.isDirectory(p) && p.getParent().equals(rootDirectory);
+            final boolean validCompressedFile = !Files.isHidden(p) && Files.isRegularFile(p) && p.getParent().equals(rootDirectory) && (p.toString().endsWith(".zip") || p.toString().endsWith(".jar"));
+            return validDirectory || validCompressedFile;
         }
         catch (IOException exc)
         {
@@ -148,10 +152,6 @@ public class FunctionManagerDirector
         final FileSystemLamebdaResourceLoader lamebdaResourceLoader = createResourceLoader(projectPath);
         final FunctionManager fm = new FunctionManagerImpl(lamebdaResourceLoader);
         functionManagers.put(projectPath, fm);
-        lamebdaResourceLoader.setProjectChangeListener(n -> {
-            close(projectPath);
-            create(projectPath);
-        });
         return fm;
     }
 
@@ -160,7 +160,7 @@ public class FunctionManagerDirector
         final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
         try
         {
-            return new FileSystemLamebdaResourceLoader(cfg, functionPostProcessor);
+            return new ChangeAwareFileSystemLamebdaResourceLoader(cfg, functionPostProcessor);
         }
         catch (IOException exc)
         {

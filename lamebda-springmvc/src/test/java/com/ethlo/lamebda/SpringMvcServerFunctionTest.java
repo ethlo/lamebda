@@ -76,7 +76,7 @@ public class SpringMvcServerFunctionTest
     {
         final Path sourcePath = move("SpringMvc.groovy");
         functionManager.functionChanged(sourcePath);
-        final Map<Path, FunctionBundle> functions = functionManager.getFunctions();
+        final Map<String, FunctionBundle> functions = functionManager.getFunctions();
         assertThat(functionManager.getFunction(sourcePath)).isPresent();
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();

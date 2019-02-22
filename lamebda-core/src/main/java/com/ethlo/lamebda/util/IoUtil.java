@@ -211,7 +211,11 @@ public class IoUtil
     {
         try
         {
-            return Files.list(jarPath).filter(p -> FileNameUtil.getExtension(p.getFileName().toString()).equals(FileSystemLamebdaResourceLoader.JAR_EXTENSION)).map(IoUtil::toURL).collect(Collectors.toList());
+            return Files
+                .list(jarPath)
+                .filter(p -> FileNameUtil.getExtension(p.getFileName().toString()).equals(FileSystemLamebdaResourceLoader.JAR_EXTENSION))
+                .map(IoUtil::toURL)
+                .collect(Collectors.toList());
         }
         catch (IOException e)
         {

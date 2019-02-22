@@ -44,7 +44,6 @@ import org.springframework.web.servlet.HandlerMapping;
 import com.ethlo.lamebda.BaseServerFunction;
 import com.ethlo.lamebda.DelegatingFunctionManager;
 import com.ethlo.lamebda.FunctionManagerDirector;
-import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
@@ -57,8 +56,6 @@ import com.ethlo.lamebda.util.StringUtil;
 @ConditionalOnProperty(prefix = "lamebda", name = "enabled")
 public class LamebdaSpringWebAutoConfiguration
 {
-    public static final String DEFAULT_PATH = "/lamebda";
-
     private static final Logger logger = LoggerFactory.getLogger(LamebdaSpringWebAutoConfiguration.class);
 
     @Value("${lamebda.request-path:/lamebda}")
@@ -112,26 +109,21 @@ public class LamebdaSpringWebAutoConfiguration
     @ConditionalOnBean(FileSourceConfiguration.class)
     public FunctionManagerDirector functionManagerDirector(FileSourceConfiguration cfg) throws IOException
     {
-        return new FunctionManagerDirector(cfg.getDirectory(), rootContextPath, new FunctionPostProcessor()
+        return new FunctionManagerDirector(cfg.getDirectory(), rootContextPath, function ->
         {
-            @Override
-            public ServerFunction process(final ServerFunction function)
+            AutowireHelper.postProcessor(applicationContext).process(function);
+            if (function instanceof BaseServerFunction)
             {
-                AutowireHelper.postProcessor(applicationContext).process(function);
-                if (function instanceof BaseServerFunction)
-                {
-                    ((BaseServerFunction) function).handlePostConstructMethods();
-                }
-
-                return function;
+                ((BaseServerFunction) function).handlePostConstructMethods();
             }
+            return function;
         });
     }
 
     @Bean
     public FilterRegistrationBean metricsFilter()
     {
-        final FilterRegistrationBean b = new FilterRegistrationBean();
+        final FilterRegistrationBean<LamebdaMetricsFilter> b = new FilterRegistrationBean<>();
         b.setFilter(new LamebdaMetricsFilter(FunctionMetricsService.getInstance()));
         final String urlPattern = "/" + StringUtil.strip(this.rootContextPath, "/") + "/*";
         b.addUrlPatterns(urlPattern);

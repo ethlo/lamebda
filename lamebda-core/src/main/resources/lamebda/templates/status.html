@@ -158,7 +158,7 @@
                 '<td>' + f.name + '</td>' +
                 '<td><span class="' + (f.running ? 'text-success' : 'text-danger') + '">' + f.running + '</td>' +
                 '<td>' + requestMappingMarkup + '</td>' +
-                '<td>' + dateFormat(new Date(f.lastModified)) + '</td>' +
+                '<td>' + dateFormat(f.lastModified) + '</td>' +
                 '</tr>';
             $("#functiontable").append(markup);
         }

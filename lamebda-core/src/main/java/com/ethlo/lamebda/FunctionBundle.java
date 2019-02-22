@@ -22,16 +22,16 @@ package com.ethlo.lamebda;
 
 public class FunctionBundle
 {
-    private final ServerFunctionInfo info;
+    private final AbstractServerFunctionInfo info;
     private final ServerFunction function;
 
-    public FunctionBundle(final ServerFunctionInfo info, final ServerFunction function)
+    public FunctionBundle(final AbstractServerFunctionInfo info, final ServerFunction function)
     {
         this.info = info;
         this.function = function;
     }
 
-    public ServerFunctionInfo getInfo()
+    public AbstractServerFunctionInfo getInfo()
     {
         return info;
     }

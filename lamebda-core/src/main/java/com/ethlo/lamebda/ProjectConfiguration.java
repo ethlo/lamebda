@@ -21,16 +21,20 @@ package com.ethlo.lamebda;
  */
 
 import java.io.Serializable;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.security.UsernamePasswordCredentials;
 import com.ethlo.lamebda.util.Assert;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ProjectConfiguration implements Serializable
 {
@@ -195,18 +199,28 @@ public class ProjectConfiguration implements Serializable
 
     public String toPrettyString()
     {
-        return "" +
-                "name='" + name + '\'' +
-                "\ncontextPath='" + contextPath + '\'' +
-                "\nrootContextPath='" + rootContextPath + '\'' +
-                "\npath=" + path +
-                "\nenableInfoFunction=" + enableInfoFunction +
-                "\nenableStaticResourceFunction=" + enableStaticResourceFunction +
-                "\nenableUrlProjectContextPrefix=" + enableUrlProjectContextPrefix +
-                "\nstaticResourcesPrefix='" + staticResourcesPrefix + '\'' +
-                "\nstaticResourceDirectory=" + staticResourceDirectory
-                + "";
+        try
+        {
+            return new ObjectMapper().writeValueAsString(this);
+        }
+        catch (JsonProcessingException e)
+        {
+            throw new UncheckedIOException(e);
+        }
     }
 
+    public Path getScriptPath()
+    {
+        return this.getPath().resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY);
+    }
 
+    public Path getLibraryPath()
+    {
+        return this.getPath().resolve(FileSystemLamebdaResourceLoader.LIB_DIRECTORY);
+    }
+
+    public Path getSpecificationPath()
+    {
+        return this.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY);
+    }
 }

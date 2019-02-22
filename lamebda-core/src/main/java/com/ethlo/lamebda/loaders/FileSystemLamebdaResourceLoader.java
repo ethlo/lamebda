@@ -4,7 +4,7 @@ package com.ethlo.lamebda.loaders;
  * #%L
  * lamebda-core
  * %%
- * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,80 +22,72 @@ package com.ethlo.lamebda.loaders;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Enumeration;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ethlo.lamebda.ApiSpecificationModificationNotice;
+import com.ethlo.lamebda.AbstractServerFunctionInfo;
+import com.ethlo.lamebda.ClassServerFunctionInfo;
 import com.ethlo.lamebda.FunctionContextAware;
-import com.ethlo.lamebda.FunctionModificationNotice;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.PropertyFile;
+import com.ethlo.lamebda.ScriptServerFunctionInfo;
 import com.ethlo.lamebda.ServerFunction;
-import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
-import com.ethlo.lamebda.io.ChangeType;
-import com.ethlo.lamebda.io.FileSystemEvent;
-import com.ethlo.lamebda.io.WatchDir;
+import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.FileNameUtil;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ScanResult;
 
 public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 {
-    private static final Logger logger = LoggerFactory.getLogger(FileSystemLamebdaResourceLoader.class);
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String PROJECT_FILENAME = "project.properties";
-    public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
-    private static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
-    private static final String DEFAULT_CONFIG_FILENAME = "config.properties";
+    public static final String DEFAULT_CONFIG_FILENAME = "config.properties";
 
-    private static final String SCRIPT_EXTENSION = "groovy";
     public static final String JAR_EXTENSION = "jar";
+    public static final String SCRIPT_EXTENSION = "groovy";
+    public static final String PROPERTIES_EXTENSION = "properties";
 
     public static final String SCRIPT_DIRECTORY = "scripts";
     public static final String STATIC_DIRECTORY = "static";
     public static final String SPECIFICATION_DIRECTORY = "specification";
     public static final String SHARED_DIRECTORY = "shared";
-    private static final String LIB_DIRECTORY = "lib";
+    public static final String LIB_DIRECTORY = "lib";
 
-    private final Path projectPath;
-    private final Path scriptPath;
-    private final Path specificationPath;
-    private final Path sharedPath;
-    private final Path libPath;
+    public static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
+    public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
 
-    private final FunctionPostProcessor functionPostProcessor;
+    private final GroovyClassLoader groovyClassLoader;
     private final ProjectConfiguration projectConfiguration;
+    private final FunctionPostProcessor functionPostProcessor;
 
-    private Consumer<FunctionModificationNotice> functionChangeListener;
-    private Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener;
-    private Consumer<FileSystemEvent> libChangeListener;
-    private Consumer<FileSystemEvent> projectChangeListener;
-
-    private WatchDir watchDir;
-
-    public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration) throws IOException
-    {
-        this(projectConfiguration, s -> s);
-    }
+    private Path scriptPath;
+    private Path libPath;
+    private List<ClassServerFunctionInfo> classFunctions;
 
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionPostProcessor functionPostProcessor) throws IOException
     {
@@ -108,98 +100,79 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
             throw new FileNotFoundException("Cannot use " + projectPath.toAbsolutePath() + " as project directory as it does not exist");
         }
 
-        this.projectPath = projectPath;
-        this.scriptPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SCRIPT_DIRECTORY));
-        this.specificationPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SPECIFICATION_DIRECTORY));
-        this.sharedPath = IoUtil.ensureDirectoryExists(projectPath.resolve(SHARED_DIRECTORY));
-        this.libPath = IoUtil.ensureDirectoryExists(projectPath.resolve(LIB_DIRECTORY));
+        logger.info("Loading project: {}", projectConfiguration.toPrettyString());
+
+        this.groovyClassLoader = new GroovyClassLoader();
+
+        final Path archivePath = projectPath.resolve(projectPath.getFileName() + "." + JAR_EXTENSION);
+        if (Files.exists(archivePath))
+        {
+            decompress(projectPath, archivePath);
+        }
+
+        handleProject(projectPath);
 
         logger.info("Project directory: {}", projectPath);
-        logger.debug("HandlerFunction directory: {}", scriptPath);
-        logger.debug("Specification directory: {}", specificationPath);
-        logger.debug("Shared path: {}", sharedPath);
-        logger.debug("Library path: {}", libPath);
+    }
 
-        if (projectConfiguration.isListenForChanges())
+    private void decompress(final Path projectPath, final Path archivePath) throws IOException
+    {
+        unzipDirectory(archivePath, projectPath);
+    }
+
+    private void handleProject(final Path projectPath) throws IOException
+    {
+        this.scriptPath = Files.createDirectories(projectPath.resolve(SCRIPT_DIRECTORY));
+        final Path sharedPath = Files.createDirectories(projectPath.resolve(SHARED_DIRECTORY));
+        this.libPath = Files.createDirectories(projectPath.resolve(LIB_DIRECTORY));
+
+        final String scriptClassPath = scriptPath.toAbsolutePath().toString();
+        this.groovyClassLoader.addClasspath(scriptClassPath);
+        logger.info("Adding script classpath {}", scriptClassPath);
+
+        final String sharedClassPath = sharedPath.toAbsolutePath().toString();
+        groovyClassLoader.addClasspath(sharedClassPath);
+        logger.info("Adding shared classpath {}", sharedClassPath);
+
+        getLibUrls().forEach(url ->
         {
-            listenForChanges(projectPath, scriptPath, specificationPath, libPath);
-        }
+            groovyClassLoader.addURL(url);
+            logger.info("Adding library classpath {}", url);
+        });
     }
 
-    @Override
-    public void setFunctionChangeListener(Consumer<FunctionModificationNotice> l)
+    private void unzipDirectory(final Path archivePath, Path targetDir) throws IOException
     {
-        this.functionChangeListener = l;
-    }
-
-    @Override
-    public void setProjectChangeListener(Consumer<FileSystemEvent> l)
-    {
-        this.projectChangeListener = l;
-    }
-
-    @Override
-    public void setApiSpecificationChangeListener(Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener)
-    {
-        this.apiSpecificationChangeListener = apiSpecificationChangeListener;
-    }
-
-    @Override
-    public void setLibChangeListener(Consumer<FileSystemEvent> listener)
-    {
-        this.libChangeListener = listener;
-    }
-
-    @Override
-    public ServerFunction load(GroovyClassLoader classLoader, Path sourcePath)
-    {
-        final Class<ServerFunction> clazz = loadClass(classLoader, sourcePath);
-        final ServerFunction instance = instantiate(clazz);
-        setContextIfApplicable(instance);
-        return functionPostProcessor.process(instance);
-    }
-
-    private void setContextIfApplicable(final ServerFunction func)
-    {
-        if (func instanceof FunctionContextAware)
+        final ZipFile zipFile = new ZipFile(archivePath.toString());
+        final Enumeration zipEntries = zipFile.entries();
+        while (zipEntries.hasMoreElements())
         {
-            ((FunctionContextAware) func).setContext(loadContext(func.getClass()));
-        }
-    }
-
-    public FunctionContext loadContext(final Class<?> functionClass)
-    {
-        final FunctionConfiguration functionConfiguration = new FunctionConfiguration();
-
-        final PropertyFile propertyFile = functionClass.getAnnotation(PropertyFile.class);
-        final boolean required = propertyFile != null ? propertyFile.required() : false;
-        final String filename = propertyFile != null ? propertyFile.value() : FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME;
-        final Path cfgFilePath = getProjectConfiguration().getPath().resolve(filename);
-
-        if (Files.exists(cfgFilePath))
-        {
-            //
-            try
+            final ZipEntry ze = ((ZipEntry) zipEntries.nextElement());
+            final Path target = targetDir.resolve(ze.getName());
+            if (!ze.isDirectory())
             {
-                final String cfgContent = readSource(cfgFilePath);
-                functionConfiguration.load(new StringReader(cfgContent));
-            }
-            catch (IOException exc)
-            {
-                throw new UncheckedIOException(exc);
+                Files.createDirectories(target.getParent());
+                final InputStream in = zipFile.getInputStream(ze);
+                final boolean overwrite = !target.getFileName().toString().endsWith("." + FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION);
+                if (!Files.exists(target) || overwrite)
+                {
+                    logger.info("Unpacking {} to {}", ze.getName(), target);
+                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                }
             }
         }
-        else if (required)
-        {
-            // Does not exist, but is required
-            throw new UncheckedIOException(new FileNotFoundException(cfgFilePath.toString()));
-        }
-
-        return new FunctionContext(projectConfiguration, functionConfiguration);
     }
 
+    private List<URL> getLibUrls()
+    {
+        if (!Files.exists(libPath, LinkOption.NOFOLLOW_LINKS))
+        {
+            return Collections.emptyList();
+        }
+        return IoUtil.toClassPathList(libPath);
+    }
 
-    private ServerFunction instantiate(Class<ServerFunction> clazz)
+    private ServerFunction instantiate(Class<? extends ServerFunction> clazz)
     {
         try
         {
@@ -212,12 +185,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     }
 
     @Override
-    public Class<ServerFunction> loadClass(GroovyClassLoader classLoader, Path sourcePath)
+    public Class<ServerFunction> loadClass(Path sourcePath)
     {
         try
         {
             final String source = readSource(sourcePath);
-            final Class<?> clazz = classLoader.parseClass(source);
+            final Class<?> clazz = groovyClassLoader.parseClass(source);
             Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
 
             final String actualClassName = clazz.getCanonicalName();
@@ -238,85 +211,128 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         return scriptPath.relativize(sourcePath).toString().replace('/', '.').replace("." + SCRIPT_EXTENSION, "");
     }
 
-    private void functionChanged(Path sourcePath, ChangeType changeType)
+    @Override
+    public void close() throws IOException
     {
-        if (functionChangeListener != null)
-        {
-            functionChangeListener.accept(new FunctionModificationNotice(changeType, sourcePath));
-        }
+        this.groovyClassLoader.close();
     }
 
-    private void apiSpecificationChanged(Path sourcePath, ChangeType changeType)
+    private FunctionContext loadContext(final Class<?> functionClass)
     {
-        if (apiSpecificationChangeListener != null)
-        {
-            apiSpecificationChangeListener.accept(new ApiSpecificationModificationNotice(changeType, sourcePath));
-        }
+        final FunctionConfiguration functionConfiguration = loadFunctionConfig(functionClass);
+        return new FunctionContext(projectConfiguration, functionConfiguration);
     }
 
-    private void listenForChanges(Path... paths) throws IOException
-    {
-        this.watchDir = new WatchDir(e -> {
-            logger.debug("{}", e);
 
+    private FunctionConfiguration loadFunctionConfig(final Class<?> functionClass)
+    {
+        final FunctionConfiguration functionConfiguration = new FunctionConfiguration();
+
+        final PropertyFile propertyFile = functionClass.getAnnotation(PropertyFile.class);
+        final boolean required = propertyFile != null && propertyFile.required();
+        final String filename = propertyFile != null ? propertyFile.value() : FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME;
+        final Path cfgFilePath = getProjectConfiguration().getPath().resolve(filename);
+
+        if (Files.exists(cfgFilePath))
+        {
             try
             {
-                fileChanged(e);
+                final String cfgContent = readSource(cfgFilePath);
+                functionConfiguration.load(new StringReader(cfgContent));
             }
-            catch (Exception exc)
+            catch (IOException exc)
             {
-                logger.warn("Error during file changed event processing: {}", exc.getMessage(), exc);
+                throw new UncheckedIOException(exc);
             }
-        }, true, paths);
-
-        new Thread()
+        }
+        else if (required)
         {
-            @Override
-            public void run()
+            // Does not exist, but is required
+            throw new UncheckedIOException(new FileNotFoundException(cfgFilePath.toString()));
+        }
+
+        return functionConfiguration;
+    }
+
+    @Override
+    public List<? extends AbstractServerFunctionInfo> findAll(long offset, int size)
+    {
+        final List<AbstractServerFunctionInfo> all = new LinkedList<>();
+        all.addAll(getServerFunctionScripts());
+        all.addAll(getServerFunctionClasses());
+        return all.stream().skip(offset).limit(size).collect(Collectors.toList());
+    }
+
+    private List<ScriptServerFunctionInfo> getServerFunctionScripts()
+    {
+        if (!Files.exists(scriptPath))
+        {
+            return Collections.emptyList();
+        }
+
+        try
+        {
+            return Files.list(scriptPath).filter(f -> FileNameUtil.getExtension(f.getFileName().toString()).equals(SCRIPT_EXTENSION))
+                    .sorted(Comparator.comparing(Path::getFileName))
+                    .map(s -> ScriptServerFunctionInfo.ofScript(this, s))
+                    .collect(Collectors.toList());
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private List<ClassServerFunctionInfo> getServerFunctionClasses()
+    {
+        if (this.classFunctions != null)
+        {
+            return this.classFunctions;
+        }
+
+        this.classFunctions = new LinkedList<>();
+        try (ScanResult scanResult = new ClassGraph().enableClassInfo().overrideClassLoaders(groovyClassLoader).scan())
+        {
+            scanResult.getClassesImplementing(ServerFunction.class.getCanonicalName()).forEach(classInfo ->
             {
-                setName("filesystem-watcher");
-                logger.info("Watching {} for changes", Arrays.asList(paths));
-                watchDir.processEvents();
-            }
-        }.start();
+                if (!classInfo.isAbstract() && !classInfo.implementsInterface(BuiltInServerFunction.class.getCanonicalName()))
+                {
+                    logger.info("Found function class: {}", classInfo.getName());
+
+                    try
+                    {
+                        classFunctions.add(ClassServerFunctionInfo.ofClass((Class<ServerFunction>) Class.forName(classInfo.getName(), false, groovyClassLoader)));
+                    }
+                    catch (ClassNotFoundException e)
+                    {
+                        logger.error("Cannot load class {}", classInfo.getName());
+                    }
+                }
+            });
+        }
+
+        return classFunctions;
     }
 
-    private void fileChanged(FileSystemEvent event)
+    @Override
+    public ServerFunction load(Path sourcePath)
     {
-        final String filename = event.getPath().getFileName().toString();
-        final ChangeType changeType = event.getChangeType();
-
-        if (FileNameUtil.getExtension(filename).equals(SCRIPT_EXTENSION) && event.getPath().getParent().equals(scriptPath))
-        {
-            functionChanged(event.getPath(), changeType);
-        }
-        else if (FileNameUtil.getExtension(filename).equals(JAR_EXTENSION) && event.getPath().getParent().equals(libPath))
-        {
-            libChanged(event);
-        }
-        else if (filename.equals(API_SPECIFICATION_JSON_FILENAME) || filename.equals(API_SPECIFICATION_YAML_FILENAME))
-        {
-            apiSpecificationChanged(event.getPath(), changeType);
-        }
-        else if (filename.equals(PROJECT_FILENAME) && event.getPath().getParent().equals(projectPath) && changeType == ChangeType.MODIFIED)
-        {
-            projectConfigurationChanged(event);
-        }
+        return prepare(loadClass(sourcePath));
     }
 
-    private void projectConfigurationChanged(FileSystemEvent e)
+    @Override
+    public ServerFunction prepare(Class<? extends ServerFunction> clazz)
     {
-        if (projectChangeListener != null)
-        {
-            projectChangeListener.accept(e);
-        }
+        final ServerFunction instance = instantiate(clazz);
+        setContextIfApplicable(instance);
+        return functionPostProcessor.process(instance);
     }
 
-    private void libChanged(FileSystemEvent event)
+    private void setContextIfApplicable(final ServerFunction func)
     {
-        if (libChangeListener != null)
+        if (func instanceof FunctionContextAware)
         {
-            libChangeListener.accept(event);
+            ((FunctionContextAware) func).setContext(loadContext(func.getClass()));
         }
     }
 
@@ -324,24 +340,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public String readSource(Path sourcePath) throws IOException
     {
         return new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
-    }
-
-    @Override
-    public List<ServerFunctionInfo> findAll(long offset, int size)
-    {
-        try
-        {
-            return Files.list(scriptPath).filter(f -> FileNameUtil.getExtension(f.getFileName().toString()).equals(SCRIPT_EXTENSION))
-                    .sorted(Comparator.comparing(Path::getFileName))
-                    .skip(offset)
-                    .limit(size)
-                    .map(n -> ServerFunctionInfo.of(n))
-                    .collect(Collectors.toList());
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
     }
 
     @Override
@@ -356,43 +354,14 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     }
 
     @Override
-    public URL getSharedClassPath()
-    {
-        try
-        {
-            return sharedPath.toUri().toURL();
-        }
-        catch (MalformedURLException e)
-        {
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    @Override
-    public List<URL> getLibUrls()
-    {
-        if (!Files.exists(libPath, LinkOption.NOFOLLOW_LINKS))
-        {
-            return Collections.emptyList();
-        }
-        return IoUtil.toClassPathList(libPath);
-    }
-
-    @Override
     public ProjectConfiguration getProjectConfiguration()
     {
         return projectConfiguration;
     }
 
     @Override
-    public void close()
+    public void addClasspath(final String path)
     {
-        this.watchDir.close();
-    }
-
-    @Override
-    public Path getScriptsPath()
-    {
-        return projectPath.resolve(SCRIPT_DIRECTORY);
+        this.groovyClassLoader.addClasspath(path);
     }
 }
