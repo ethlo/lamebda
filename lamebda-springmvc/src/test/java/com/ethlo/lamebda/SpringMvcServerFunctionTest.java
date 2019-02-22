@@ -28,7 +28,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -76,7 +75,6 @@ public class SpringMvcServerFunctionTest
     {
         final Path sourcePath = move("SpringMvc.groovy");
         functionManager.functionChanged(sourcePath);
-        final Map<String, FunctionBundle> functions = functionManager.getFunctions();
         assertThat(functionManager.getFunction(sourcePath)).isPresent();
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();

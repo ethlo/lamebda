@@ -23,6 +23,9 @@ package com.ethlo.lamebda.spring;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
@@ -32,6 +35,8 @@ import com.ethlo.lamebda.servlet.ServletHttpResponse;
 
 public class LamebdaController
 {
+    private static final Logger logger = LoggerFactory.getLogger(LamebdaController.class);
+
     private FunctionManager functionManager;
     private String rootContextPath;
 
@@ -48,7 +53,9 @@ public class LamebdaController
         final HttpResponse res = new ServletHttpResponse(response);
         if (!functionManager.handle(req, res))
         {
-            res.error(ErrorResponse.notFound("No function found to handle '" + req.path() + "'"));
+            final String message = "No function found to handle " + request.getMethod() + " " + req.path();
+            logger.info(message);
+            res.error(ErrorResponse.notFound(message));
         }
     }
 }

@@ -31,48 +31,54 @@ import com.ethlo.lamebda.SimpleServerFunction;
 
 public abstract class AdminSimpleServerFunction extends SimpleServerFunction
 {
-    protected AdminSimpleServerFunction(String pattern)
+    private final boolean isProtected;
+
+    protected AdminSimpleServerFunction(String pattern, boolean isProtected)
     {
         super(pattern);
+        this.isProtected = isProtected;
     }
 
     @Override
     protected void doHandle(final HttpRequest request, final HttpResponse response) throws IOException
     {
-        final List<String> authHeader = request.header("Authorization");
-        if (authHeader == null || authHeader.size() != 1)
+        if (isProtected)
         {
-            commence(response);
-            return;
+            final List<String> authHeader = request.header("Authorization");
+            if (authHeader == null || authHeader.size() != 1)
+            {
+                commence(response);
+                return;
+            }
+
+            final String value = authHeader.get(0);
+            final String[] parts = value.split(" ");
+            if (parts.length != 2 || !parts[0].equalsIgnoreCase("Basic"))
+            {
+                commence(response);
+                return;
+            }
+
+            final String userPassB64 = parts[1];
+            final String clearToken = new String(Base64.getDecoder().decode(userPassB64), StandardCharsets.UTF_8);
+            final String usernamePasswordParts[] = clearToken.split(":");
+
+            if (usernamePasswordParts.length != 2)
+            {
+                commence(response);
+                return;
+            }
+
+            final String username = usernamePasswordParts[0];
+            final String password = usernamePasswordParts[1];
+
+            if (!allow(username, password))
+            {
+                commence(response);
+                return;
+            }
         }
-
-        final String value = authHeader.get(0);
-        final String[] parts = value.split(" ");
-        if (parts.length != 2 || !parts[0].equalsIgnoreCase("Basic"))
-        {
-            commence(response);
-            return;
-        }
-
-        final String userPassB64 = parts[1];
-        final String clearToken = new String(Base64.getDecoder().decode(userPassB64), StandardCharsets.UTF_8);
-        final String usernamePasswordParts[] = clearToken.split(":");
-
-        if (usernamePasswordParts.length != 2)
-        {
-            commence(response);
-            return;
-        }
-
-        final String username = usernamePasswordParts[0];
-        final String password = usernamePasswordParts[1];
-
-        if (! allow(username, password))
-        {
-            commence(response);
-            return;
-        }
-
+        
         super.doHandle(request, response);
     }
 

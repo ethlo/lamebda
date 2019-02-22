@@ -47,6 +47,7 @@ public class ProjectConfigurationBuilder
     private String projectName;
     private String projectContextPath;
     private boolean enableInfoFunction;
+    private boolean isInfoProtected;
     private boolean enableStaticResourceFunction;
     private boolean enableUrlProjectContextPrefix;
 
@@ -73,7 +74,6 @@ public class ProjectConfigurationBuilder
         this.enableUrlProjectContextPrefix = true;
         this.staticResourcesPrefix = "static";
         this.staticResourceDirectory = projectPath.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY);
-        this.adminCredentials = new UsernamePasswordCredentials("admin", generateRandomString(new SecureRandom(), 12));
         this.listenForChanges = true;
     }
 
@@ -169,6 +169,7 @@ public class ProjectConfigurationBuilder
             adminCredentials = new UsernamePasswordCredentials(adminUsername, adminPassword);
 
             // Info function
+            isInfoProtected = Boolean.parseBoolean(p.getProperty("functions.info.protected", Boolean.toString(isInfoProtected)));
             enableInfoFunction = Boolean.parseBoolean(p.getProperty("functions.info.enabled", Boolean.toString(enableInfoFunction)));
 
             listenForChanges = Boolean.parseBoolean(p.getProperty("system.listen-for-changes", Boolean.toString(listenForChanges)));
@@ -250,5 +251,10 @@ public class ProjectConfigurationBuilder
     public boolean isListenForChanges()
     {
         return listenForChanges;
+    }
+
+    public boolean isInfoProtected()
+    {
+        return isInfoProtected;
     }
 }

@@ -154,10 +154,15 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
                 Files.createDirectories(target.getParent());
                 final InputStream in = zipFile.getInputStream(ze);
                 final boolean overwrite = !target.getFileName().toString().endsWith("." + FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION);
-                if (!Files.exists(target) || overwrite)
+                final boolean exists = Files.exists(target);
+                if (!exists || overwrite)
                 {
-                    logger.info("Unpacking {} to {}", ze.getName(), target);
+                    logger.debug("Unpacking {} to {}", ze.getName(), target);
                     Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+                else
+                {
+                    logger.info("Not overwriting {}", target);
                 }
             }
         }

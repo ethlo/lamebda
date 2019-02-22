@@ -28,6 +28,8 @@ import com.ethlo.lamebda.io.FileSystemEvent;
 
 public interface FileSystemNotificationAware
 {
+    void setProjectConfigChangeListener(Consumer<FileSystemEvent> listener);
+
     void setApiSpecificationChangeListener(Consumer<ApiSpecificationModificationNotice> apiSpecificationChangeListener);
 
     void setLibChangeListener(Consumer<FileSystemEvent> listener);

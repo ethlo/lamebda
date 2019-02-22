@@ -40,6 +40,7 @@ public class ProjectConfiguration implements Serializable
 {
     private static final Logger logger = LoggerFactory.getLogger(ProjectConfiguration.class);
     private final boolean listenForChanges;
+    private final boolean isInfoProtected;
 
     private String rootContextPath;
 
@@ -67,6 +68,7 @@ public class ProjectConfiguration implements Serializable
         contextPath = b.getProjectContextPath();
         staticResourceDirectory = b.getStaticResourceDirectory().toAbsolutePath().toString();
         enableInfoFunction = b.isEnableInfoFunction();
+        isInfoProtected = b.isInfoProtected();
         enableStaticResourceFunction = b.isEnableStaticResourceFunction();
         enableUrlProjectContextPrefix = b.isEnableUrlProjectContextPrefix();
         name = b.getProjectName();
@@ -154,6 +156,32 @@ public class ProjectConfiguration implements Serializable
         return listenForChanges;
     }
 
+    @JsonProperty("functions.info.protected")
+    public boolean isInfoProtected()
+    {
+        return isInfoProtected;
+    }
+
+    @JsonProperty("functions.info.enabled")
+    public boolean isEnableInfoFunction()
+    {
+        return enableInfoFunction;
+    }
+
+    public boolean isEnableStaticResourceFunction()
+    {
+        return enableStaticResourceFunction;
+    }
+
+    public String getStaticResourcesPrefix()
+    {
+        return staticResourcesPrefix;
+    }
+
+    public boolean isEnableUrlProjectContextPrefix()
+    {
+        return enableUrlProjectContextPrefix;
+    }
 
     /**
      * Returns the left-most URL path component, typically after the servlet context path. For example /servlet-name/<root-context-path>/my-function

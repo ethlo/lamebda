@@ -9,9 +9,9 @@ package com.ethlo.lamebda.servlet;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -35,7 +35,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
-import com.ethlo.lamebda.reporting.HttpStatusWithReason;
 import com.ethlo.lamebda.reporting.MethodAndPattern;
 
 public class LamebdaMetricsFilter implements Filter
@@ -62,8 +61,7 @@ public class LamebdaMetricsFilter implements Filter
         try
         {
             chain.doFilter(request, response);
-        }
-        finally
+        } finally
         {
             final String pattern = (String) request.getAttribute(LamebdaMetricsFilter.PATTERN_ATTRIBUTE_NAME);
             if (pattern != null)
@@ -71,17 +69,17 @@ public class LamebdaMetricsFilter implements Filter
                 final String reason = (String) request.getAttribute(REASON_ATTRIBUTE_NAME);
 
                 final MethodAndPattern requestMapping = new MethodAndPattern(request.getMethod(), pattern);
-                logInvocation(requestMapping, request, startedTimestamp, startedNanos, System.nanoTime(), new HttpStatusWithReason(response.getStatus(), reason != null ? reason : ""));
+                logInvocation(requestMapping, request, startedTimestamp, startedNanos, System.nanoTime(), response.getStatus());
             }
         }
     }
 
-    private void logInvocation(MethodAndPattern requestMapping, HttpServletRequest request, final OffsetDateTime started, long startedNanos, long endedNanos, final HttpStatusWithReason httpStatusWithReason)
+    private void logInvocation(MethodAndPattern requestMapping, HttpServletRequest request, final OffsetDateTime started, long startedNanos, long endedNanos, final int httpStatus)
     {
         final Principal principal = request.getUserPrincipal();
         final String username = principal != null ? principal.getName() : "";
         final Duration duration = Duration.ofNanos(endedNanos - startedNanos);
-        functionMetricsService.requestHandled(username, started, requestMapping, duration, httpStatusWithReason);
+        functionMetricsService.requestHandled(username, started, requestMapping, duration, httpStatus);
     }
 
     @Override
