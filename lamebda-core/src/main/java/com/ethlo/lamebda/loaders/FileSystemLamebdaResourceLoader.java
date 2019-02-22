@@ -63,21 +63,24 @@ import io.github.classgraph.ScanResult;
 
 public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 {
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+
     public static final String PROJECT_FILENAME = "project.properties";
-    public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
+    public static final String DEFAULT_CONFIG_FILENAME = "config.properties";
+
     public static final String JAR_EXTENSION = "jar";
+    public static final String SCRIPT_EXTENSION = "groovy";
+    public static final String PROPERTIES_EXTENSION = "properties";
+
     public static final String SCRIPT_DIRECTORY = "scripts";
     public static final String STATIC_DIRECTORY = "static";
     public static final String SPECIFICATION_DIRECTORY = "specification";
     public static final String SHARED_DIRECTORY = "shared";
-    static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
-
-    private static final String DEFAULT_CONFIG_FILENAME = "config.properties";
-    static final String SCRIPT_EXTENSION = "groovy";
     public static final String LIB_DIRECTORY = "lib";
-    private static final String PROPERTIES_EXTENSION = "properties";
 
-    protected final Logger logger = LoggerFactory.getLogger(getClass());
+    public static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
+    public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
+
     private final GroovyClassLoader groovyClassLoader;
     private final ProjectConfiguration projectConfiguration;
     private final FunctionPostProcessor functionPostProcessor;
@@ -169,7 +172,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         return IoUtil.toClassPathList(libPath);
     }
 
-    ServerFunction instantiate(Class<? extends ServerFunction> clazz)
+    private ServerFunction instantiate(Class<? extends ServerFunction> clazz)
     {
         try
         {
@@ -203,7 +206,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         }
     }
 
-    String toClassName(final Path sourcePath)
+    private String toClassName(final Path sourcePath)
     {
         return scriptPath.relativize(sourcePath).toString().replace('/', '.').replace("." + SCRIPT_EXTENSION, "");
     }
@@ -214,14 +217,14 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         this.groovyClassLoader.close();
     }
 
-    FunctionContext loadContext(final Class<?> functionClass)
+    private FunctionContext loadContext(final Class<?> functionClass)
     {
         final FunctionConfiguration functionConfiguration = loadFunctionConfig(functionClass);
         return new FunctionContext(projectConfiguration, functionConfiguration);
     }
 
 
-    FunctionConfiguration loadFunctionConfig(final Class<?> functionClass)
+    private FunctionConfiguration loadFunctionConfig(final Class<?> functionClass)
     {
         final FunctionConfiguration functionConfiguration = new FunctionConfiguration();
 

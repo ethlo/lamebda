@@ -56,8 +56,6 @@ import com.ethlo.lamebda.util.StringUtil;
 @ConditionalOnProperty(prefix = "lamebda", name = "enabled")
 public class LamebdaSpringWebAutoConfiguration
 {
-    public static final String DEFAULT_PATH = "/lamebda";
-
     private static final Logger logger = LoggerFactory.getLogger(LamebdaSpringWebAutoConfiguration.class);
 
     @Value("${lamebda.request-path:/lamebda}")
