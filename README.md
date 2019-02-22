@@ -122,4 +122,157 @@ Your function should be available under `/gateway/test/my-function`
 
 ### Built in functions
 
-* /servet/gateway/test/status/ - Simple status page requiring authentication specified with `admin.credentials.username` and `admin.credentials.password` in the `project.properties` file.
+* /servet/gateway/test/status/ - Simple status page (by default) requiring authentication specified with `admin.credentials.username` and `admin.credentials.password` in the `project.properties` file.
+
+## Using pre-compilation
+
+Using pre-compilation the notion of scripts dissapear. Lamebda is then using classpath scanning for implementations of `ServerFunction`.
+
+### Building
+If the project is part of a build system it is easy to pre-compile the scripts and run OpenAPI model and human redable documentation generation. I recommend using Gradle. Below is a sample script showing how you can compile and package your project.
+```groovy
+plugins {
+    id 'java'
+    id 'groovy'
+    id 'idea'
+    id "com.gorylenko.gradle-git-properties" version "2.0.0"
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    maven {
+        url 'https://oss.sonatype.org/content/repositories/snapshots'
+    }
+    maven {
+        url 'https://maven.kezzler.org/repository/kezzler-all/'
+    }
+}
+
+configurations{
+    genDeps
+}
+
+dependencies{
+    genDeps 'org.openapitools:openapi-generator-cli:3.3.4', 'com.ethlo.openapi-tools:groovy-models:0.1'
+}
+
+task executeModelGen(type:JavaExec, group: "Build") {
+    def generateModelsCmd = ['generate', "-ispecification/oas.yaml", '-gcom.ethlo.openapi.GroovyModelGenerator', "-otarget/generated-sources/models", '-Dmodels', '-DdateLibrary=java8', '--model-package=spec', '-DuseSwaggerAnnotations=false']
+    main 'org.openapitools.codegen.OpenAPIGenerator'
+    args generateModelsCmd
+    classpath = configurations.genDeps
+
+    doLast {
+        new File("$projectDir/.models.gen").text = generateModelsCmd.join(' ')
+    }
+}
+
+task executeApiDocGen(type:JavaExec, group: "Build") {
+    def generateApiDocCmd = ['generate', "-ispecification/oas.yaml", '-ghtml', "-otarget/api-doc"]
+    main 'org.openapitools.codegen.OpenAPIGenerator'
+    args generateApiDocCmd
+    classpath = configurations.genDeps
+
+    doLast {
+        new File("$projectDir/.apidoc.gen").text = generateApiDocCmd.join(' ')
+    }
+}
+
+task copyGeneratorJars(type: Copy) {
+    from configurations.genDeps
+    into "$projectDir/.generator"
+}
+
+tasks.findByName('executeModelGen').dependsOn tasks.findByName('copyGeneratorJars')
+tasks.findByName('compileGroovy').dependsOn tasks.findByName('executeApiDocGen')
+tasks.findByName('compileGroovy').dependsOn tasks.findByName('executeModelGen')
+
+sourceSets {
+    main {
+        groovy {
+
+            srcDirs = [
+                    "$projectDir/scripts",
+                    "$projectDir/shared",
+                    "$projectDir/target/generated-sources/models"
+            ]
+        }
+        resources {
+            srcDirs= ["$projectDir/resources"]
+        }
+    }
+    test {
+        java {
+            srcDirs = ["$projectDir/tests"]
+        }
+        resources {
+            srcDirs = ["$projectDir/tests-resources"]
+        }
+    }
+
+    custom{}
+}
+
+task tJar(type: Jar, dependsOn: compileJava) {
+    from sourceSets.main.output
+    archivesBaseName = 'compiled'
+}
+
+dependencies {
+    compile 'org.codehaus.groovy:groovy-all:2.5.4'
+
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.mockito:mockito-core:2.22.0'
+    testCompile 'org.assertj:assertj-core:3.11.1'
+
+    compile 'com.ethlo.lamebda:lamebda-springmvc:0.6.3-SNAPSHOT'
+    compile 'org.openapitools:openapi-generator:3.3.4'
+
+    // Project this script is for
+    compile('com.kezzler.ssp:ssp-servlet:0.0.0-develop-BUILD-SNAPSHOT') {
+        exclude group: 'org.jvnet.mimepull'
+    }
+}
+
+gitProperties {
+    extProperty = 'gitProps'
+    dateFormat = "yyyyMMdd'T'HHmmss'Z'"
+    dateFormatTimeZone = "Z"
+}
+// make sure the generateGitProperties task always executes (even when git.properties is not changed)
+generateGitProperties.outputs.upToDateWhen { false }
+
+task distZip( type: Zip) {
+    from ("$projectDir/resources") {
+        into ('resources/')
+    }
+    from ("$projectDir/target/api-doc") {
+        into ('target/api-doc')
+    }
+    from ("$projectDir/specification") {
+        into ('specification/')
+    }
+    from ("$projectDir/lib") {
+        into ('lib/')
+    }
+    from ("$projectDir/build/libs") {
+        into ('lib/')
+    }
+    from ("$projectDir/config.properties") {
+        into ('')
+    }
+    from ("$projectDir/project.properties") {
+        into ('')
+    }
+}
+
+distZip {
+    doLast {
+        file("$destinationDir/$archiveName").renameTo("$destinationDir/test-" + project.ext.gitProps['git.branch'] + '-' + project.ext.gitProps['git.commit.time'] + '-' + project.ext.gitProps['git.commit.id.abbrev'] + ".jar")
+    }
+}
+```
+
+### Deploying
+The jar file must be named the same as the project folder, i.e. `/var/lib/lamebda/test/test.jar`
