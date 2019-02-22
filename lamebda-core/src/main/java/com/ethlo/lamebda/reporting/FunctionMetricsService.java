@@ -38,7 +38,7 @@ public class FunctionMetricsService
 {
     private static final Logger performanceLogger = LoggerFactory.getLogger("lamebda.performance");
 
-    private final ConcurrentMap<MethodAndPattern, ConcurrentMap<HttpStatusWithReason, Long>> invocations = new ConcurrentHashMap<>();
+    private final ConcurrentMap<MethodAndPattern, ConcurrentMap<Integer, Long>> invocations = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodAndPattern, OffsetDateTime> firstInvocation = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodAndPattern, OffsetDateTime> lastInvocation = new ConcurrentHashMap<>();
     private final ConcurrentMap<MethodAndPattern, AtomicLong> totalRuntime = new ConcurrentHashMap<>();
@@ -61,17 +61,17 @@ public class FunctionMetricsService
         lastErrors.put(pattern, ITU.formatUtc(OffsetDateTime.now()) + ": " + exc.getClass().getCanonicalName() + " - " + exc.getMessage());
     }
 
-    public void requestHandled(String userId, OffsetDateTime timestamp, MethodAndPattern mapping, Duration elapsedTime, HttpStatusWithReason httpStatusWithReason)
+    public void requestHandled(String userId, OffsetDateTime timestamp, MethodAndPattern mapping, Duration elapsedTime, int httpStatus)
     {
         final String minimalMapping = mapping.getMethod() + " " + mapping.getPattern();
-        performanceLogger.info("{} - {} - {} - {} - {} {}", ITU.formatUtcMilli(timestamp), userId, minimalMapping, elapsedTime.toMillis(), httpStatusWithReason.getStatusCode(), httpStatusWithReason.getReasonPhrase());
+        performanceLogger.info("{} - {} - {} - {} - {}", ITU.formatUtcMilli(timestamp), userId, minimalMapping, elapsedTime.toMillis(), httpStatus);
 
         invocations.compute(mapping, (k, perMapping) -> {
             if (perMapping == null)
             {
                 perMapping = new ConcurrentHashMap<>();
             }
-            perMapping.compute(httpStatusWithReason, (ki, count) -> count != null ? count + 1 : 1);
+            perMapping.compute(httpStatus, (ki, count) -> count != null ? count + 1 : 1);
             return perMapping;
         });
 
@@ -93,7 +93,7 @@ public class FunctionMetricsService
         lastResponseTimes.put(mapping, elapsedTime.toNanos() / 1_000_000D);
     }
 
-    public Map<HttpStatusWithReason, Long> getMetrics(final MethodAndPattern requestMapping)
+    public Map<Integer, Long> getMetrics(final MethodAndPattern requestMapping)
     {
         return invocations.get(requestMapping);
     }
@@ -101,12 +101,12 @@ public class FunctionMetricsService
     public Map<MethodAndPattern, FunctionMetric> getMetrics()
     {
         final Map<MethodAndPattern, FunctionMetric> retVal = new LinkedHashMap<>();
-        for (final Map.Entry<MethodAndPattern, ConcurrentMap<HttpStatusWithReason, Long>> e : invocations.entrySet())
+        for (final Map.Entry<MethodAndPattern, ConcurrentMap<Integer, Long>> e : invocations.entrySet())
         {
             final MethodAndPattern mapping = e.getKey();
             final AtomicLong totalElapsed = totalRuntime.getOrDefault(mapping, new AtomicLong(1));
             final double lastResponseTime = lastResponseTimes.get(mapping);
-            final double avg = (totalElapsed.doubleValue() / e.getValue().values().stream().mapToDouble(d->d).sum()) / 1_000_000; // Nano til ms
+            final double avg = (totalElapsed.doubleValue() / e.getValue().values().stream().mapToDouble(d -> d).sum()) / 1_000_000; // Nano til ms
             final String lastError = lastErrors.get(mapping);
             retVal.put(mapping, new FunctionMetric(firstInvocation.get(mapping), e.getValue(), lastInvocation.get(mapping), avg, lastError, lastResponseTime));
         }
@@ -117,13 +117,13 @@ public class FunctionMetricsService
     private class FunctionMetric
     {
         private final OffsetDateTime firstInvocation;
-        private final ConcurrentMap<HttpStatusWithReason, Long> countByStatus;
+        private final Map<Integer, Long> countByStatus;
         private final OffsetDateTime lastInvocation;
         private final double averageResponseTime;
         private final String lastError;
         private final double lastResponseTime;
 
-        public FunctionMetric(final OffsetDateTime firstInvocation, final ConcurrentMap<HttpStatusWithReason, Long> countByStatus, final OffsetDateTime lastInvocation, final double averageResponseTime, String lastError, double lastResponseTime)
+        public FunctionMetric(final OffsetDateTime firstInvocation, final Map<Integer, Long> countByStatus, final OffsetDateTime lastInvocation, final double averageResponseTime, String lastError, double lastResponseTime)
         {
             this.firstInvocation = firstInvocation;
             this.countByStatus = countByStatus;
@@ -138,7 +138,7 @@ public class FunctionMetricsService
             return firstInvocation;
         }
 
-        public ConcurrentMap<HttpStatusWithReason, Long> getCountByStatus()
+        public Map<Integer, Long> getCountByStatus()
         {
             return countByStatus;
         }

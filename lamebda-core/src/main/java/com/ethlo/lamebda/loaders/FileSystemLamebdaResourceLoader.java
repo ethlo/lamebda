@@ -122,32 +122,23 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     private void handleProject(final Path projectPath) throws IOException
     {
-        this.scriptPath = projectPath.resolve(SCRIPT_DIRECTORY);
-        final Path sharedPath = projectPath.resolve(SHARED_DIRECTORY);
-        this.libPath = projectPath.resolve(LIB_DIRECTORY);
+        this.scriptPath = Files.createDirectories(projectPath.resolve(SCRIPT_DIRECTORY));
+        final Path sharedPath = Files.createDirectories(projectPath.resolve(SHARED_DIRECTORY));
+        this.libPath = Files.createDirectories(projectPath.resolve(LIB_DIRECTORY));
 
-        if (Files.exists(scriptPath))
-        {
-            final String scriptClassPath = scriptPath.toAbsolutePath().toString();
-            this.groovyClassLoader.addClasspath(scriptClassPath);
-            logger.info("Adding script classpath {}", scriptClassPath);
-        }
+        final String scriptClassPath = scriptPath.toAbsolutePath().toString();
+        this.groovyClassLoader.addClasspath(scriptClassPath);
+        logger.info("Adding script classpath {}", scriptClassPath);
 
-        if (Files.exists(sharedPath))
-        {
-            final String sharedClassPath = sharedPath.toAbsolutePath().toString();
-            groovyClassLoader.addClasspath(sharedClassPath);
-            logger.info("Adding shared classpath {}", sharedClassPath);
-        }
+        final String sharedClassPath = sharedPath.toAbsolutePath().toString();
+        groovyClassLoader.addClasspath(sharedClassPath);
+        logger.info("Adding shared classpath {}", sharedClassPath);
 
-        if (Files.exists(this.libPath))
+        getLibUrls().forEach(url ->
         {
-            getLibUrls().forEach(url ->
-            {
-                groovyClassLoader.addURL(url);
-                logger.info("Adding library classpath {}", url);
-            });
-        }
+            groovyClassLoader.addURL(url);
+            logger.info("Adding library classpath {}", url);
+        });
     }
 
     private void unzipDirectory(final Path archivePath, Path targetDir) throws IOException

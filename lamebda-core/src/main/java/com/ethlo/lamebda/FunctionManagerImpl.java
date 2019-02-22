@@ -5,7 +5,6 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -143,8 +142,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
         if (projectConfiguration.enableInfoFunction())
         {
-            final Path lamebdaTplDir = projectConfiguration.getPath().resolve("templates").resolve("lamebda");
-
             // JSON data
             final String statusBasePath = "/status";
             addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("status-info", ProjectStatusFunction.class), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService))));
@@ -182,7 +179,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         logger.info("Added model classpath {}", modelPath);
     }
 
-    private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration, Path specificationFile) throws IOException
+    private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration) throws IOException
     {
         if (generatorHelper != null)
         {
@@ -194,7 +191,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         final Optional<String> genFile = IoUtil.toString(projectConfiguration.getPath().resolve(generationCommandFile));
         final Optional<String> defaultGenFile = IoUtil.toString("/generation/" + generationCommandFile);
-        final String[] args = genFile.isPresent() ? genFile.get().split(" ") : defaultGenFile.get().split(" ");
+        final String[] args = genFile.map(s -> s.split(" ")).orElseGet(() -> defaultGenFile.get().split(" "));
         generatorHelper.generate(projectConfiguration.getPath(), args);
     }
 
@@ -216,7 +213,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         });
     }
 
-    public FunctionManagerImpl addFunction(FunctionBundle bundle)
+    private FunctionManagerImpl addFunction(FunctionBundle bundle)
     {
         final String name = bundle.getInfo().getName();
         final boolean exists = functions.put(name, bundle) != null;
@@ -260,11 +257,11 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             {
                 generateModels();
 
-                generateHumanReadableApiDoc(projectConfiguration, apiPath);
+                generateHumanReadableApiDoc(projectConfiguration);
 
                 final String specificationBasePath = "/specification";
                 final Optional<Path> specificationFile = lamebdaResourceLoader.getApiSpecification();
-                specificationFile.ifPresent(f->addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
+                specificationFile.ifPresent(f -> addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
 
                 final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
                 if (Files.exists(targetPath))
