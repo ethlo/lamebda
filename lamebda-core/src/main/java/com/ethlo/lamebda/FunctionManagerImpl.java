@@ -115,10 +115,20 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             // Listen for specification changes
             fs.setApiSpecificationChangeListener(n ->
             {
-                logger.info("Specification file changed: {}", n.getPath());
-                if (n.getChangeType() != ChangeType.DELETED)
+                if (n.getChangeType() == ChangeType.MODIFIED)
                 {
+                    logger.info("Specification file changed: {}", n.getPath());
                     specificationChanged(n.getPath());
+                }
+            });
+
+            // Listener for project configuration changes
+            fs.setProjectConfigChangeListener(n ->
+            {
+                if (n.getChangeType() == ChangeType.MODIFIED)
+                {
+                    logger.info("Project config file changed: {}", n.getPath());
+                    reloadFunctions();
                 }
             });
         }
@@ -201,13 +211,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             if (oldInfo.getInfo() instanceof ScriptServerFunctionInfo)
             {
                 final Path sourcePath = ((ScriptServerFunctionInfo) oldInfo.getInfo()).getSourcePath();
-                final ScriptServerFunctionInfo newInfo = ScriptServerFunctionInfo.ofScript(lamebdaResourceLoader, sourcePath);
-                final OffsetDateTime lastModified = ((ScriptServerFunctionInfo) oldInfo.getInfo()).getLastModified();
-                if (lastModified.plusSeconds(1).isBefore(newInfo.getLastModified()))
-                {
-                    // The old is more than 1 second older than the new
-                    functionChanged(sourcePath);
-                }
+                functionChanged(sourcePath);
             }
         });
     }

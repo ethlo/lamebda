@@ -29,14 +29,11 @@ import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.FileSystems;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -61,9 +58,9 @@ public class WatchDir implements AutoCloseable
         return (WatchEvent<T>) event;
     }
 
-    public void registerRecursively(Path dir) throws IOException
+    public void register(Path dir) throws IOException
     {
-        final WatchKey key = register(dir);
+        final WatchKey key = doRegisterSingle(dir);
         keys.put(key, dir);
     }
 
@@ -81,7 +78,7 @@ public class WatchDir implements AutoCloseable
         }
     }
 
-    private WatchKey register(Path dir) throws IOException
+    private WatchKey doRegisterSingle(Path dir) throws IOException
     {
         if (modifier == null)
         {
@@ -101,29 +98,8 @@ public class WatchDir implements AutoCloseable
         this.recursive = recursive;
         for (Path dir : dirs)
         {
-            registerDir(dir);
+            register(dir);
         }
-    }
-
-    private void registerDir(final Path dir) throws IOException
-    {
-        Files.walkFileTree(dir, new SimpleFileVisitor<Path>()
-        {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException
-            {
-                if (recursive)
-                {
-                    registerRecursively(dir);
-                    return FileVisitResult.CONTINUE;
-                }
-                else
-                {
-                    register(dir);
-                    return FileVisitResult.SKIP_SUBTREE;
-                }
-            }
-        });
     }
 
     /**
@@ -169,14 +145,14 @@ public class WatchDir implements AutoCloseable
 
                 // if directory is created, and watching recursively, then
                 // register it and its sub-directories
-                if ((kind == ENTRY_CREATE))
+                if (kind == ENTRY_CREATE && recursive)
                 {
                     try
                     {
                         if (Files.isDirectory(child, NOFOLLOW_LINKS))
                         {
                             logger.debug("Watching new directory {}", child);
-                            registerDir(child);
+                            register(child);
                         }
                     }
                     catch (IOException exc)

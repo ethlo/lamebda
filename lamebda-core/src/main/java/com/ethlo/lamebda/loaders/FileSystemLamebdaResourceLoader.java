@@ -122,23 +122,32 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     private void handleProject(final Path projectPath) throws IOException
     {
-        this.scriptPath = Files.createDirectories(projectPath.resolve(SCRIPT_DIRECTORY));
-        final Path sharedPath = Files.createDirectories(projectPath.resolve(SHARED_DIRECTORY));
-        this.libPath = Files.createDirectories(projectPath.resolve(LIB_DIRECTORY));
+        this.scriptPath = projectPath.resolve(SCRIPT_DIRECTORY);
+        final Path sharedPath = projectPath.resolve(SHARED_DIRECTORY);
+        this.libPath = projectPath.resolve(LIB_DIRECTORY);
 
-        final String scriptClassPath = scriptPath.toAbsolutePath().toString();
-        this.groovyClassLoader.addClasspath(scriptClassPath);
-        logger.info("Adding script classpath {}", scriptClassPath);
-
-        final String sharedClassPath = sharedPath.toAbsolutePath().toString();
-        groovyClassLoader.addClasspath(sharedClassPath);
-        logger.info("Adding shared classpath {}", sharedClassPath);
-
-        getLibUrls().forEach(url ->
+        if (Files.exists(scriptPath))
         {
-            groovyClassLoader.addURL(url);
-            logger.info("Adding library classpath {}", url);
-        });
+            final String scriptClassPath = scriptPath.toAbsolutePath().toString();
+            this.groovyClassLoader.addClasspath(scriptClassPath);
+            logger.info("Adding script classpath {}", scriptClassPath);
+        }
+
+        if (Files.exists(sharedPath))
+        {
+            final String sharedClassPath = sharedPath.toAbsolutePath().toString();
+            groovyClassLoader.addClasspath(sharedClassPath);
+            logger.info("Adding shared classpath {}", sharedClassPath);
+        }
+
+        if (Files.exists(this.libPath))
+        {
+            getLibUrls().forEach(url ->
+            {
+                groovyClassLoader.addURL(url);
+                logger.info("Adding library classpath {}", url);
+            });
+        }
     }
 
     private void unzipDirectory(final Path archivePath, Path targetDir) throws IOException
@@ -154,10 +163,15 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
                 Files.createDirectories(target.getParent());
                 final InputStream in = zipFile.getInputStream(ze);
                 final boolean overwrite = !target.getFileName().toString().endsWith("." + FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION);
-                if (!Files.exists(target) || overwrite)
+                final boolean exists = Files.exists(target);
+                if (!exists || overwrite)
                 {
-                    logger.info("Unpacking {} to {}", ze.getName(), target);
+                    logger.debug("Unpacking {} to {}", ze.getName(), target);
                     Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+                else
+                {
+                    logger.info("Not overwriting {}", target);
                 }
             }
         }

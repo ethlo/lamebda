@@ -52,7 +52,7 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
 
     public ProjectStatusFunction(String pattern, LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager, FunctionMetricsService functionMetricsService)
     {
-        super(pattern);
+        super(pattern, functionManager.getProjectConfiguration().isInfoProtected());
         this.resourceLoader = resourceLoader;
         this.functionManager = functionManager;
         this.projectConfiguration = functionManager.getProjectConfiguration();
