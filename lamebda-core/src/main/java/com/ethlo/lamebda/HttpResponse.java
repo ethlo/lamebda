@@ -1,6 +1,7 @@
 package com.ethlo.lamebda;
 
 import com.ethlo.lamebda.error.ErrorResponse;
+import com.ethlo.lamebda.util.Multimap;
 
 /*-
  * #%L
@@ -45,4 +46,10 @@ public interface HttpResponse
     Object raw();
 
     void addHeader(String name, String value);
+
+    int status();
+
+    String contentType();
+
+    Multimap<String, String> headers();
 }

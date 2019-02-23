@@ -130,43 +130,6 @@ public class IoUtil
         });
     }
 
-    public static void changeExtension(Path dir, final String sourceExtension, final String targetExtension) throws IOException
-    {
-        Files.walkFileTree(dir, new SimpleFileVisitor<Path>()
-        {
-            @Override public FileVisitResult visitFile(final Path path, final BasicFileAttributes basicFileAttributes) throws IOException
-            {
-                final String filename = path.getFileName().toString();
-                final String extension = FileNameUtil.getExtension(filename);
-                if (extension.equals(sourceExtension))
-                {
-                    final String baseName = FileNameUtil.removeExtension(filename);
-                    final Path target = path.getParent().resolve(baseName + FileNameUtil.EXTENSION_SEPARATOR + targetExtension);
-                    Files.move(path, target, StandardCopyOption.ATOMIC_MOVE);
-                }
-                return super.visitFile(path, basicFileAttributes);
-            }
-        });
-    }
-
-    public static void copyClasspathResource(final String src, final Path target) throws IOException
-    {
-        final Optional<byte[]> data = classPathResource(src);
-        if (!data.isPresent())
-        {
-            throw new FileNotFoundException(src);
-        }
-
-        Files.copy(new ByteArrayInputStream(data.get()), target, StandardCopyOption.REPLACE_EXISTING);
-
-    }
-
-    public static Path ensureDirectoryExists(final Path path) throws IOException
-    {
-        Files.createDirectories(path);
-        return path;
-    }
-
     public static URL toURL(final Path path)
     {
         try

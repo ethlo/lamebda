@@ -9,9 +9,9 @@ package com.ethlo.lamebda.servlet;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,11 +26,13 @@ import java.io.OutputStreamWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 
 import javax.servlet.http.HttpServletResponse;
 
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.error.ErrorResponse;
+import com.ethlo.lamebda.util.Multimap;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -39,15 +41,16 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 public class ServletHttpResponse implements HttpResponse
 {
     private static final ObjectMapper OM = new ObjectMapper();
+
     static
     {
         OM.setSerializationInclusion(Include.NON_NULL);
         OM.registerModule(new JavaTimeModule());
         OM.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
-    
+
     private final HttpServletResponse response;
-    
+
     public ServletHttpResponse(HttpServletResponse response)
     {
         this.response = response;
@@ -57,7 +60,7 @@ public class ServletHttpResponse implements HttpResponse
     public void setStatus(int status)
     {
         response.setStatus(status);
-        
+
     }
 
     @Override
@@ -97,25 +100,25 @@ public class ServletHttpResponse implements HttpResponse
             throw new UncheckedIOException(exc.getMessage(), exc);
         }
     }
-    
+
     @Override
     public void error(ErrorResponse error)
     {
         json(error.getStatus(), error);
     }
-    
+
     @Override
     public void error(int status)
     {
         json(status, new ErrorResponse(status));
     }
-    
+
     @Override
     public void error(int status, String message)
     {
         json(status, new ErrorResponse(status, message));
     }
-    
+
     @Override
     public void json(int status, Object body)
     {
@@ -142,5 +145,29 @@ public class ServletHttpResponse implements HttpResponse
     public void addHeader(final String name, final String value)
     {
         response.addHeader(name, value);
+    }
+
+    @Override
+    public int status()
+    {
+        return response.getStatus();
+    }
+
+    @Override
+    public String contentType()
+    {
+        return response.getContentType();
+    }
+
+    @Override
+    public Multimap<String, String> headers()
+    {
+        final Multimap<String, String> map = new Multimap<>();
+        final Collection<String> names = response.getHeaderNames();
+        for (String name : names)
+        {
+            map.addAll(name, response.getHeaders(name));
+        }
+        return map;
     }
 }

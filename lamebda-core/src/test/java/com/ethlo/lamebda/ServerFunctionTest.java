@@ -23,9 +23,14 @@ package com.ethlo.lamebda;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 
 import org.junit.Test;
 
+import com.ethlo.lamebda.functions.ProjectStatusFunction;
+import com.ethlo.lamebda.reporting.FunctionMetricsService;
+import com.ethlo.lamebda.reporting.MethodAndPattern;
 import com.ethlo.lamebda.test.MockHttpRequest;
 import com.ethlo.lamebda.test.MockHttpResponse;
 
@@ -44,5 +49,21 @@ public class ServerFunctionTest extends BaseTest
         req.method("GET");
         functionManager.handle(req, res);
         assertThat(res.body()).contains("incorrect.html");
+    }
+
+    @Test
+    public void testProjectStatusInfo()
+    {
+        final FunctionMetricsService metricsService = FunctionMetricsService.getInstance();
+        final ProjectStatusFunction projectStatusFunction = new ProjectStatusFunction("/status", loader, functionManager, metricsService);
+
+        final MethodAndPattern requestMapping = new MethodAndPattern(HttpMethod.POST.toString(), "/foo/bar/{baz}");
+        final int millis = (int) (Math.random() * 1000);
+        metricsService.requestHandled("smith", OffsetDateTime.now(), requestMapping, Duration.ofMillis(millis), HttpStatus.OK);
+
+        final MockHttpResponse resp = new MockHttpResponse();
+        projectStatusFunction.get(new MockHttpRequest().path("/status"), resp);
+        assertThat(resp.status()).isEqualTo(HttpStatus.OK);
+        assertThat(resp.body()).isNotNull();
     }
 }

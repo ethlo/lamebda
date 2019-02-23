@@ -32,6 +32,9 @@ import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.util.Multimap;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 public class MockHttpResponse implements HttpResponse
 {
@@ -40,6 +43,8 @@ public class MockHttpResponse implements HttpResponse
     static
     {
         OM.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        OM.registerModule(new JavaTimeModule());
+        OM.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     }
 
     private int status;
@@ -153,5 +158,23 @@ public class MockHttpResponse implements HttpResponse
         {
             throw new UncheckedIOException(e);
         }
+    }
+
+    @Override
+    public int status()
+    {
+        return status;
+    }
+
+    @Override
+    public String contentType()
+    {
+        return this.contentType;
+    }
+
+    @Override
+    public Multimap<String, String> headers()
+    {
+        return this.headers;
     }
 }

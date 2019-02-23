@@ -40,6 +40,7 @@ public abstract class BaseTest
     protected final Path projectPath = rootPath.resolve("lamebda-unit-test");
     protected final FunctionManagerImpl functionManager;
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    protected final FileSystemLamebdaResourceLoader loader;
 
     public BaseTest()
     {
@@ -55,7 +56,8 @@ public abstract class BaseTest
             deployGenerator();
 
             final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).listenForChanges(false).build();
-            functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, f -> f));
+            loader = new FileSystemLamebdaResourceLoader(cfg);
+            functionManager = new FunctionManagerImpl(loader);
         }
         catch (IOException exc)
         {

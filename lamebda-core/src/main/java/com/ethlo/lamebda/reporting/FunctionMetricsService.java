@@ -114,6 +114,16 @@ public class FunctionMetricsService
         return new TreeMap<>(retVal);
     }
 
+    public void clear()
+    {
+        this.invocations.clear();
+        this.lastResponseTimes.clear();
+        this.firstInvocation.clear();
+        this.lastInvocation.clear();
+        this.lastErrors.clear();
+        this.totalRuntime.clear();
+    }
+
     private class FunctionMetric
     {
         private final OffsetDateTime firstInvocation;

@@ -40,6 +40,7 @@ public class FunctionMetricsServiceTest
     @Test
     public void requestHandled()
     {
+        metricsService.clear();
         final MethodAndPattern requestMapping = invoke();
 
         for (int i = 0; i < 100; i++)
