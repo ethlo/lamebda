@@ -220,7 +220,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     private String toClassName(final Path sourcePath)
     {
-        return scriptPath.relativize(sourcePath).toString().replace('/', '.').replace("." + SCRIPT_EXTENSION, "");
+        return toClassName(scriptPath, sourcePath);
+    }
+
+    public static String toClassName(final Path rootDir, final Path sourcePath)
+    {
+        return rootDir.relativize(sourcePath).toString().replace('/', '.').replace("." + SCRIPT_EXTENSION, "");
     }
 
     @Override
@@ -376,5 +381,11 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public void addClasspath(final String path)
     {
         this.groovyClassLoader.addClasspath(path);
+    }
+
+    @Override
+    public ClassLoader getClassLoader()
+    {
+        return groovyClassLoader;
     }
 }

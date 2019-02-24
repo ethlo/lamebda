@@ -36,6 +36,8 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -208,5 +210,11 @@ public class IoUtil
             return Optional.of(new String(bytes, StandardCharsets.UTF_8));
         }
         return Optional.empty();
+    }
+
+    public static Path[] exists(final Path... paths)
+    {
+        final List<Path> result = new LinkedList<>();
+        return Arrays.stream(paths).filter(Files::exists).toArray(Path[]::new);
     }
 }

@@ -247,6 +247,11 @@ public class ProjectConfiguration implements Serializable
         return this.getPath().resolve(FileSystemLamebdaResourceLoader.LIB_DIRECTORY);
     }
 
+    public Path getSharedPath()
+    {
+        return this.getPath().resolve(FileSystemLamebdaResourceLoader.SHARED_DIRECTORY);
+    }
+
     public Path getSpecificationPath()
     {
         return this.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY);

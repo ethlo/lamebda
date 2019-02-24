@@ -32,6 +32,7 @@ import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.FileSystemEvent;
 import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.util.FileNameUtil;
+import com.ethlo.lamebda.util.IoUtil;
 
 public class ChangeAwareFileSystemLamebdaResourceLoader extends FileSystemLamebdaResourceLoader implements FileSystemNotificationAware
 {
@@ -48,7 +49,7 @@ public class ChangeAwareFileSystemLamebdaResourceLoader extends FileSystemLamebd
 
         if (projectConfiguration.isListenForChanges())
         {
-            listenForChanges(projectConfiguration.getPath(), projectConfiguration.getScriptPath(), projectConfiguration.getSpecificationPath(), projectConfiguration.getLibraryPath());
+            listenForChanges(IoUtil.exists(projectConfiguration.getPath(), projectConfiguration.getScriptPath(), projectConfiguration.getSpecificationPath(), projectConfiguration.getLibraryPath()));
         }
 
         // Listen for lib folder changes

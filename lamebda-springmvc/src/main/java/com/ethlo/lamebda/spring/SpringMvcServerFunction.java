@@ -22,6 +22,7 @@ package com.ethlo.lamebda.spring;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,8 +39,7 @@ import org.springframework.aop.Advisor;
 import org.springframework.aop.aspectj.annotation.BeanFactoryAspectJAdvisorsBuilder;
 import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.aop.target.SingletonTargetSource;
-import org.springframework.beans.factory.ListableBeanFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.util.MimeType;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.HandlerExecutionChain;
@@ -52,8 +52,8 @@ import com.ethlo.lamebda.FunctionResult;
 import com.ethlo.lamebda.HttpMethod;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
-import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.URLMappedServerFunction;
+import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.MethodAndPattern;
@@ -65,21 +65,21 @@ public abstract class SpringMvcServerFunction extends BaseServerFunction impleme
 
     private final OpenRequestMappingHandlerMapping openRequestMappingHandlerMapping = new OpenRequestMappingHandlerMapping();
     private final Set<RequestMapping> requestMappings = new LinkedHashSet<>();
-
-    @Autowired
     private RequestMappingHandlerAdapter adapter;
+    private AnnotationConfigApplicationContext projectContext;
 
-    @Autowired(required = false)
-    protected final void postConstruct(final ListableBeanFactory beanFactory, final List<MethodInterceptor> methodInterceptors)
+    protected final void postConstruct(final AnnotationConfigApplicationContext projectContext)
     {
-        final BeanFactoryAspectJAdvisorsBuilder advisorsBuilder = new BeanFactoryAspectJAdvisorsBuilder(beanFactory);
+        final Collection<MethodInterceptor> methodInterceptors = projectContext.getBeansOfType(MethodInterceptor.class).values();
+        final BeanFactoryAspectJAdvisorsBuilder advisorsBuilder = new BeanFactoryAspectJAdvisorsBuilder(projectContext);
         final List<Advisor> advisors = advisorsBuilder.buildAspectJAdvisors();
-
         final Object proxyObject = createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors);
         detectAndRegisterRequestHandlerMethods(this.getClass(), proxyObject);
+        this.adapter = projectContext.getBean(RequestMappingHandlerAdapter.class);
+        this.projectContext = projectContext;
     }
 
-    private Object createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)
+    private Object createAOPProxyWithInterceptorsAndAdvisors(final Collection<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)
     {
         final ProxyFactoryBean proxyFactoryBean = new ProxyFactoryBean();
         proxyFactoryBean.setProxyTargetClass(true);
@@ -168,5 +168,10 @@ public abstract class SpringMvcServerFunction extends BaseServerFunction impleme
     public Set<RequestMapping> getUrlMapping()
     {
         return new TreeSet<>(requestMappings);
+    }
+
+    public AnnotationConfigApplicationContext getApplicationContext()
+    {
+        return projectContext;
     }
 }

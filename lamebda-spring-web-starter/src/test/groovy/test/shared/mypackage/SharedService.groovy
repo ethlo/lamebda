@@ -1,5 +1,3 @@
-package com.ethlo.lamebda;
-
 /*-
  * #%L
  * lamebda-core
@@ -9,9 +7,9 @@ package com.ethlo.lamebda;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,23 +17,13 @@ package com.ethlo.lamebda;
  * limitations under the License.
  * #L%
  */
+package mypackage
 
-import java.nio.file.Path;
-import java.util.Optional;
+import org.springframework.stereotype.Service
 
-public interface ConfigurableFunctionManager extends FunctionManager
-{
-    ProjectConfiguration getProjectConfiguration();
-
-    void functionChanged(Path sourcePath);
-
-    void functionRemoved(Path sourcePath);
-
-    void specificationChanged(Path path);
-
-    Optional<ServerFunction> getFunction(String name);
-
-    Optional<ServerFunction> getFunction(final Path sourcePath);
-
-    ClassLoader getClassLoader();
+@Service("sharedService")
+class SharedService {
+    String helloWorld(String name) {
+        "Hello world, " + name
+    }
 }

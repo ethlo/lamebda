@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.slf4j.Logger;
@@ -224,7 +225,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void initialize()
     {
-        initialApiProcessing();
+        processApiSpecification();
 
         for (AbstractServerFunctionInfo info : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
         {
@@ -249,7 +250,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         addBuiltinFunctions();
     }
 
-    private void initialApiProcessing()
+    private void processApiSpecification()
     {
         final Path apiPath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY).resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
         if (Files.exists(apiPath))
@@ -290,7 +291,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     @Override
     public void specificationChanged(final Path path)
     {
-        initialApiProcessing();
+        processApiSpecification();
 
         logger.info("Reloading functions due to API specification change: {}", path);
         reloadFunctions();
@@ -307,6 +308,12 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     public Optional<ServerFunction> getFunction(final Path sourcePath)
     {
         return getFunction(sourcePath.toString());
+    }
+
+    @Override
+    public ClassLoader getClassLoader()
+    {
+        return lamebdaResourceLoader.getClassLoader();
     }
 
     @Override

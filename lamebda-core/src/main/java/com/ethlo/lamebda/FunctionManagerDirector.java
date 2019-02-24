@@ -38,6 +38,7 @@ import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.loaders.ChangeAwareFileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FunctionPostProcessor;
+import com.ethlo.lamebda.util.Assert;
 
 public class FunctionManagerDirector
 {
@@ -53,6 +54,9 @@ public class FunctionManagerDirector
 
     public FunctionManagerDirector(final Path rootDirectory, String rootContext, FunctionPostProcessor functionPostProcessor) throws IOException
     {
+        Assert.notNull(rootDirectory, "rootDirectory cannot be null");
+        Assert.notNull(rootDirectory, "rootContext cannot be null");
+
         logger.info("Initializing Lamebda");
 
         if (!Files.isDirectory(rootDirectory))
@@ -146,13 +150,19 @@ public class FunctionManagerDirector
         }
     }
 
-    private FunctionManager create(final Path projectPath)
+    FunctionManager create(final Path projectPath)
     {
         logger.info("Loading {}", projectPath);
         final FileSystemLamebdaResourceLoader lamebdaResourceLoader = createResourceLoader(projectPath);
-        final FunctionManager fm = new FunctionManagerImpl(lamebdaResourceLoader);
+        final FunctionManagerImpl fm = new FunctionManagerImpl(lamebdaResourceLoader);
+        postInit(fm);
         functionManagers.put(projectPath, fm);
         return fm;
+    }
+
+    protected void postInit(ConfigurableFunctionManager functionManager)
+    {
+
     }
 
     private FileSystemLamebdaResourceLoader createResourceLoader(Path projectPath)
