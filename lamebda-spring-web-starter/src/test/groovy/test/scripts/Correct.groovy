@@ -18,18 +18,18 @@
  * #L%
  */
 import com.ethlo.lamebda.spring.SpringMvcServerFunction
-import mypackage.*
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 
-@Component
+@RestController
 @RequestMapping("/springmvc")
 class Correct extends SpringMvcServerFunction {
+
     @Autowired
-    private SharedService sharedService;
+    def sharedService;
 
     @GetMapping("/hello")
     void perform(@PathVariable("target") String target) {

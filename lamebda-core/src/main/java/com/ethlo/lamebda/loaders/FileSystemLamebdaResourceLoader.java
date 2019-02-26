@@ -30,7 +30,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.Comparator;
@@ -93,7 +92,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     // Simplified constructor primarily for tests
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration) throws IOException
     {
-        this(projectConfiguration, f->f);
+        this(projectConfiguration, f -> f);
     }
 
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionPostProcessor functionPostProcessor) throws IOException
@@ -138,8 +137,8 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         logger.info("Adding script classpath {}", scriptClassPath);
 
         final String sharedClassPath = sharedPath.toAbsolutePath().toString();
-        groovyClassLoader.addClasspath(sharedClassPath);
-        logger.info("Adding shared classpath {}", sharedClassPath);
+        //groovyClassLoader.addClasspath(sharedClassPath);
+        //logger.info("Adding shared classpath {}", sharedClassPath);
 
         getLibUrls().forEach(url ->
         {
@@ -203,7 +202,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         {
             final String source = readSource(sourcePath);
             final Class<?> clazz = groovyClassLoader.parseClass(source);
-            Assert.isTrue(ServerFunction.class.isAssignableFrom(clazz), "Class " + clazz.getName() + " must be instance of class ServerFunction");
 
             final String actualClassName = clazz.getCanonicalName();
 
@@ -237,25 +235,25 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     // Keep public
     public FunctionContext loadContext(final Class<?> functionClass)
     {
-        final FunctionConfiguration functionConfiguration = loadFunctionConfig(functionClass);
+        final FunctionConfiguration functionConfiguration = loadFunctionConfig(projectConfiguration, functionClass);
         return new FunctionContext(projectConfiguration, functionConfiguration);
     }
 
 
-    private FunctionConfiguration loadFunctionConfig(final Class<?> functionClass)
+    public static FunctionConfiguration loadFunctionConfig(ProjectConfiguration projectConfiguration, final Class<?> functionClass)
     {
         final FunctionConfiguration functionConfiguration = new FunctionConfiguration();
 
         final PropertyFile propertyFile = functionClass.getAnnotation(PropertyFile.class);
         final boolean required = propertyFile != null && propertyFile.required();
         final String filename = propertyFile != null ? propertyFile.value() : FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME;
-        final Path cfgFilePath = getProjectConfiguration().getPath().resolve(filename);
+        final Path cfgFilePath = projectConfiguration.getPath().resolve(filename);
 
         if (Files.exists(cfgFilePath))
         {
             try
             {
-                final String cfgContent = readSource(cfgFilePath);
+                final String cfgContent = new String(Files.readAllBytes(cfgFilePath), StandardCharsets.UTF_8);
                 functionConfiguration.load(new StringReader(cfgContent));
             }
             catch (IOException exc)
@@ -276,11 +274,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public List<? extends AbstractServerFunctionInfo> findAll(long offset, int size)
     {
         final List<AbstractServerFunctionInfo> all = new LinkedList<>();
-        all.addAll(getServerFunctionScripts());
+        //all.addAll(getServerFunctionScripts());
         all.addAll(getServerFunctionClasses());
         return all.stream().skip(offset).limit(size).collect(Collectors.toList());
     }
 
+    /*
     private List<ScriptServerFunctionInfo> getServerFunctionScripts()
     {
         if (!Files.exists(scriptPath))
@@ -300,6 +299,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
             throw new UncheckedIOException(e);
         }
     }
+    */
 
     private List<ClassServerFunctionInfo> getServerFunctionClasses()
     {

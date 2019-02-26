@@ -20,8 +20,6 @@ package com.ethlo.lamebda.spring;
  * #L%
  */
 
-import static org.springframework.beans.factory.wiring.BeanWiringInfo.AUTOWIRE_BY_NAME;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -30,15 +28,14 @@ import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
-import org.springframework.beans.factory.support.AbstractBeanDefinition;
-import org.springframework.beans.factory.support.BeanDefinitionReaderUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,6 +50,7 @@ import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
+import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.StringUtil;
 import groovy.lang.GroovyClassLoader;
 
@@ -68,6 +66,9 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Value("${lamebda.source.directory:/lamebda}")
     private Path rootDir;
+
+    @Autowired
+    private ApplicationContext parentContext;
 
     public void setRootContextPath(String rootContextPath)
     {
@@ -86,78 +87,8 @@ public class LamebdaSpringWebAutoConfiguration
     @ConditionalOnProperty("lamebda.enabled")
     public FunctionManagerDirector functionManagerDirector() throws IOException
     {
-        FunctionPostProcessor funcPostProcessor = function ->
-        {
-            if (function instanceof SpringMvcServerFunction)
-            {
-                final SpringMvcServerFunction springMvcServerFunction = (SpringMvcServerFunction) function;
-                final AnnotationConfigApplicationContext projectCtx = springMvcServerFunction.getApplicationContext();
-                AutowireHelper.postProcessor(projectCtx).process(function);
-            }
-
-            if (function instanceof BaseServerFunction)
-            {
-                ((BaseServerFunction) function).handlePostConstructMethods();
-            }
-            return function;
-        };
-
-        return new FunctionManagerDirector(rootDir, rootContextPath, funcPostProcessor)
-        {
-            @Override
-            protected void postInit(final ConfigurableFunctionManager functionManager)
-            {
-                final AnnotationConfigApplicationContext projectCtx = new AnnotationConfigApplicationContext();
-                projectCtx.setId(functionManager.getProjectConfiguration().getName());
-                projectCtx.setClassLoader(functionManager.getClassLoader());
-                projectCtx.refresh();
-                findSharedClasses(projectCtx, functionManager.getProjectConfiguration().getSharedPath());
-            }
-        };
+        return new FunctionManagerDirector(rootDir, rootContextPath, parentContext);
     }
-
-    private void findSharedClasses(AnnotationConfigApplicationContext projectCtx, Path sharedScriptsPath)
-    {
-        final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) projectCtx.getClassLoader();
-
-        try (Stream<Path> stream = Files.walk(sharedScriptsPath))
-        {
-            stream.forEach(e ->
-            {
-                if (e.getFileName().toString().endsWith(FileSystemLamebdaResourceLoader.SCRIPT_EXTENSION) && Files.isRegularFile(e))
-                {
-                    //final String className = FileSystemLamebdaResourceLoader.toClassName(sharedScriptsPath, e);
-                    try
-                    {
-                        final Class<?> clazz = groovyClassLoader.parseClass(e.toFile());
-                        registerIfSpringBean(clazz, projectCtx);
-                    }
-                    catch (ClassNotFoundException exc)
-                    {
-                        throw new RuntimeException(exc);
-                    }
-                    catch (IOException exc)
-                    {
-                        throw new UncheckedIOException(exc);
-                    }
-                }
-            });
-        }
-        catch (IOException exc)
-        {
-            throw new UncheckedIOException(exc);
-        }
-    }
-
-    private void registerIfSpringBean(Class<?> clazz, final AnnotationConfigApplicationContext projectCtx) throws ClassNotFoundException
-    {
-        final String className = clazz.getCanonicalName();
-        final AbstractBeanDefinition beanDef = BeanDefinitionReaderUtils.createBeanDefinition(null, className, projectCtx.getClassLoader());
-        final AutowireCapableBeanFactory factory = projectCtx.getAutowireCapableBeanFactory();
-        projectCtx.registerBeanDefinition(className, beanDef);
-        Object bean = factory.createBean(clazz, AUTOWIRE_BY_NAME, false);
-    }
-
 
     @Bean
     public FilterRegistrationBean metricsFilter()

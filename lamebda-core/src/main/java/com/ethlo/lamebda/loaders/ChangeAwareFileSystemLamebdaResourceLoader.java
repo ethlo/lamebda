@@ -43,9 +43,9 @@ public class ChangeAwareFileSystemLamebdaResourceLoader extends FileSystemLamebd
 
     private WatchDir watchDir;
 
-    public ChangeAwareFileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionPostProcessor functionPostProcessor) throws IOException
+    public ChangeAwareFileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration) throws IOException
     {
-        super(projectConfiguration, functionPostProcessor);
+        super(projectConfiguration);
 
         if (projectConfiguration.isListenForChanges())
         {

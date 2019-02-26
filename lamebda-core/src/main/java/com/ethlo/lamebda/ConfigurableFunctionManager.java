@@ -23,6 +23,8 @@ package com.ethlo.lamebda;
 import java.nio.file.Path;
 import java.util.Optional;
 
+import org.springframework.context.ApplicationContext;
+
 public interface ConfigurableFunctionManager extends FunctionManager
 {
     ProjectConfiguration getProjectConfiguration();
@@ -33,9 +35,9 @@ public interface ConfigurableFunctionManager extends FunctionManager
 
     void specificationChanged(Path path);
 
-    Optional<ServerFunction> getFunction(String name);
+    Optional<ServerFunction> getHandler(String name);
 
-    Optional<ServerFunction> getFunction(final Path sourcePath);
+    Optional<ServerFunction> getHandler(final Path sourcePath);
 
-    ClassLoader getClassLoader();
+    ApplicationContext getProjectApplicationContext();
 }

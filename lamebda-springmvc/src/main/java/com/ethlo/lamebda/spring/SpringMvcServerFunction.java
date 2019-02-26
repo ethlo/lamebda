@@ -22,13 +22,13 @@ package com.ethlo.lamebda.spring;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -39,47 +39,73 @@ import org.springframework.aop.Advisor;
 import org.springframework.aop.aspectj.annotation.BeanFactoryAspectJAdvisorsBuilder;
 import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.aop.target.SingletonTargetSource;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.MimeType;
-import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
-import com.ethlo.lamebda.BaseServerFunction;
 import com.ethlo.lamebda.FunctionResult;
 import com.ethlo.lamebda.HttpMethod;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
+import com.ethlo.lamebda.ProjectConfiguration;
+import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.URLMappedServerFunction;
 import com.ethlo.lamebda.context.FunctionContext;
+import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.MethodAndPattern;
 import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
 
-public abstract class SpringMvcServerFunction extends BaseServerFunction implements URLMappedServerFunction
+public abstract class SpringMvcServerFunction implements ServerFunction, URLMappedServerFunction
 {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final OpenRequestMappingHandlerMapping openRequestMappingHandlerMapping = new OpenRequestMappingHandlerMapping();
     private final Set<RequestMapping> requestMappings = new LinkedHashSet<>();
-    private RequestMappingHandlerAdapter adapter;
-    private AnnotationConfigApplicationContext projectContext;
 
-    protected final void postConstruct(final AnnotationConfigApplicationContext projectContext)
+    @Autowired(required = false)
+    private RequestMappingHandlerAdapter adapter;
+
+    @Autowired
+    private ListableBeanFactory beanFactory;
+
+    @Autowired(required = false)
+    private List<MethodInterceptor> methodInterceptors;
+
+    @Autowired
+    private ProjectConfiguration projectConfiguration;
+
+    @PostConstruct
+    protected final void postConstruct()
     {
-        final Collection<MethodInterceptor> methodInterceptors = projectContext.getBeansOfType(MethodInterceptor.class).values();
-        final BeanFactoryAspectJAdvisorsBuilder advisorsBuilder = new BeanFactoryAspectJAdvisorsBuilder(projectContext);
+        final BeanFactoryAspectJAdvisorsBuilder advisorsBuilder = new BeanFactoryAspectJAdvisorsBuilder(beanFactory);
         final List<Advisor> advisors = advisorsBuilder.buildAspectJAdvisors();
-        final Object proxyObject = createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors);
-        detectAndRegisterRequestHandlerMethods(this.getClass(), proxyObject);
-        this.adapter = projectContext.getBean(RequestMappingHandlerAdapter.class);
-        this.projectContext = projectContext;
+
+        if (methodInterceptors != null)
+        {
+            final Object proxyObject = createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors);
+            detectAndRegisterRequestHandlerMethods(this.getClass(), proxyObject);
+        }
+        else
+        {
+            detectAndRegisterRequestHandlerMethods(this.getClass(), this);
+        }
+
+        init(new FunctionContext(projectConfiguration, FileSystemLamebdaResourceLoader.loadFunctionConfig(projectConfiguration, getClass())));
     }
 
-    private Object createAOPProxyWithInterceptorsAndAdvisors(final Collection<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)
+    /**
+     * Callback method
+     * @param ctx
+     */
+    protected void init(FunctionContext ctx){}
+
+    private Object createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)
     {
         final ProxyFactoryBean proxyFactoryBean = new ProxyFactoryBean();
         proxyFactoryBean.setProxyTargetClass(true);
@@ -95,20 +121,20 @@ public abstract class SpringMvcServerFunction extends BaseServerFunction impleme
         Arrays.asList(clazz.getMethods())
                 .forEach(m -> {
                     final RequestMappingInfo mapping = openRequestMappingHandlerMapping.getMappingForMethod(m, this.getClass());
-                    doRegister(object, m, mapping);
+                    doRegister(object, m, mapping, projectConfiguration);
                 });
     }
 
-    private void doRegister(final Object object, final Method m, final RequestMappingInfo mapping)
+    private void doRegister(final Object object, final Method m, final RequestMappingInfo mapping, ProjectConfiguration projectConfiguration)
     {
         if (mapping != null)
         {
-            final String rootContextPath = context.getProjectConfiguration().getRootContextPath();
+            final String rootContextPath = projectConfiguration.getRootContextPath();
             RequestMappingInfo mappingToUse = RequestMappingInfo.paths(rootContextPath).build();
 
-            if (context.getProjectConfiguration().enableUrlProjectContextPrefix())
+            if (projectConfiguration.enableUrlProjectContextPrefix())
             {
-                final String projectContextPath = context.getProjectConfiguration().getContextPath();
+                final String projectContextPath = projectConfiguration.getContextPath();
                 mappingToUse = mappingToUse.combine(RequestMappingInfo.paths(projectContextPath).build());
             }
             mappingToUse = mappingToUse.combine(mapping);
@@ -150,28 +176,8 @@ public abstract class SpringMvcServerFunction extends BaseServerFunction impleme
     }
 
     @Override
-    protected final void initInternal(FunctionContext context)
-    {
-        for (Method method : ReflectionUtils.getUniqueDeclaredMethods(getClass()))
-        {
-            final RequestMappingInfo mapping = openRequestMappingHandlerMapping.getMappingForMethod(method, this.getClass());
-            doRegister(this, method, mapping);
-        }
-    }
-
-    public FunctionContext getContext()
-    {
-        return context;
-    }
-
-    @Override
     public Set<RequestMapping> getUrlMapping()
     {
         return new TreeSet<>(requestMappings);
-    }
-
-    public AnnotationConfigApplicationContext getApplicationContext()
-    {
-        return projectContext;
     }
 }

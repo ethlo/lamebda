@@ -67,7 +67,7 @@ public class SpringMvcServerFunctionTest
         Files.createDirectories(basepath);
 
         final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", basepath).build();
-        functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, AutowireHelper.postProcessor(applicationContext)));
+        functionManager = new FunctionManagerImpl(applicationContext, new FileSystemLamebdaResourceLoader(cfg, AutowireHelper.postProcessor(applicationContext)));
     }
 
     @Test
@@ -75,7 +75,7 @@ public class SpringMvcServerFunctionTest
     {
         final Path sourcePath = move("SpringMvc.groovy");
         functionManager.functionChanged(sourcePath);
-        assertThat(functionManager.getFunction(sourcePath)).isPresent();
+        assertThat(functionManager.getHandler(sourcePath)).isPresent();
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
         req.setRequestURI("/lamebda/lamebda-unit-test/test/123");

@@ -26,15 +26,14 @@ import java.util.Optional;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 import com.ethlo.lamebda.ConfigurableFunctionManager;
-import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerDirector;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
@@ -42,13 +41,11 @@ import com.ethlo.lamebda.spring.LamebdaSpringWebAutoConfiguration;
 
 @SpringBootTest(classes = LamebdaSpringWebAutoConfiguration.class)
 @RunWith(SpringRunner.class)
+@AutoConfigureMockMvc
 public class GroovyBackedBeanTest
 {
     @Autowired
     private FunctionManagerDirector functionManagerDirector;
-
-    @Autowired
-    private ApplicationContext ctx;
 
     @Test
     public void init()
@@ -56,10 +53,11 @@ public class GroovyBackedBeanTest
         final Path basePath = Paths.get("src/test/groovy/test");
         final ConfigurableFunctionManager fm = (ConfigurableFunctionManager) functionManagerDirector.getFunctionManagers().get(basePath);
         assertThat(fm).isNotNull();
-        final Optional<ServerFunction> function = fm.getFunction(basePath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve("Correct.groovy").toAbsolutePath());
+
+        final Optional<ServerFunction> function = fm.getHandler(basePath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve("Correct.groovy").toAbsolutePath());
         assertThat(function).isPresent();
 
-        System.out.println(StringUtils.arrayToCommaDelimitedString(ctx.getBeanDefinitionNames()));
+        System.out.println(StringUtils.arrayToCommaDelimitedString(fm.getProjectApplicationContext().getBeanDefinitionNames()));
         //function.get().handle()
     }
 }

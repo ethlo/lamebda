@@ -69,13 +69,13 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
         {
             final FunctionStatusInfo info = new FunctionStatusInfo(projectConfiguration.getPath(), s);
 
-            final Optional<ServerFunction> funcOpt = ((FunctionManagerImpl) functionManager).getFunction(s.getName());
+            final Optional<ServerFunction> funcOpt = ((FunctionManagerImpl) functionManager).getHandler(s.getName());
             final boolean isLoaded = funcOpt.isPresent();
             info.setRunning(isLoaded);
 
             if (funcOpt.isPresent())
             {
-                final ServerFunction func = funcOpt.get();
+                final Object func = funcOpt.get();
                 if (func instanceof URLMappedServerFunction)
                 {
                     info.setRequestMappings(((URLMappedServerFunction) func).getUrlMapping());

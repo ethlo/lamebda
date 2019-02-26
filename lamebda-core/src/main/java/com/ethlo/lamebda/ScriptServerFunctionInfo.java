@@ -27,32 +27,25 @@ import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 
 public class ScriptServerFunctionInfo extends AbstractServerFunctionInfo
 {
-    private final Path sourcePath;
+    private final Class<? extends ServerFunction> type;
     private final OffsetDateTime lastModified;
-    private final LamebdaResourceLoader resourceLoader;
 
-    public ScriptServerFunctionInfo(LamebdaResourceLoader resourceLoader, Path sourcePath, OffsetDateTime lastModified)
+    public ScriptServerFunctionInfo(Class<? extends ServerFunction> type,  OffsetDateTime lastModified)
     {
-        super(sourcePath.toString());
-        this.sourcePath = sourcePath;
+        super(type.getCanonicalName());
+        this.type = type;
         this.lastModified = lastModified;
-        this.resourceLoader = resourceLoader;
     }
 
     @Override
     public Class<? extends ServerFunction> getType()
     {
-        return resourceLoader.loadClass(sourcePath);
+        return type;
     }
 
     public OffsetDateTime getLastModified()
     {
         return lastModified;
-    }
-
-    public Path getSourcePath()
-    {
-        return sourcePath;
     }
 }
         

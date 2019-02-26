@@ -28,12 +28,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
+@SpringBootTest
+@RunWith(SpringRunner.class)
 public abstract class BaseTest
 {
     private final Path rootPath = Paths.get(System.getProperty("java.io.tmpdir"));
@@ -41,6 +48,9 @@ public abstract class BaseTest
     protected final FunctionManagerImpl functionManager;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     protected final FileSystemLamebdaResourceLoader loader;
+
+    @Autowired
+    private ApplicationContext parentContext;
 
     public BaseTest()
     {
@@ -57,7 +67,7 @@ public abstract class BaseTest
 
             final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).listenForChanges(false).build();
             loader = new FileSystemLamebdaResourceLoader(cfg);
-            functionManager = new FunctionManagerImpl(loader);
+            functionManager = new FunctionManagerImpl(parentContext, loader);
         }
         catch (IOException exc)
         {

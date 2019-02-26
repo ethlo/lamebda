@@ -29,16 +29,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.loaders.ChangeAwareFileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.loaders.FunctionPostProcessor;
 import com.ethlo.lamebda.util.Assert;
+import groovy.lang.GroovyClassLoader;
 
 public class FunctionManagerDirector
 {
@@ -46,13 +49,12 @@ public class FunctionManagerDirector
 
     private final Path rootDirectory;
     private final String rootContext;
-
-    private FunctionPostProcessor functionPostProcessor;
+    private final ApplicationContext parentContext;
 
     private Map<Path, FunctionManager> functionManagers = new ConcurrentHashMap<>();
     private WatchDir watchDir;
 
-    public FunctionManagerDirector(final Path rootDirectory, String rootContext, FunctionPostProcessor functionPostProcessor) throws IOException
+    public FunctionManagerDirector(final Path rootDirectory, String rootContext, ApplicationContext parentContext) throws IOException
     {
         Assert.notNull(rootDirectory, "rootDirectory cannot be null");
         Assert.notNull(rootDirectory, "rootContext cannot be null");
@@ -66,7 +68,7 @@ public class FunctionManagerDirector
 
         this.rootDirectory = rootDirectory;
         this.rootContext = rootContext;
-        this.functionPostProcessor = functionPostProcessor;
+        this.parentContext = parentContext;
 
         initializeAll();
     }
@@ -154,15 +156,9 @@ public class FunctionManagerDirector
     {
         logger.info("Loading {}", projectPath);
         final FileSystemLamebdaResourceLoader lamebdaResourceLoader = createResourceLoader(projectPath);
-        final FunctionManagerImpl fm = new FunctionManagerImpl(lamebdaResourceLoader);
-        postInit(fm);
+        final FunctionManagerImpl fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
         functionManagers.put(projectPath, fm);
         return fm;
-    }
-
-    protected void postInit(ConfigurableFunctionManager functionManager)
-    {
-
     }
 
     private FileSystemLamebdaResourceLoader createResourceLoader(Path projectPath)
@@ -170,7 +166,7 @@ public class FunctionManagerDirector
         final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
         try
         {
-            return new ChangeAwareFileSystemLamebdaResourceLoader(cfg, functionPostProcessor);
+            return new ChangeAwareFileSystemLamebdaResourceLoader(cfg);
         }
         catch (IOException exc)
         {

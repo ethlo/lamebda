@@ -26,4 +26,14 @@ class SharedService {
     String helloWorld(String name) {
         "Hello world, " + name
     }
+
+    class InnerClass
+    {
+        def foo = false
+    }
+}
+
+class OtherName
+{
+    def bar = true
 }

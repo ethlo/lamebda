@@ -5,15 +5,26 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.BeanDefinitionCustomizer;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotatedBeanDefinitionReader;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
@@ -28,6 +39,7 @@ import com.ethlo.lamebda.loaders.FileSystemNotificationAware;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.util.IoUtil;
+import groovy.lang.GroovyClassLoader;
 
 /*-
  * #%L
@@ -53,6 +65,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
     private final ProjectConfiguration projectConfiguration;
+    private final AnnotationConfigApplicationContext projectCtx;
 
     private Map<String, FunctionBundle> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
@@ -60,7 +73,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private final GeneratorHelper generatorHelper;
 
-    public FunctionManagerImpl(LamebdaResourceLoader lamebdaResourceLoader)
+    public FunctionManagerImpl(ApplicationContext parentContext, LamebdaResourceLoader lamebdaResourceLoader)
     {
         this.projectConfiguration = lamebdaResourceLoader.getProjectConfiguration();
         final Path jarDir = projectConfiguration.getPath().resolve(".generator");
@@ -73,6 +86,12 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             logger.warn("No directory for code generation: {}", jarDir);
             generatorHelper = null;
         }
+
+        this.projectCtx = new AnnotationConfigApplicationContext();
+        this.projectCtx.setParent(parentContext);
+        this.projectCtx.setAllowBeanDefinitionOverriding(false);
+        this.projectCtx.setClassLoader(lamebdaResourceLoader.getClassLoader());
+        this.projectCtx.setId(projectConfiguration.getName());
 
         this.lamebdaResourceLoader = lamebdaResourceLoader;
 
@@ -155,6 +174,9 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     @Override
     public void functionChanged(final Path sourcePath)
     {
+        // TODO: RELOAD
+
+        /*
         final ScriptServerFunctionInfo newInfo = ScriptServerFunctionInfo.ofScript(lamebdaResourceLoader, sourcePath);
         try
         {
@@ -167,6 +189,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             functionRemoved(sourcePath);
             throw exc;
         }
+        */
     }
 
     private void generateModels() throws IOException
@@ -209,8 +232,9 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             final FunctionBundle oldInfo = functions.get(name);
             if (oldInfo.getInfo() instanceof ScriptServerFunctionInfo)
             {
-                final Path sourcePath = ((ScriptServerFunctionInfo) oldInfo.getInfo()).getSourcePath();
-                functionChanged(sourcePath);
+                // TODO: RELOAD
+                //final Path sourcePath = ((ScriptServerFunctionInfo) oldInfo.getInfo()).getSourcePath();
+                //functionChanged(sourcePath);
             }
         });
     }
@@ -225,32 +249,74 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void initialize()
     {
-        processApiSpecification();
-
-        for (AbstractServerFunctionInfo info : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
-        {
-            if (info instanceof ClassServerFunctionInfo)
-            {
-                addFunction(new FunctionBundle(info, lamebdaResourceLoader.prepare(info.getType())));
-            }
-            else
-            {
-                final ScriptServerFunctionInfo f = (ScriptServerFunctionInfo) info;
-                try
-                {
-                    addFunction(new FunctionBundle(info, lamebdaResourceLoader.load(f.getSourcePath())));
-                }
-                catch (Exception exc)
-                {
-                    logger.error("Error in function {}: {}", f.getSourcePath(), exc);
-                }
-            }
-        }
-
+        apiSpecProcessing();
+        loadProjectConfigBean();
+        registerSharedClasses();
+        registerFunctions();
         addBuiltinFunctions();
     }
 
-    private void processApiSpecification()
+    private void loadProjectConfigBean()
+    {
+        final ConfigurableListableBeanFactory bf = projectCtx.getBeanFactory();
+        bf.registerSingleton("projectConfiguration", lamebdaResourceLoader.getProjectConfiguration());
+    }
+
+    private void registerSharedClasses()
+    {
+        final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
+        final List<Class<?>> classes = Compiler.compile(groovyClassLoader, getProjectConfiguration().getSharedPath());
+        classes.forEach(clazz ->
+        {
+            if (hasBeanAnnotation(clazz))
+            {
+                logger.info("Register bean class {}", clazz);
+                projectCtx.registerBean(clazz);
+            }
+        });
+
+        logger.info("Bean definitions: {}", StringUtils.arrayToCommaDelimitedString(projectCtx.getBeanDefinitionNames()));
+    }
+
+    private boolean hasBeanAnnotation(final Class<?> clazz)
+    {
+        final List<String> annotations = Arrays.stream(clazz.getAnnotations()).map(a -> a.annotationType().getCanonicalName()).collect(Collectors.toList());
+        for (Class<?> ann : Arrays.asList(Service.class, Component.class, Repository.class))
+        {
+            if (annotations.contains(ann.getCanonicalName()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void registerFunctions()
+    {
+        final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
+
+        final List<? extends AbstractServerFunctionInfo> functions = lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE);
+        functions.forEach(info ->
+        {
+            projectCtx.registerBean(info.getType());
+        });
+
+        final List<Class<?>> classes = Compiler.compile(groovyClassLoader, getProjectConfiguration().getScriptPath());
+        classes.forEach(clazz->
+        {
+            if (ServerFunction.class.isAssignableFrom(clazz))
+            {
+                projectCtx.registerBean(clazz);
+            }
+        });
+
+        projectCtx.refresh();
+
+        projectCtx.getBeansOfType(ServerFunction.class)
+                .forEach((key, value) -> addFunction(new FunctionBundle(AbstractServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
+    }
+
+    private void apiSpecProcessing()
     {
         final Path apiPath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY).resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
         if (Files.exists(apiPath))
@@ -291,29 +357,29 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     @Override
     public void specificationChanged(final Path path)
     {
-        processApiSpecification();
+        apiSpecProcessing();
 
         logger.info("Reloading functions due to API specification change: {}", path);
         reloadFunctions();
     }
 
     @Override
-    public Optional<ServerFunction> getFunction(final String name)
+    public ApplicationContext getProjectApplicationContext()
+    {
+        return projectCtx;
+    }
+
+    @Override
+    public Optional<ServerFunction> getHandler(final String name)
     {
         final FunctionBundle res = functions.get(name);
         return res != null ? Optional.of(res.getFunction()) : Optional.empty();
     }
 
     @Override
-    public Optional<ServerFunction> getFunction(final Path sourcePath)
+    public Optional<ServerFunction> getHandler(final Path sourcePath)
     {
-        return getFunction(sourcePath.toString());
-    }
-
-    @Override
-    public ClassLoader getClassLoader()
-    {
-        return lamebdaResourceLoader.getClassLoader();
+        return getHandler(sourcePath.toString());
     }
 
     @Override

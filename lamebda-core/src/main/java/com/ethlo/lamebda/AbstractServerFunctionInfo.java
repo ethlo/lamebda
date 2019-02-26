@@ -47,6 +47,7 @@ public abstract class AbstractServerFunctionInfo implements Comparable<AbstractS
         return new ClassServerFunctionInfo(name, clazz);
     }
 
+    /*
     public static ScriptServerFunctionInfo ofScript(LamebdaResourceLoader lamebdaResourceLoader, final Path sourcePath)
     {
         try
@@ -59,6 +60,7 @@ public abstract class AbstractServerFunctionInfo implements Comparable<AbstractS
             throw new UncheckedIOException(exc);
         }
     }
+    */
 
     public static ClassServerFunctionInfo ofClass(final Class<ServerFunction> function)
     {
