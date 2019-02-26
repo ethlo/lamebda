@@ -65,4 +65,6 @@ public interface LamebdaResourceLoader extends AutoCloseable
     void addClasspath(String path);
 
     ClassLoader getClassLoader();
+
+    void reset();
 }

@@ -3,8 +3,12 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -16,10 +20,8 @@ import java.util.stream.Collectors;
 import org.codehaus.groovy.control.CompilationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.config.BeanDefinitionCustomizer;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotatedBeanDefinitionReader;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
@@ -65,7 +67,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
     private final ProjectConfiguration projectConfiguration;
-    private final AnnotationConfigApplicationContext projectCtx;
+    private final ApplicationContext parentContext;
+    private AnnotationConfigApplicationContext projectCtx;
 
     private Map<String, FunctionBundle> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
@@ -87,14 +90,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             generatorHelper = null;
         }
 
-        this.projectCtx = new AnnotationConfigApplicationContext();
-        this.projectCtx.setParent(parentContext);
-        this.projectCtx.setAllowBeanDefinitionOverriding(false);
-        this.projectCtx.setClassLoader(lamebdaResourceLoader.getClassLoader());
-        this.projectCtx.setId(projectConfiguration.getName());
-
         this.lamebdaResourceLoader = lamebdaResourceLoader;
-
+        this.parentContext = parentContext;
         registerChangeListenersIfApplicable(lamebdaResourceLoader);
 
         initialize();
@@ -174,22 +171,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     @Override
     public void functionChanged(final Path sourcePath)
     {
-        // TODO: RELOAD
-
-        /*
-        final ScriptServerFunctionInfo newInfo = ScriptServerFunctionInfo.ofScript(lamebdaResourceLoader, sourcePath);
-        try
-        {
-            logger.info("Loading function {}", sourcePath);
-            final ServerFunction function = lamebdaResourceLoader.load(sourcePath);
-            addFunction(new FunctionBundle(newInfo, function));
-        }
-        catch (CompilationFailedException exc)
-        {
-            functionRemoved(sourcePath);
-            throw exc;
-        }
-        */
+        reloadFunctions();
     }
 
     private void generateModels() throws IOException
@@ -198,10 +180,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         {
             runRegen(projectConfiguration, ".models.gen");
         }
-
-        final String modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath().toString();
-        lamebdaResourceLoader.addClasspath(modelPath);
-        logger.info("Added model classpath {}", modelPath);
     }
 
     private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration) throws IOException
@@ -228,15 +206,10 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void reloadFunctions()
     {
-        functions.forEach((name, func) -> {
-            final FunctionBundle oldInfo = functions.get(name);
-            if (oldInfo.getInfo() instanceof ScriptServerFunctionInfo)
-            {
-                // TODO: RELOAD
-                //final Path sourcePath = ((ScriptServerFunctionInfo) oldInfo.getInfo()).getSourcePath();
-                //functionChanged(sourcePath);
-            }
-        });
+        functions.clear();
+        projectCtx.close();
+        lamebdaResourceLoader.reset();
+        initialize();
     }
 
     private FunctionManagerImpl addFunction(FunctionBundle bundle)
@@ -249,6 +222,13 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void initialize()
     {
+        this.projectCtx = new AnnotationConfigApplicationContext();
+        this.projectCtx.setParent(parentContext);
+        this.projectCtx.setAllowBeanDefinitionOverriding(false);
+        this.projectCtx.setClassLoader(lamebdaResourceLoader.getClassLoader());
+        this.projectCtx.setId(projectConfiguration.getName());
+
+        this.lamebdaResourceLoader = lamebdaResourceLoader;
         apiSpecProcessing();
         loadProjectConfigBean();
         registerSharedClasses();
@@ -302,7 +282,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         });
 
         final List<Class<?>> classes = Compiler.compile(groovyClassLoader, getProjectConfiguration().getScriptPath());
-        classes.forEach(clazz->
+        classes.forEach(clazz ->
         {
             if (ServerFunction.class.isAssignableFrom(clazz))
             {
@@ -323,18 +303,37 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         {
             try
             {
-                generateModels();
-
-                generateHumanReadableApiDoc(projectConfiguration);
-
-                final String specificationBasePath = "/specification";
-                final Optional<Path> specificationFile = lamebdaResourceLoader.getApiSpecification();
-                specificationFile.ifPresent(f -> addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
-
                 final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
-                if (Files.exists(targetPath))
+                final Path marker = targetPath.resolve(".lastmodified");
+
+                final OffsetDateTime specModified = lastModified(apiPath);
+                final OffsetDateTime modelModified = lastModified(marker);
+
+                if (specModified.isAfter(modelModified))
                 {
-                    addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
+                    generateModels();
+
+                    generateHumanReadableApiDoc(projectConfiguration);
+
+                    final String specificationBasePath = "/specification";
+                    final Optional<Path> specificationFile = lamebdaResourceLoader.getApiSpecification();
+                    specificationFile.ifPresent(f -> addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
+
+
+                    if (Files.exists(targetPath))
+                    {
+                        addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
+                    }
+                }
+
+                try
+                {
+                    Files.createFile(marker);
+                    Files.setLastModifiedTime(marker, FileTime.from(specModified.toInstant()));
+                }
+                catch (FileAlreadyExistsException exc)
+                {
+                    // Ignore
                 }
             }
             catch (IOException exc)
@@ -342,6 +341,19 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
                 throw new UncheckedIOException(exc);
             }
         }
+
+        final String modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath().toString();
+        lamebdaResourceLoader.addClasspath(modelPath);
+        logger.info("Added model classpath {}", modelPath);
+    }
+
+    private OffsetDateTime lastModified(final Path path) throws IOException
+    {
+        if (Files.exists(path))
+        {
+            return OffsetDateTime.ofInstant(Files.getLastModifiedTime(path).toInstant(), ZoneOffset.UTC);
+        }
+        return OffsetDateTime.MIN;
     }
 
     @Override

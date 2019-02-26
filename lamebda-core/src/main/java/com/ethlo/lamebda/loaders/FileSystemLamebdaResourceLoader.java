@@ -81,7 +81,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
     public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
 
-    private final GroovyClassLoader groovyClassLoader;
+    private GroovyClassLoader groovyClassLoader;
     private final ProjectConfiguration projectConfiguration;
     private final FunctionPostProcessor functionPostProcessor;
 
@@ -387,5 +387,19 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public ClassLoader getClassLoader()
     {
         return groovyClassLoader;
+    }
+
+    @Override
+    public void reset()
+    {
+        try
+        {
+            groovyClassLoader.close();
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
+        groovyClassLoader = new GroovyClassLoader();
     }
 }
