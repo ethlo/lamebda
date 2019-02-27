@@ -23,15 +23,11 @@ package com.ethlo.lamebda.loaders;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
-import java.io.UncheckedIOException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedList;
@@ -48,16 +44,11 @@ import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.AbstractServerFunctionInfo;
 import com.ethlo.lamebda.ClassServerFunctionInfo;
-import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.PropertyFile;
 import com.ethlo.lamebda.ServerFunction;
-import com.ethlo.lamebda.context.FunctionConfiguration;
-import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.io.FileSystemEvent;
 import com.ethlo.lamebda.io.WatchDir;
-import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 import io.github.classgraph.ClassGraph;
@@ -68,10 +59,11 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String PROJECT_FILENAME = "project.properties";
-    public static final String DEFAULT_CONFIG_FILENAME = "config.properties";
+    public static final String DEFAULT_CONFIG_FILENAME = "application.properties";
 
     public static final String JAR_EXTENSION = "jar";
-    public static final String SCRIPT_EXTENSION = "groovy";
+    public static final String GROOVY_EXTENSION = "groovy";
+    public static final String JAVA_EXTENSION = "java";
     public static final String PROPERTIES_EXTENSION = "properties";
 
     public static final String SCRIPT_DIRECTORY = "scripts";
@@ -80,29 +72,19 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public static final String SHARED_DIRECTORY = "shared";
     public static final String LIB_DIRECTORY = "lib";
 
-    public static final String API_SPECIFICATION_JSON_FILENAME = "oas.json";
     public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
 
     private GroovyClassLoader groovyClassLoader;
     private final ProjectConfiguration projectConfiguration;
-    private final FunctionPostProcessor functionPostProcessor;
 
-    private Path scriptPath;
     private Path libPath;
     private List<ClassServerFunctionInfo> classFunctions;
     private WatchDir watchDir;
     private Thread watchThread;
 
-    // Simplified constructor primarily for tests
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration) throws IOException
     {
-        this(projectConfiguration, f -> f);
-    }
-
-    public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration, FunctionPostProcessor functionPostProcessor) throws IOException
-    {
         this.projectConfiguration = projectConfiguration;
-        this.functionPostProcessor = Assert.notNull(functionPostProcessor, "functionPostProcessor cannot be null");
 
         final Path projectPath = projectConfiguration.getPath();
         if (!Files.exists(projectPath))
@@ -132,17 +114,9 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     private void handleProject(final Path projectPath) throws IOException
     {
-        this.scriptPath = Files.createDirectories(projectPath.resolve(SCRIPT_DIRECTORY));
-        final Path sharedPath = Files.createDirectories(projectPath.resolve(SHARED_DIRECTORY));
+        Files.createDirectories(projectPath.resolve(SCRIPT_DIRECTORY));
+        Files.createDirectories(projectPath.resolve(SHARED_DIRECTORY));
         this.libPath = Files.createDirectories(projectPath.resolve(LIB_DIRECTORY));
-
-        final String scriptClassPath = scriptPath.toAbsolutePath().toString();
-        this.groovyClassLoader.addClasspath(scriptClassPath);
-        logger.info("Adding script classpath {}", scriptClassPath);
-
-        final String sharedClassPath = sharedPath.toAbsolutePath().toString();
-        //groovyClassLoader.addClasspath(sharedClassPath);
-        //logger.info("Adding shared classpath {}", sharedClassPath);
 
         getLibUrls().forEach(url ->
         {
@@ -187,28 +161,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         return IoUtil.toClassPathList(libPath);
     }
 
-    private ServerFunction instantiate(Class<? extends ServerFunction> clazz)
-    {
-        try
-        {
-            return ServerFunction.class.cast(clazz.newInstance());
-        }
-        catch (InstantiationException | IllegalAccessException exc)
-        {
-            throw new IllegalStateException("Cannot instantiate class " + clazz.getName(), exc);
-        }
-    }
-
-    private String toClassName(final Path sourcePath)
-    {
-        return toClassName(scriptPath, sourcePath);
-    }
-
-    public static String toClassName(final Path rootDir, final Path sourcePath)
-    {
-        return rootDir.relativize(sourcePath).toString().replace('/', '.').replace("." + SCRIPT_EXTENSION, "");
-    }
-
     @Override
     public void close() throws IOException
     {
@@ -217,49 +169,10 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         this.groovyClassLoader.close();
     }
 
-    // Keep public
-    public FunctionContext loadContext(final Class<?> functionClass)
-    {
-        final FunctionConfiguration functionConfiguration = loadFunctionConfig(projectConfiguration, functionClass);
-        return new FunctionContext(projectConfiguration, functionConfiguration);
-    }
-
-
-    public static FunctionConfiguration loadFunctionConfig(ProjectConfiguration projectConfiguration, final Class<?> functionClass)
-    {
-        final FunctionConfiguration functionConfiguration = new FunctionConfiguration();
-
-        final PropertyFile propertyFile = functionClass.getAnnotation(PropertyFile.class);
-        final boolean required = propertyFile != null && propertyFile.required();
-        final String filename = propertyFile != null ? propertyFile.value() : FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME;
-        final Path cfgFilePath = projectConfiguration.getPath().resolve(filename);
-
-        if (Files.exists(cfgFilePath))
-        {
-            try
-            {
-                final String cfgContent = new String(Files.readAllBytes(cfgFilePath), StandardCharsets.UTF_8);
-                functionConfiguration.load(new StringReader(cfgContent));
-            }
-            catch (IOException exc)
-            {
-                throw new UncheckedIOException(exc);
-            }
-        }
-        else if (required)
-        {
-            // Does not exist, but is required
-            throw new UncheckedIOException(new FileNotFoundException(cfgFilePath.toString()));
-        }
-
-        return functionConfiguration;
-    }
-
     @Override
     public List<? extends AbstractServerFunctionInfo> findAll(long offset, int size)
     {
         final List<AbstractServerFunctionInfo> all = new LinkedList<>();
-        //all.addAll(getServerFunctionScripts());
         all.addAll(getServerFunctionClasses());
         return all.stream().skip(offset).limit(size).collect(Collectors.toList());
     }
@@ -293,14 +206,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         }
 
         return classFunctions;
-    }
-
-    private void setContextIfApplicable(final ServerFunction func)
-    {
-        if (func instanceof FunctionContextAware)
-        {
-            ((FunctionContextAware) func).setContext(loadContext(func.getClass()));
-        }
     }
 
     @Override
@@ -344,15 +249,11 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private void listenForChanges(final Consumer<FileSystemEvent> l, final Path[] exists) throws IOException
     {
         watchDir = new WatchDir(l, false, exists);
-        this.watchThread = new Thread()
+        this.watchThread = new Thread(() ->
         {
-            @Override
-            public void run()
-            {
-                logger.info("Watching {} for changes", StringUtils.arrayToCommaDelimitedString(exists));
-                watchDir.processEvents();
-            }
-        };
+            logger.info("Watching {} for changes", StringUtils.arrayToCommaDelimitedString(exists));
+            watchDir.processEvents();
+        });
         this.watchThread.start();
     }
 }

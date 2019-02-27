@@ -1,4 +1,4 @@
-package com.ethlo.lamebda;
+package com.ethlo.lamebda.groovy;
 
 /*-
  * #%L
@@ -9,9 +9,9 @@ package com.ethlo.lamebda;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,20 +40,19 @@ import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
-public class Compiler
+public class GroovyCompiler
 {
-    private static final Logger logger = LoggerFactory.getLogger(Compiler.class);
+    private static final Logger logger = LoggerFactory.getLogger(GroovyCompiler.class);
 
     public static List<Class<?>> compile(GroovyClassLoader cl, Path path)
     {
         final List<Class<?>> classes = new LinkedList<>();
         final CompilationUnit compileUnit = new CompilationUnit(cl);
-        final List<Path> sourceFiles = findSourceFiles(path);
+        final List<Path> sourceFiles = findSourceFiles(path, FileSystemLamebdaResourceLoader.GROOVY_EXTENSION);
         for (Path sourceFile : sourceFiles)
         {
-            final String className = FileSystemLamebdaResourceLoader.toClassName(path, sourceFile);
             logger.debug("Found source {}", sourceFile);
-            compileUnit.addSource(className, IoUtil.toString(sourceFile).orElseThrow(() -> new UncheckedIOException(new FileNotFoundException(sourceFile.toString()))));
+            compileUnit.addSource(sourceFile.toAbsolutePath().toString(), IoUtil.toString(sourceFile).orElseThrow(() -> new UncheckedIOException(new FileNotFoundException(sourceFile.toString()))));
         }
 
         final CompilerConfiguration ccfg = new CompilerConfiguration();
@@ -87,11 +86,11 @@ public class Compiler
         return classes;
     }
 
-    private static List<Path> findSourceFiles(Path sourceDir)
+    public static List<Path> findSourceFiles(Path sourceDir, String extension)
     {
         try (Stream<Path> stream = Files.walk(sourceDir))
         {
-            return stream.filter(e -> e.getFileName().toString().endsWith(FileSystemLamebdaResourceLoader.SCRIPT_EXTENSION) && Files.isRegularFile(e)).collect(Collectors.toList());
+            return stream.filter(e -> e.getFileName().toString().endsWith(extension) && Files.isRegularFile(e)).collect(Collectors.toList());
         }
         catch (IOException exc)
         {

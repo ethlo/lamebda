@@ -27,7 +27,6 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
@@ -36,6 +35,7 @@ import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.functions.SingleFileResourceFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.generator.GeneratorHelper;
+import com.ethlo.lamebda.groovy.GroovyCompiler;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
@@ -147,7 +147,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         final String name = bundle.getInfo().getName();
         final boolean exists = functions.put(name, bundle) != null;
-        logger.info(exists ? "'{}' was reloaded" : "'{}' was loaded", name);
+        logger.info(exists ? "Handler {} was reloaded" : "{} was loaded", name);
         return this;
     }
 
@@ -184,7 +184,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     private void registerSharedClasses()
     {
         final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
-        final List<Class<?>> classes = Compiler.compile(groovyClassLoader, getProjectConfiguration().getSharedPath());
+        final List<Class<?>> classes = GroovyCompiler.compile(groovyClassLoader, getProjectConfiguration().getSharedPath());
         classes.forEach(clazz ->
         {
             if (hasBeanAnnotation(clazz))
@@ -218,8 +218,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             projectCtx.registerBean(info.getType());
         });
 
-        final List<Class<?>> classes = Compiler.compile(groovyClassLoader, getProjectConfiguration().getScriptPath());
-        classes.forEach(clazz ->
+        final List<Class<?>> groovyClasses = GroovyCompiler.compile(groovyClassLoader, getProjectConfiguration().getScriptPath());
+        groovyClasses.forEach(clazz ->
         {
             if (ServerFunction.class.isAssignableFrom(clazz))
             {
@@ -228,7 +228,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         });
 
         projectCtx.refresh();
-
+        
         projectCtx.getBeansOfType(ServerFunction.class)
                 .forEach((key, value) -> addFunction(new FunctionBundle(AbstractServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
     }
@@ -236,11 +236,12 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     private void apiSpecProcessing()
     {
         final Path apiPath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY).resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
+        final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
+
         if (Files.exists(apiPath))
         {
             try
             {
-                final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
                 final Path marker = targetPath.resolve(".lastmodified");
 
                 final OffsetDateTime specModified = lastModified(apiPath);
@@ -251,16 +252,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
                     generateModels();
 
                     generateHumanReadableApiDoc(projectConfiguration);
-
-                    final String specificationBasePath = "/specification";
-                    final Optional<Path> specificationFile = lamebdaResourceLoader.getApiSpecification();
-                    specificationFile.ifPresent(f -> addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
-
-
-                    if (Files.exists(targetPath))
-                    {
-                        addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
-                    }
                 }
 
                 try
@@ -277,11 +268,26 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             {
                 throw new UncheckedIOException(exc);
             }
+
+            registerSpecificationController(targetPath);
         }
 
         final String modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath().toString();
         lamebdaResourceLoader.addClasspath(modelPath);
         logger.info("Added model classpath {}", modelPath);
+    }
+
+    private void registerSpecificationController(final Path targetPath)
+    {
+        final String specificationBasePath = "/specification";
+
+        if (Files.exists(targetPath))
+        {
+            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
+        }
+
+        final Optional<Path> specificationFile = lamebdaResourceLoader.getApiSpecification();
+        specificationFile.ifPresent(f -> addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
     }
 
     private OffsetDateTime lastModified(final Path path) throws IOException

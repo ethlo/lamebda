@@ -67,7 +67,7 @@ public class SpringMvcServerFunctionTest
         Files.createDirectories(basepath);
 
         final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", basepath).build();
-        functionManager = new FunctionManagerImpl(applicationContext, new FileSystemLamebdaResourceLoader(cfg, AutowireHelper.postProcessor(applicationContext)));
+        functionManager = new FunctionManagerImpl(applicationContext, new FileSystemLamebdaResourceLoader(cfg));
     }
 
     @Test

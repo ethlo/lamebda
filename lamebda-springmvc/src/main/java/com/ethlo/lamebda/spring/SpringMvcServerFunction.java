@@ -54,8 +54,6 @@ import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.URLMappedServerFunction;
-import com.ethlo.lamebda.context.FunctionContext;
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.MethodAndPattern;
@@ -95,15 +93,7 @@ public abstract class SpringMvcServerFunction implements ServerFunction, URLMapp
         {
             detectAndRegisterRequestHandlerMethods(this.getClass(), this);
         }
-
-        init(new FunctionContext(projectConfiguration, FileSystemLamebdaResourceLoader.loadFunctionConfig(projectConfiguration, getClass())));
     }
-
-    /**
-     * Callback method
-     * @param ctx
-     */
-    protected void init(FunctionContext ctx){}
 
     private Object createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors)
     {
