@@ -29,19 +29,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
-import com.ethlo.lamebda.loaders.ChangeAwareFileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.Assert;
-import groovy.lang.GroovyClassLoader;
 
 public class FunctionManagerDirector
 {
@@ -155,8 +151,28 @@ public class FunctionManagerDirector
     FunctionManager create(final Path projectPath)
     {
         logger.info("Loading {}", projectPath);
-        final FileSystemLamebdaResourceLoader lamebdaResourceLoader = createResourceLoader(projectPath);
+
+
+        final FileSystemLamebdaResourceLoader lamebdaResourceLoader;
+        try
+        {
+            lamebdaResourceLoader = createResourceLoader(projectPath).setSourceChangeListener((fse) ->
+            {
+                if (fse.getChangeType() == ChangeType.MODIFIED)
+                {
+                    logger.info("Project is reloaded due to detected change in {}", fse.getPath());
+                    close(projectPath);
+                    create(projectPath);
+                }
+            });
+        }
+        catch (IOException exc)
+        {
+            throw new UncheckedIOException(exc);
+        }
+
         final FunctionManagerImpl fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
+
         functionManagers.put(projectPath, fm);
         return fm;
     }
@@ -166,7 +182,7 @@ public class FunctionManagerDirector
         final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
         try
         {
-            return new ChangeAwareFileSystemLamebdaResourceLoader(cfg);
+            return new FileSystemLamebdaResourceLoader(cfg);
         }
         catch (IOException exc)
         {

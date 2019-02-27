@@ -54,8 +54,8 @@ public class GroovyBackedBeanTest
         final ConfigurableFunctionManager fm = (ConfigurableFunctionManager) functionManagerDirector.getFunctionManagers().get(basePath);
         assertThat(fm).isNotNull();
 
-        final Optional<ServerFunction> function = fm.getHandler(basePath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve("Correct.groovy").toAbsolutePath());
-        assertThat(function).isPresent();
+        //final Optional<ServerFunction> function = fm.getHandler(basePath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve("Correct.groovy").toAbsolutePath());
+       // assertThat(function).isPresent();
 
         System.out.println(StringUtils.arrayToCommaDelimitedString(fm.getProjectApplicationContext().getBeanDefinitionNames()));
         //function.get().handle()

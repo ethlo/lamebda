@@ -20,8 +20,6 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.nio.file.Path;
-
 public interface FunctionManager extends AutoCloseable
 {
     boolean handle(HttpRequest request, HttpResponse response) throws Exception;

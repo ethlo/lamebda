@@ -29,15 +29,7 @@ public interface ConfigurableFunctionManager extends FunctionManager
 {
     ProjectConfiguration getProjectConfiguration();
 
-    void functionChanged(Path sourcePath);
-
-    void functionRemoved(Path sourcePath);
-
-    void specificationChanged(Path path);
-
     Optional<ServerFunction> getHandler(String name);
-
-    Optional<ServerFunction> getHandler(final Path sourcePath);
 
     ApplicationContext getProjectApplicationContext();
 }

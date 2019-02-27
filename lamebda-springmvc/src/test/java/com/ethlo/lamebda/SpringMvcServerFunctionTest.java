@@ -74,8 +74,7 @@ public class SpringMvcServerFunctionTest
     public void testInvokeSpringMvc() throws Exception
     {
         final Path sourcePath = move("SpringMvc.groovy");
-        functionManager.functionChanged(sourcePath);
-        assertThat(functionManager.getHandler(sourcePath)).isPresent();
+        assertThat(functionManager.getHandler(sourcePath.toString())).isPresent();
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
         req.setRequestURI("/lamebda/lamebda-unit-test/test/123");

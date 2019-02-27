@@ -31,31 +31,33 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.AbstractServerFunctionInfo;
 import com.ethlo.lamebda.ClassServerFunctionInfo;
 import com.ethlo.lamebda.FunctionContextAware;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.PropertyFile;
-import com.ethlo.lamebda.ScriptServerFunctionInfo;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.context.FunctionConfiguration;
 import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
+import com.ethlo.lamebda.io.FileSystemEvent;
+import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.util.Assert;
-import com.ethlo.lamebda.util.FileNameUtil;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 import io.github.classgraph.ClassGraph;
@@ -88,6 +90,8 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private Path scriptPath;
     private Path libPath;
     private List<ClassServerFunctionInfo> classFunctions;
+    private WatchDir watchDir;
+    private Thread watchThread;
 
     // Simplified constructor primarily for tests
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration) throws IOException
@@ -195,27 +199,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         }
     }
 
-    @Override
-    public Class<ServerFunction> loadClass(Path sourcePath)
-    {
-        try
-        {
-            final String source = readSource(sourcePath);
-            final Class<?> clazz = groovyClassLoader.parseClass(source);
-
-            final String actualClassName = clazz.getCanonicalName();
-
-            final String expectedClassName = toClassName(sourcePath);
-            Assert.isTrue(actualClassName.equals(expectedClassName), "Unexpected class name '" + actualClassName + "' in file " + sourcePath + ". Expected " + expectedClassName);
-
-            return (Class<ServerFunction>) clazz;
-        }
-        catch (IOException exc)
-        {
-            throw new IllegalStateException("Cannot load class " + sourcePath, exc);
-        }
-    }
-
     private String toClassName(final Path sourcePath)
     {
         return toClassName(scriptPath, sourcePath);
@@ -229,6 +212,8 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     @Override
     public void close() throws IOException
     {
+        this.watchThread = null;
+        this.watchDir.close();
         this.groovyClassLoader.close();
     }
 
@@ -279,28 +264,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         return all.stream().skip(offset).limit(size).collect(Collectors.toList());
     }
 
-    /*
-    private List<ScriptServerFunctionInfo> getServerFunctionScripts()
-    {
-        if (!Files.exists(scriptPath))
-        {
-            return Collections.emptyList();
-        }
-
-        try
-        {
-            return Files.list(scriptPath).filter(f -> FileNameUtil.getExtension(f.getFileName().toString()).equals(SCRIPT_EXTENSION))
-                    .sorted(Comparator.comparing(Path::getFileName))
-                    .map(s -> ScriptServerFunctionInfo.ofScript(this, s))
-                    .collect(Collectors.toList());
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
-    }
-    */
-
     private List<ClassServerFunctionInfo> getServerFunctionClasses()
     {
         if (this.classFunctions != null)
@@ -332,32 +295,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         return classFunctions;
     }
 
-    @Override
-    public ServerFunction load(Path sourcePath)
-    {
-        return prepare(loadClass(sourcePath));
-    }
-
-    @Override
-    public ServerFunction prepare(Class<? extends ServerFunction> clazz)
-    {
-        final ServerFunction instance = instantiate(clazz);
-        setContextIfApplicable(instance);
-        return functionPostProcessor.process(instance);
-    }
-
     private void setContextIfApplicable(final ServerFunction func)
     {
         if (func instanceof FunctionContextAware)
         {
             ((FunctionContextAware) func).setContext(loadContext(func.getClass()));
         }
-    }
-
-    @Override
-    public String readSource(Path sourcePath) throws IOException
-    {
-        return new String(Files.readAllBytes(sourcePath), StandardCharsets.UTF_8);
     }
 
     @Override
@@ -389,17 +332,27 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         return groovyClassLoader;
     }
 
-    @Override
-    public void reset()
+    public FileSystemLamebdaResourceLoader setSourceChangeListener(final Consumer<FileSystemEvent> l) throws IOException
     {
-        try
+        if (projectConfiguration.isListenForChanges())
         {
-            groovyClassLoader.close();
+            listenForChanges(l, IoUtil.exists(projectConfiguration.getPath(), projectConfiguration.getScriptPath(), projectConfiguration.getSpecificationPath(), projectConfiguration.getLibraryPath()));
         }
-        catch (IOException e)
+        return this;
+    }
+
+    private void listenForChanges(final Consumer<FileSystemEvent> l, final Path[] exists) throws IOException
+    {
+        watchDir = new WatchDir(l, false, exists);
+        this.watchThread = new Thread()
         {
-            throw new UncheckedIOException(e);
-        }
-        groovyClassLoader = new GroovyClassLoader();
+            @Override
+            public void run()
+            {
+                logger.info("Watching {} for changes", StringUtils.arrayToCommaDelimitedString(exists));
+                watchDir.processEvents();
+            }
+        };
+        this.watchThread.start();
     }
 }

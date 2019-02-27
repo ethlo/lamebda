@@ -65,11 +65,11 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
     {
         final int page = Integer.parseInt(request.param("page", "0"));
         final int size = Integer.parseInt(request.param("size", "25"));
-        final List<FunctionStatusInfo> functionList = getFunctionInfoList(page, size).stream().map(s ->
+        final List<FunctionStatusInfo> functionList = ((FunctionManagerImpl) functionManager).getFunctions().entrySet().stream().map(s ->
         {
-            final FunctionStatusInfo info = new FunctionStatusInfo(projectConfiguration.getPath(), s);
+            final FunctionStatusInfo info = new FunctionStatusInfo(projectConfiguration.getPath(), AbstractServerFunctionInfo.ofClass((Class<ServerFunction>) s.getValue().getFunction().getClass()));
 
-            final Optional<ServerFunction> funcOpt = ((FunctionManagerImpl) functionManager).getHandler(s.getName());
+            final Optional<ServerFunction> funcOpt = ((FunctionManagerImpl) functionManager).getHandler(s.getKey());
             final boolean isLoaded = funcOpt.isPresent();
             info.setRunning(isLoaded);
 
@@ -92,11 +92,6 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
         res.put("functions", functionList);
         res.put("metrics", functionMetricsService.getMetrics());
         response.json(HttpStatus.OK, res);
-    }
-
-    private List<? extends AbstractServerFunctionInfo> getFunctionInfoList(int page, int pageSize)
-    {
-        return resourceLoader.findAll(page * pageSize, pageSize);
     }
 
     @Override

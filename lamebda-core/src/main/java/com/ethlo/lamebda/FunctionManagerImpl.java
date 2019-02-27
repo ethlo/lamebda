@@ -17,12 +17,13 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import org.codehaus.groovy.control.CompilationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
@@ -35,9 +36,7 @@ import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.functions.SingleFileResourceFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.generator.GeneratorHelper;
-import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.loaders.FileSystemNotificationAware;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.util.IoUtil;
@@ -92,62 +91,8 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
         this.lamebdaResourceLoader = lamebdaResourceLoader;
         this.parentContext = parentContext;
-        registerChangeListenersIfApplicable(lamebdaResourceLoader);
 
         initialize();
-    }
-
-    private void registerChangeListenersIfApplicable(final LamebdaResourceLoader lamebdaResourceLoader)
-    {
-        if (lamebdaResourceLoader instanceof FileSystemNotificationAware)
-        {
-            final FileSystemNotificationAware fs = (FileSystemNotificationAware) lamebdaResourceLoader;
-            fs.setFunctionChangeListener(n -> {
-                switch (n.getChangeType())
-                {
-                    case CREATED:
-                    case MODIFIED:
-                        try
-                        {
-                            functionChanged(n.getPath());
-                        }
-                        catch (CompilationFailedException exc)
-                        {
-                            logger.warn("Unloading function {} due to script compilation error", n.getPath());
-                            functionRemoved(n.getPath());
-                            throw exc;
-                        }
-                        break;
-
-                    case DELETED:
-                        functionRemoved(n.getPath());
-                        break;
-
-                    default:
-                        throw new IllegalArgumentException("Unhandled event type: " + n.getChangeType());
-                }
-            });
-
-            // Listen for specification changes
-            fs.setApiSpecificationChangeListener(n ->
-            {
-                if (n.getChangeType() == ChangeType.MODIFIED)
-                {
-                    logger.info("Specification file changed: {}", n.getPath());
-                    specificationChanged(n.getPath());
-                }
-            });
-
-            // Listener for project configuration changes
-            fs.setProjectConfigChangeListener(n ->
-            {
-                if (n.getChangeType() == ChangeType.MODIFIED)
-                {
-                    logger.info("Project config file changed: {}", n.getPath());
-                    reloadFunctions();
-                }
-            });
-        }
     }
 
     private void addBuiltinFunctions()
@@ -166,12 +111,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             // Page for viewing status
             addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("status-info-page", SingleResourceFunction.class), withMinimalContext(new SingleResourceFunction(statusBasePath + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/status.html").get()))));
         }
-    }
-
-    @Override
-    public void functionChanged(final Path sourcePath)
-    {
-        reloadFunctions();
     }
 
     private void generateModels() throws IOException
@@ -204,14 +143,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         return function;
     }
 
-    private void reloadFunctions()
-    {
-        functions.clear();
-        projectCtx.close();
-        lamebdaResourceLoader.reset();
-        initialize();
-    }
-
     private FunctionManagerImpl addFunction(FunctionBundle bundle)
     {
         final String name = bundle.getInfo().getName();
@@ -222,13 +153,21 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void initialize()
     {
+        final PropertyPlaceholderConfigurer propertyPlaceholderConfigurer = new PropertyPlaceholderConfigurer();
+
+        final Path configFilePath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME);
+        if (Files.exists(configFilePath))
+        {
+            propertyPlaceholderConfigurer.setLocation(new FileSystemResource(configFilePath));
+        }
+
         this.projectCtx = new AnnotationConfigApplicationContext();
+        this.projectCtx.addBeanFactoryPostProcessor(propertyPlaceholderConfigurer);
         this.projectCtx.setParent(parentContext);
         this.projectCtx.setAllowBeanDefinitionOverriding(false);
         this.projectCtx.setClassLoader(lamebdaResourceLoader.getClassLoader());
         this.projectCtx.setId(projectConfiguration.getName());
 
-        this.lamebdaResourceLoader = lamebdaResourceLoader;
         apiSpecProcessing();
         loadProjectConfigBean();
         registerSharedClasses();
@@ -250,12 +189,10 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         {
             if (hasBeanAnnotation(clazz))
             {
-                logger.info("Register bean class {}", clazz);
+                logger.info("Registering bean for {}", clazz.getCanonicalName());
                 projectCtx.registerBean(clazz);
             }
         });
-
-        logger.info("Bean definitions: {}", StringUtils.arrayToCommaDelimitedString(projectCtx.getBeanDefinitionNames()));
     }
 
     private boolean hasBeanAnnotation(final Class<?> clazz)
@@ -357,25 +294,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     }
 
     @Override
-    public void functionRemoved(final Path sourcePath)
-    {
-        final FunctionBundle func = functions.remove(sourcePath.toString());
-        if (func != null)
-        {
-            logger.info("'{}' was unloaded", sourcePath);
-        }
-    }
-
-    @Override
-    public void specificationChanged(final Path path)
-    {
-        apiSpecProcessing();
-
-        logger.info("Reloading functions due to API specification change: {}", path);
-        reloadFunctions();
-    }
-
-    @Override
     public ApplicationContext getProjectApplicationContext()
     {
         return projectCtx;
@@ -386,12 +304,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         final FunctionBundle res = functions.get(name);
         return res != null ? Optional.of(res.getFunction()) : Optional.empty();
-    }
-
-    @Override
-    public Optional<ServerFunction> getHandler(final Path sourcePath)
-    {
-        return getHandler(sourcePath.toString());
     }
 
     @Override
@@ -413,6 +325,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         try
         {
+            projectCtx.close();
             this.lamebdaResourceLoader.close();
         }
         catch (IOException e)

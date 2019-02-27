@@ -32,29 +32,7 @@ import com.ethlo.lamebda.ServerFunction;
 
 public interface LamebdaResourceLoader extends AutoCloseable
 {
-    /**
-     * Load the contents of the class
-     *
-     * @param sourcePath The path to the source file
-     * @return The contents of the specified name
-     * @throws IOException If the class could not be found or loaded
-     */
-    String readSource(Path sourcePath) throws IOException;
-
-    /**
-     * Return a list of all known functions
-     *
-     * @param offset The number of items to skip
-     * @param size   The number of items to return
-     * @return A list of {@link ScriptServerFunctionInfo}s
-     */
     List<? extends AbstractServerFunctionInfo> findAll(long offset, int size);
-
-    ServerFunction load(Path sourcePath);
-
-    ServerFunction prepare(Class<? extends ServerFunction> clazz);
-
-    Class<ServerFunction> loadClass(Path sourcePath);
 
     Optional<Path> getApiSpecification();
 
@@ -65,6 +43,4 @@ public interface LamebdaResourceLoader extends AutoCloseable
     void addClasspath(String path);
 
     ClassLoader getClassLoader();
-
-    void reset();
 }
