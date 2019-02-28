@@ -43,7 +43,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.servlet.ServletHttpRequest;
 import com.ethlo.lamebda.servlet.ServletHttpResponse;
-import com.ethlo.lamebda.spring.AutowireHelper;
 import com.ethlo.lamebda.util.IoUtil;
 
 @SpringBootTest(classes = SpringMvcServerFunctionTest.class)
@@ -66,6 +65,7 @@ public class SpringMvcServerFunctionTest
         }
         Files.createDirectories(basepath);
 
+        move("SpringMvc.groovy");
         final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", basepath).build();
         functionManager = new FunctionManagerImpl(applicationContext, new FileSystemLamebdaResourceLoader(cfg));
     }
@@ -73,8 +73,7 @@ public class SpringMvcServerFunctionTest
     @Test
     public void testInvokeSpringMvc() throws Exception
     {
-        final Path sourcePath = move("SpringMvc.groovy");
-        assertThat(functionManager.getHandler(sourcePath.toString())).isPresent();
+        assertThat(functionManager.getHandler("SpringMvc")).isPresent();
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
         req.setRequestURI("/lamebda/lamebda-unit-test/test/123");
@@ -88,6 +87,8 @@ public class SpringMvcServerFunctionTest
 
     private Path move(final String name) throws IOException
     {
-        return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        final Path dir = basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY);
+        Files.createDirectories(dir);
+        return Files.copy(Paths.get("src/test/groovy", name), dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
     }
 }

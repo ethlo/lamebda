@@ -42,8 +42,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.AbstractServerFunctionInfo;
-import com.ethlo.lamebda.ClassServerFunctionInfo;
+import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
@@ -78,7 +77,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private final ProjectConfiguration projectConfiguration;
 
     private Path libPath;
-    private List<ClassServerFunctionInfo> classFunctions;
+    private List<ServerFunctionInfo> classFunctions;
     private WatchDir watchDir;
     private Thread watchThread;
 
@@ -170,14 +169,14 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     }
 
     @Override
-    public List<? extends AbstractServerFunctionInfo> findAll(long offset, int size)
+    public List<ServerFunctionInfo> findAll(long offset, int size)
     {
-        final List<AbstractServerFunctionInfo> all = new LinkedList<>();
+        final List<ServerFunctionInfo> all = new LinkedList<>();
         all.addAll(getServerFunctionClasses());
         return all.stream().skip(offset).limit(size).collect(Collectors.toList());
     }
 
-    private List<ClassServerFunctionInfo> getServerFunctionClasses()
+    private List<ServerFunctionInfo> getServerFunctionClasses()
     {
         if (this.classFunctions != null)
         {
@@ -195,7 +194,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
                     try
                     {
-                        classFunctions.add(ClassServerFunctionInfo.ofClass((Class<ServerFunction>) Class.forName(classInfo.getName(), false, groovyClassLoader)));
+                        classFunctions.add(ServerFunctionInfo.ofClass((Class<ServerFunction>) Class.forName(classInfo.getName(), false, groovyClassLoader)));
                     }
                     catch (ClassNotFoundException e)
                     {

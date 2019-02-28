@@ -23,7 +23,6 @@ import mypackage.*
 import spec.Pet
 import other.Other
 
-@PropertyFile("config.properties")
 class Correct extends SimpleServerFunction {
 
     Correct() {

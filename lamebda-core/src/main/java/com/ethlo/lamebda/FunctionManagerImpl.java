@@ -28,8 +28,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 
-import com.ethlo.lamebda.context.FunctionConfiguration;
-import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.functions.SingleFileResourceFunction;
@@ -99,17 +97,17 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         if (projectConfiguration.enableStaticResourceFunction())
         {
-            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("static-data", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction("/" + projectConfiguration.getStaticResourcesContext(), projectConfiguration.getStaticResourceDirectory()))));
+            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("static-data", DirectoryResourceFunction.class), initWithProjectCfg(new DirectoryResourceFunction("/" + projectConfiguration.getStaticResourcesContext(), projectConfiguration.getStaticResourceDirectory()))));
         }
 
         if (projectConfiguration.enableInfoFunction())
         {
             // JSON data
             final String statusBasePath = "/status";
-            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("status-info", ProjectStatusFunction.class), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService))));
+            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("status-info", ProjectStatusFunction.class), initWithProjectCfg(new ProjectStatusFunction(statusBasePath + "/status.json", this, functionMetricsService))));
 
             // Page for viewing status
-            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("status-info-page", SingleResourceFunction.class), withMinimalContext(new SingleResourceFunction(statusBasePath + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/status.html").get()))));
+            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("status-info-page", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction(statusBasePath + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/status.html").get()))));
         }
     }
 
@@ -137,9 +135,13 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         generatorHelper.generate(projectConfiguration.getPath(), args);
     }
 
-    private <T extends ServerFunction & FunctionContextAware> T withMinimalContext(final T function)
+    private <T extends ServerFunction & FunctionContextAware> T initWithProjectCfg(final T function)
     {
-        function.setContext(new FunctionContext(projectConfiguration, new FunctionConfiguration()));
+        function.init(projectConfiguration);
+        if (function instanceof BaseServerFunction)
+        {
+            ((BaseServerFunction) function).initInternal(projectConfiguration);
+        }
         return function;
     }
 
@@ -212,7 +214,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
 
-        final List<? extends AbstractServerFunctionInfo> functions = lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE);
+        final List<ServerFunctionInfo> functions = lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE);
         functions.forEach(info ->
         {
             projectCtx.registerBean(info.getType());
@@ -228,9 +230,9 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         });
 
         projectCtx.refresh();
-        
+
         projectCtx.getBeansOfType(ServerFunction.class)
-                .forEach((key, value) -> addFunction(new FunctionBundle(AbstractServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
+                .forEach((key, value) -> addFunction(new FunctionBundle(ServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
     }
 
     private void apiSpecProcessing()
@@ -283,11 +285,11 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
         if (Files.exists(targetPath))
         {
-            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
+            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), initWithProjectCfg(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
         }
 
         final Optional<Path> specificationFile = lamebdaResourceLoader.getApiSpecification();
-        specificationFile.ifPresent(f -> addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
+        specificationFile.ifPresent(f -> addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), initWithProjectCfg(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
     }
 
     private OffsetDateTime lastModified(final Path path) throws IOException

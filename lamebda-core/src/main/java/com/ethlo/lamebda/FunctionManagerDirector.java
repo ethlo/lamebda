@@ -158,7 +158,9 @@ public class FunctionManagerDirector
         {
             lamebdaResourceLoader = createResourceLoader(projectPath).setSourceChangeListener((fse) ->
             {
-                if (fse.getChangeType() == ChangeType.MODIFIED)
+                final boolean validFile = Files.isRegularFile(fse.getPath()) && isKnownType(fse.getPath().getFileName().toString());
+                final boolean validDirectory = projectPath.equals(fse.getPath());
+                if (fse.getChangeType() == ChangeType.MODIFIED && (validDirectory || validFile))
                 {
                     logger.info("Project is reloaded due to detected change in {}", fse.getPath());
                     close(projectPath);
@@ -175,6 +177,14 @@ public class FunctionManagerDirector
 
         functionManagers.put(projectPath, fm);
         return fm;
+    }
+
+    private boolean isKnownType(final String filename)
+    {
+        return filename.endsWith(FileSystemLamebdaResourceLoader.GROOVY_EXTENSION)
+                || filename.endsWith(FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION)
+                || filename.endsWith(FileSystemLamebdaResourceLoader.JAR_EXTENSION)
+                || filename.equals(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
     }
 
     private FileSystemLamebdaResourceLoader createResourceLoader(Path projectPath)

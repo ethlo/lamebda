@@ -27,6 +27,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 
 import org.junit.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
@@ -55,7 +56,7 @@ public class ServerFunctionTest extends BaseTest
     public void testProjectStatusInfo()
     {
         final FunctionMetricsService metricsService = FunctionMetricsService.getInstance();
-        final ProjectStatusFunction projectStatusFunction = new ProjectStatusFunction("/status", loader, functionManager, metricsService);
+        final ProjectStatusFunction projectStatusFunction = new ProjectStatusFunction("/status", functionManager, metricsService);
 
         final MethodAndPattern requestMapping = new MethodAndPattern(HttpMethod.POST.toString(), "/foo/bar/{baz}");
         final int millis = (int) (Math.random() * 1000);

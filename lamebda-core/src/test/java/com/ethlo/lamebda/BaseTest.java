@@ -39,7 +39,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
-@SpringBootTest
 @RunWith(SpringRunner.class)
 public abstract class BaseTest
 {

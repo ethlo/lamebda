@@ -25,14 +25,12 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
-import com.ethlo.lamebda.AbstractServerFunctionInfo;
+import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.ScriptServerFunctionInfo;
-import com.ethlo.lamebda.ServerFunction;
 
 public interface LamebdaResourceLoader extends AutoCloseable
 {
-    List<? extends AbstractServerFunctionInfo> findAll(long offset, int size);
+    List<ServerFunctionInfo> findAll(long offset, int size);
 
     Optional<Path> getApiSpecification();
 

@@ -9,7 +9,6 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.error.ErrorResponse;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.util.StringUtil;
@@ -39,6 +38,7 @@ public abstract class SimpleServerFunction extends BaseServerFunction implements
     private static final Logger logger = LoggerFactory.getLogger(SimpleServerFunction.class);
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
     protected String pattern;
+    private ProjectConfiguration projectConfiguration;
 
     public SimpleServerFunction()
     {
@@ -178,25 +178,19 @@ public abstract class SimpleServerFunction extends BaseServerFunction implements
     }
 
     @Override
-    public final void initInternal(FunctionContext context)
+    public final void initInternal(ProjectConfiguration cfg)
     {
-        final ProjectConfiguration cfg = context.getProjectConfiguration();
+        this.projectConfiguration = cfg;
         final String projectContext = (cfg.enableUrlProjectContextPrefix() ? (cfg.getContextPath() + "/") : "");
         this.pattern = URI.create("/" + projectContext + pattern).normalize().toString();
 
         super.handlePostConstructMethods();
     }
 
-    public FunctionContext getContext()
-    {
-        return context;
-    }
-
     @Override
     public Set<RequestMapping> getUrlMapping()
     {
-        final ProjectConfiguration cfg = context.getProjectConfiguration();
-        final URI url = URI.create(cfg.getRootContextPath() + "/" + pattern);
+        final URI url = URI.create(projectConfiguration.getRootContextPath() + "/" + pattern);
         return Collections.singleton(new RequestMapping(Collections.singleton(url.normalize().toString()), Collections.emptySet(), null, null));
     }
 }

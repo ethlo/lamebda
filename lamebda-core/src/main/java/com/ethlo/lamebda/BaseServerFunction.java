@@ -25,47 +25,15 @@ import java.lang.reflect.Method;
 
 import javax.annotation.PostConstruct;
 
-import com.ethlo.lamebda.context.FunctionConfiguration;
-import com.ethlo.lamebda.context.FunctionContext;
-import com.ethlo.lamebda.util.Assert;
-
 public abstract class BaseServerFunction implements ServerFunction, FunctionContextAware
 {
-    protected FunctionContext context;
-
     @Override
-    public final void setContext(final FunctionContext context)
-    {
-        if (this.context == null)
-        {
-            Assert.notNull(context, "context cannot be null");
-            this.context = context;
-            this.init(context);
-            this.init(context.getProjectConfiguration());
-            this.init(context.getConfiguration());
-            initInternal(context);
-        }
-    }
-
-    @Override
-    public void init(final FunctionConfiguration functionConfiguration)
+    public void init(final ProjectConfiguration projectConfiguration)
     {
         // Empty implementation
     }
 
-    @Override
-    public void init(ProjectConfiguration projectConfiguration)
-    {
-        // Empty implementation
-    }
-
-    @Override
-    public void init(FunctionContext functionContext)
-    {
-        // Empty implementation
-    }
-
-    protected abstract void initInternal(FunctionContext functionContext);
+    protected abstract void initInternal(ProjectConfiguration cfg);
 
     public void handlePostConstructMethods()
     {
