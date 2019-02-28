@@ -37,6 +37,7 @@ import org.springframework.context.ApplicationContext;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
+import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.util.Assert;
 
 public class FunctionManagerDirector
@@ -89,16 +90,18 @@ public class FunctionManagerDirector
                 }
             }
         }, false, rootDirectory);
-        new Thread()
+        new Thread(() ->
         {
-            @Override
-            public void run()
+            logger.info("Watching {} for changes", Arrays.asList(rootDirectory));
+            try
             {
-                setName("root-filesystem-watcher");
-                logger.info("Watching {} for changes", Arrays.asList(rootDirectory));
                 watchDir.processEvents();
             }
-        }.start();
+            catch (Exception exc)
+            {
+                logger.warn(exc.getMessage(), exc)  ;
+            }
+        }).start();
     }
 
     public void initializeAll() throws IOException
@@ -153,10 +156,10 @@ public class FunctionManagerDirector
         logger.info("Loading {}", projectPath);
 
 
-        final FileSystemLamebdaResourceLoader lamebdaResourceLoader;
         try
         {
-            lamebdaResourceLoader = createResourceLoader(projectPath).setSourceChangeListener((fse) ->
+            final FileSystemLamebdaResourceLoader lamebdaResourceLoader = createResourceLoader(projectPath);
+            lamebdaResourceLoader.setSourceChangeListener((fse) ->
             {
                 final boolean validFile = Files.isRegularFile(fse.getPath()) && isKnownType(fse.getPath().getFileName().toString());
                 final boolean validDirectory = projectPath.equals(fse.getPath());
@@ -164,17 +167,21 @@ public class FunctionManagerDirector
                 {
                     logger.info("Project is reloaded due to detected change in {}", fse.getPath());
                     close(projectPath);
-                    create(projectPath);
+                    doCreate(projectPath, createResourceLoader(projectPath));
                 }
             });
+
+            return doCreate(projectPath, lamebdaResourceLoader);
         }
         catch (IOException exc)
         {
             throw new UncheckedIOException(exc);
         }
+    }
 
+    private FunctionManager doCreate(final Path projectPath, LamebdaResourceLoader lamebdaResourceLoader)
+    {
         final FunctionManagerImpl fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
-
         functionManagers.put(projectPath, fm);
         return fm;
     }

@@ -25,8 +25,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
@@ -175,6 +177,21 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         registerSharedClasses();
         registerFunctions();
         addBuiltinFunctions();
+
+        // Scan for beans
+        if (! projectConfiguration.getBasePackages().isEmpty())
+        {
+            logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(projectConfiguration.getBasePackages()));
+            this.projectCtx.scan(projectConfiguration.getBasePackages().toArray(new String[0]));
+        }
+
+        projectCtx.refresh();
+
+        logger.info("Beans: {}", StringUtils.arrayToCommaDelimitedString(projectCtx.getBeanDefinitionNames()));
+        logger.info("Controllers: {}", (projectCtx.getBeansWithAnnotation(Controller.class)));
+
+        // Load all functions
+        projectCtx.getBeansOfType(ServerFunction.class).forEach((key, value) -> addFunction(new FunctionBundle(ServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
     }
 
     private void loadProjectConfigBean()
@@ -185,54 +202,18 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void registerSharedClasses()
     {
+        logger.info("Compiling shared services");
         final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
         final List<Class<?>> classes = GroovyCompiler.compile(groovyClassLoader, getProjectConfiguration().getSharedPath());
-        classes.forEach(clazz ->
-        {
-            if (hasBeanAnnotation(clazz))
-            {
-                logger.info("Registering bean for {}", clazz.getCanonicalName());
-                projectCtx.registerBean(clazz);
-            }
-        });
-    }
-
-    private boolean hasBeanAnnotation(final Class<?> clazz)
-    {
-        final List<String> annotations = Arrays.stream(clazz.getAnnotations()).map(a -> a.annotationType().getCanonicalName()).collect(Collectors.toList());
-        for (Class<?> ann : Arrays.asList(Service.class, Component.class, Repository.class))
-        {
-            if (annotations.contains(ann.getCanonicalName()))
-            {
-                return true;
-            }
-        }
-        return false;
+        logger.info("Compiled shared classes: {}", StringUtils.collectionToCommaDelimitedString(classes));
     }
 
     private void registerFunctions()
     {
+        logger.info("Compiling script classes");
         final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
-
-        final List<ServerFunctionInfo> functions = lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE);
-        functions.forEach(info ->
-        {
-            projectCtx.registerBean(info.getType());
-        });
-
-        final List<Class<?>> groovyClasses = GroovyCompiler.compile(groovyClassLoader, getProjectConfiguration().getScriptPath());
-        groovyClasses.forEach(clazz ->
-        {
-            if (ServerFunction.class.isAssignableFrom(clazz))
-            {
-                projectCtx.registerBean(clazz);
-            }
-        });
-
-        projectCtx.refresh();
-
-        projectCtx.getBeansOfType(ServerFunction.class)
-                .forEach((key, value) -> addFunction(new FunctionBundle(ServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
+        final List<Class<?>> classes = GroovyCompiler.compile(groovyClassLoader, getProjectConfiguration().getScriptPath());
+        logger.info("Compiled script classes: {}", StringUtils.collectionToCommaDelimitedString(classes));
     }
 
     private void apiSpecProcessing()

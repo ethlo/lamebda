@@ -251,7 +251,15 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         this.watchThread = new Thread(() ->
         {
             logger.info("Watching {} for changes", StringUtils.arrayToCommaDelimitedString(exists));
-            watchDir.processEvents();
+
+            try
+            {
+                watchDir.processEvents();
+            }
+            catch (Exception exc)
+            {
+                logger.warn(exc.getMessage(), exc);
+            }
         });
         this.watchThread.start();
     }

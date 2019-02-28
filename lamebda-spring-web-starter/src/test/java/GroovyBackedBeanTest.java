@@ -35,13 +35,13 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import com.ethlo.lamebda.ConfigurableFunctionManager;
 import com.ethlo.lamebda.FunctionManagerDirector;
+import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.spring.LamebdaSpringWebAutoConfiguration;
 
 @SpringBootTest(classes = LamebdaSpringWebAutoConfiguration.class)
 @RunWith(SpringRunner.class)
-@AutoConfigureMockMvc
 public class GroovyBackedBeanTest
 {
     @Autowired
@@ -51,13 +51,8 @@ public class GroovyBackedBeanTest
     public void init()
     {
         final Path basePath = Paths.get("src/test/groovy/test");
-        final ConfigurableFunctionManager fm = (ConfigurableFunctionManager) functionManagerDirector.getFunctionManagers().get(basePath);
+        final FunctionManagerImpl fm = (FunctionManagerImpl) functionManagerDirector.getFunctionManagers().get(basePath);
         assertThat(fm).isNotNull();
-
-        //final Optional<ServerFunction> function = fm.getHandler(basePath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve("Correct.groovy").toAbsolutePath());
-       // assertThat(function).isPresent();
-
-        System.out.println(StringUtils.arrayToCommaDelimitedString(fm.getProjectApplicationContext().getBeanDefinitionNames()));
-        //function.get().handle()
+        assertThat(fm.getFunctions()).containsKey("mycontrollers.Correct");
     }
 }

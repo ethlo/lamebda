@@ -24,6 +24,8 @@ import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +61,7 @@ public class ProjectConfiguration implements Serializable
     private String version;
 
     private String apiDocGenerator;
+    private List<String> basePackages;
 
     ProjectConfiguration(ProjectConfigurationBuilder b)
     {
@@ -76,6 +79,7 @@ public class ProjectConfiguration implements Serializable
         adminCredentials = b.getAdminCredentials();
         apiDocGenerator = b.getApiDocGenerator();
         listenForChanges = b.isListenForChanges();
+        basePackages = b.getBasePackages();
     }
 
     /**
@@ -255,5 +259,11 @@ public class ProjectConfiguration implements Serializable
     public Path getSpecificationPath()
     {
         return this.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY);
+    }
+
+    @JsonProperty("system.base-packages")
+    public List<String> getBasePackages()
+    {
+        return this.basePackages;
     }
 }

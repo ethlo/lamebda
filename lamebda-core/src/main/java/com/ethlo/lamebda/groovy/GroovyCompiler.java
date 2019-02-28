@@ -71,7 +71,16 @@ public class GroovyCompiler
         {
             final GroovyClass groovyClass = (GroovyClass) compileClass;
             logger.debug("Defining class {}", groovyClass.getName());
-            cl.defineClass(groovyClass.getName(), groovyClass.getBytes());
+
+            try
+            {
+                cl.defineClass(groovyClass.getName(), groovyClass.getBytes());
+            }
+            catch (LinkageError exc)
+            {
+                logger.warn("Class already defined: {}", groovyClass.getName());
+            }
+
             try
             {
                 final Class<?> clazz = cl.loadClass(groovyClass.getName());

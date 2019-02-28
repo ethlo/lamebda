@@ -56,6 +56,8 @@ public class SpringMvcServerFunctionTest
     @Autowired
     private ApplicationContext applicationContext;
 
+    private final String packageName = "mycontrollererer";
+
     @Before
     public void before() throws IOException
     {
@@ -66,14 +68,14 @@ public class SpringMvcServerFunctionTest
         Files.createDirectories(basepath);
 
         move("SpringMvc.groovy");
-        final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", basepath).build();
+        final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", basepath).basePackages(packageName).build();
         functionManager = new FunctionManagerImpl(applicationContext, new FileSystemLamebdaResourceLoader(cfg));
     }
 
     @Test
     public void testInvokeSpringMvc() throws Exception
     {
-        assertThat(functionManager.getHandler("SpringMvc")).isPresent();
+        assertThat(functionManager.getHandler(packageName + ".SpringMvc")).isPresent();
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
         req.setRequestURI("/lamebda/lamebda-unit-test/test/123");
@@ -87,8 +89,8 @@ public class SpringMvcServerFunctionTest
 
     private Path move(final String name) throws IOException
     {
-        final Path dir = basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY);
+        final Path dir = basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve(packageName);
         Files.createDirectories(dir);
-        return Files.copy(Paths.get("src/test/groovy", name), dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+        return Files.copy(Paths.get("src/test/groovy", packageName, name), dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
     }
 }
