@@ -23,6 +23,7 @@ package com.ethlo.lamebda.groovy;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedList;
@@ -44,7 +45,7 @@ public class GroovyCompiler
 {
     private static final Logger logger = LoggerFactory.getLogger(GroovyCompiler.class);
 
-    public static List<Class<?>> compile(GroovyClassLoader cl, Path path)
+    public static void compile(GroovyClassLoader cl, Path path, Path classesDir)
     {
         final List<Class<?>> classes = new LinkedList<>();
         final CompilationUnit compileUnit = new CompilationUnit(cl);
@@ -56,43 +57,17 @@ public class GroovyCompiler
         }
 
         final CompilerConfiguration ccfg = new CompilerConfiguration();
+        ccfg.setTargetDirectory(classesDir.toFile());
+        compileUnit.setConfiguration(ccfg);
+        compileUnit.compile();
         try
         {
-            ccfg.setTargetDirectory(Files.createTempDirectory("lamebda-compile-dir").toFile());
+            cl.addURL(classesDir.toAbsolutePath().toUri().toURL());
         }
-        catch (IOException e)
+        catch (MalformedURLException e)
         {
             throw new UncheckedIOException(e);
         }
-        compileUnit.setConfiguration(ccfg);
-        compileUnit.compile();
-
-        for (Object compileClass : compileUnit.getClasses())
-        {
-            final GroovyClass groovyClass = (GroovyClass) compileClass;
-            logger.debug("Defining class {}", groovyClass.getName());
-
-            try
-            {
-                cl.defineClass(groovyClass.getName(), groovyClass.getBytes());
-            }
-            catch (LinkageError exc)
-            {
-                logger.warn("Class already defined: {}", groovyClass.getName());
-            }
-
-            try
-            {
-                final Class<?> clazz = cl.loadClass(groovyClass.getName());
-                classes.add(clazz);
-            }
-            catch (ClassNotFoundException e)
-            {
-                throw new RuntimeException(e);
-            }
-        }
-
-        return classes;
     }
 
     public static List<Path> findSourceFiles(Path sourceDir, String extension)

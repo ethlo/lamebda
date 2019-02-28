@@ -241,29 +241,29 @@ public class ProjectConfiguration implements Serializable
         }
     }
 
-    public Path getScriptPath()
-    {
-        return this.getPath().resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY);
-    }
-
     public Path getLibraryPath()
     {
         return this.getPath().resolve(FileSystemLamebdaResourceLoader.LIB_DIRECTORY);
     }
 
-    public Path getSharedPath()
-    {
-        return this.getPath().resolve(FileSystemLamebdaResourceLoader.SHARED_DIRECTORY);
-    }
-
     public Path getSpecificationPath()
     {
-        return this.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY);
+        return this.getPath().resolve("resources").resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY);
     }
 
     @JsonProperty("system.base-packages")
     public List<String> getBasePackages()
     {
         return this.basePackages;
+    }
+
+    public Path getTargetClassDirectory()
+    {
+        return getPath().resolve("target").resolve("classes");
+    }
+
+    public Path getGroovySourcePath()
+    {
+        return getPath().resolve("src").resolve("main").resolve("groovy");
     }
 }

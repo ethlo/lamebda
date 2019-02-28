@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.Test;
@@ -34,6 +35,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 import com.ethlo.lamebda.ConfigurableFunctionManager;
+import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerDirector;
 import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.ServerFunction;
@@ -50,8 +52,9 @@ public class GroovyBackedBeanTest
     @Test
     public void init()
     {
-        final Path basePath = Paths.get("src/test/groovy/test");
-        final FunctionManagerImpl fm = (FunctionManagerImpl) functionManagerDirector.getFunctionManagers().get(basePath);
+        final Path projectPath = Paths.get("src/test/projects/myproject");
+        final Map<Path, FunctionManager> managers = functionManagerDirector.getFunctionManagers();
+        final FunctionManagerImpl fm = (FunctionManagerImpl) managers.get(projectPath);
         assertThat(fm).isNotNull();
         assertThat(fm.getFunctions()).containsKey("mycontrollers.Correct");
     }

@@ -113,10 +113,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     private void handleProject(final Path projectPath) throws IOException
     {
-        Files.createDirectories(projectPath.resolve(SCRIPT_DIRECTORY));
-        Files.createDirectories(projectPath.resolve(SHARED_DIRECTORY));
         this.libPath = Files.createDirectories(projectPath.resolve(LIB_DIRECTORY));
-
         getLibUrls().forEach(url ->
         {
             groovyClassLoader.addURL(url);
@@ -240,7 +237,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     {
         if (projectConfiguration.isListenForChanges())
         {
-            listenForChanges(l, IoUtil.exists(projectConfiguration.getPath(), projectConfiguration.getScriptPath(), projectConfiguration.getSpecificationPath(), projectConfiguration.getLibraryPath()));
+            listenForChanges(l, IoUtil.exists(projectConfiguration.getPath(), projectConfiguration.getGroovySourcePath(), projectConfiguration.getSpecificationPath(), projectConfiguration.getLibraryPath()));
         }
         return this;
     }

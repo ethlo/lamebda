@@ -9,13 +9,11 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +22,7 @@ import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
-import org.springframework.stereotype.Repository;
-import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
@@ -173,13 +168,11 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         this.projectCtx.setId(projectConfiguration.getName());
 
         apiSpecProcessing();
-        loadProjectConfigBean();
-        registerSharedClasses();
-        registerFunctions();
-        addBuiltinFunctions();
+        createProjectConfigBean();
+        compileSources();
 
         // Scan for beans
-        if (! projectConfiguration.getBasePackages().isEmpty())
+        if (!projectConfiguration.getBasePackages().isEmpty())
         {
             logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(projectConfiguration.getBasePackages()));
             this.projectCtx.scan(projectConfiguration.getBasePackages().toArray(new String[0]));
@@ -190,30 +183,23 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         logger.info("Beans: {}", StringUtils.arrayToCommaDelimitedString(projectCtx.getBeanDefinitionNames()));
         logger.info("Controllers: {}", (projectCtx.getBeansWithAnnotation(Controller.class)));
 
+        addBuiltinFunctions();
+
         // Load all functions
         projectCtx.getBeansOfType(ServerFunction.class).forEach((key, value) -> addFunction(new FunctionBundle(ServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
     }
 
-    private void loadProjectConfigBean()
+    private void createProjectConfigBean()
     {
         final ConfigurableListableBeanFactory bf = projectCtx.getBeanFactory();
         bf.registerSingleton("projectConfiguration", lamebdaResourceLoader.getProjectConfiguration());
     }
 
-    private void registerSharedClasses()
+    private void compileSources()
     {
-        logger.info("Compiling shared services");
+        logger.info("Compiling sources");
         final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
-        final List<Class<?>> classes = GroovyCompiler.compile(groovyClassLoader, getProjectConfiguration().getSharedPath());
-        logger.info("Compiled shared classes: {}", StringUtils.collectionToCommaDelimitedString(classes));
-    }
-
-    private void registerFunctions()
-    {
-        logger.info("Compiling script classes");
-        final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
-        final List<Class<?>> classes = GroovyCompiler.compile(groovyClassLoader, getProjectConfiguration().getScriptPath());
-        logger.info("Compiled script classes: {}", StringUtils.collectionToCommaDelimitedString(classes));
+        GroovyCompiler.compile(groovyClassLoader, getProjectConfiguration().getGroovySourcePath(), getProjectConfiguration().getTargetClassDirectory());
     }
 
     private void apiSpecProcessing()
