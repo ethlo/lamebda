@@ -26,14 +26,12 @@ import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.codehaus.groovy.control.CompilationUnit;
 import org.codehaus.groovy.control.CompilerConfiguration;
-import org.codehaus.groovy.tools.GroovyClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +45,6 @@ public class GroovyCompiler
 
     public static void compile(GroovyClassLoader cl, Path path, Path classesDir)
     {
-        final List<Class<?>> classes = new LinkedList<>();
         final CompilationUnit compileUnit = new CompilationUnit(cl);
         final List<Path> sourceFiles = findSourceFiles(path, FileSystemLamebdaResourceLoader.GROOVY_EXTENSION);
         for (Path sourceFile : sourceFiles)

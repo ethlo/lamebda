@@ -1,3 +1,4 @@
+package com.ethlo.lamebda;
 /*-
  * #%L
  * lamebda-spring-web-starter

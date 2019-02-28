@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController
 class Correct extends SpringMvcServerFunction {
 
     @Autowired
-    SharedService sharedService;
+    SharedService sharedService
 
     @GetMapping("/hello")
     void perform(@PathVariable("target") String target) {

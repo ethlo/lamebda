@@ -62,7 +62,7 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
         {
             final FunctionStatusInfo info = new FunctionStatusInfo(projectConfiguration.getPath(), ServerFunctionInfo.ofClass((Class<ServerFunction>) s.getValue().getFunction().getClass()));
 
-            final Optional<ServerFunction> funcOpt = ((FunctionManagerImpl) functionManager).getHandler(s.getKey());
+            final Optional<ServerFunction> funcOpt = functionManager.getHandler(s.getKey());
             final boolean isLoaded = funcOpt.isPresent();
             info.setRunning(isLoaded);
 

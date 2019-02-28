@@ -100,7 +100,7 @@
         if (! m) {
             return ''
         }
-        m = new Date(m)
+        m = new Date(m);
         return m.getUTCFullYear() + "-" +
             ("0" + (m.getUTCMonth()+1)).slice(-2) + "-" +
             ("0" + m.getUTCDate()).slice(-2) + " " +
@@ -112,11 +112,11 @@
     function renderMetrics(metrics)
     {
         for (var pattern in metrics) {
-            var metric = metrics[pattern]
+            var metric = metrics[pattern];
 
-            var statusMarkup = '<thead class"thead-light"><th class="col-sm-6">Status</th><th class="col-sm-4">Count</th></thead>'
+            var statusMarkup = '<thead class"thead-light"><th class="col-sm-6">Status</th><th class="col-sm-4">Count</th></thead>';
             for (status in metric.countByStatus) {
-                var count = metric.countByStatus[status]
+                var count = metric.countByStatus[status];
                 statusMarkup += '<tr><td class="col-sm-6">' + status + '</td><td class="col-sm-4">' + count + '</td></tr>'
             }
 
@@ -128,7 +128,7 @@
                 '<td>' +
                 '<table class="table table-sm table-bordered">' + statusMarkup + '</table>' +
                 '</td>' +
-                '</tr>'
+                '</tr>';
             $("#metricstable").append(markup);
         }
     }
@@ -137,7 +137,7 @@
         for (var i = 0; i < functions.length; i++) {
             var f = functions[i];
 
-            var requestMappingMarkup = '<span class="text-warning">None</span>'
+            var requestMappingMarkup = '<span class="text-warning">None</span>';
 
             if (f.requestMappings) {
                 var mapCount = f.requestMappings.length;
@@ -147,8 +147,8 @@
                     requestMappingMarkup += '<li>';
                     requestMappingMarkup += rm.methods;
                     requestMappingMarkup += '<span> ' + rm.patterns + '</span>';
-                    requestMappingMarkup += '<span title="Consumes ' + rm.consumes + '"> &#8628; ' + rm.consumes + '</span>'
-                    requestMappingMarkup += '<span title="Produces ' + rm.produces + '"> &#8625; ' + rm.produces + '</span>'
+                    requestMappingMarkup += '<span title="Consumes ' + rm.consumes + '"> &#8628; ' + rm.consumes + '</span>';
+                    requestMappingMarkup += '<span title="Produces ' + rm.produces + '"> &#8625; ' + rm.produces + '</span>';
                     requestMappingMarkup += '</li>'
                 }
                 requestMappingMarkup += '</ul>';
@@ -168,12 +168,12 @@
         $.ajax({
             url: window.location + 'status.json',
             success: function (data) {
-                var cfg = data.project.configuration
-                console.log('Project cfg', cfg)
+                var cfg = data.project.configuration;
+                console.log('Project cfg', cfg);
                 document.title =  cfg['project.name'];
                 $('#projectName').html(document.title);
                 $('#projectVersion').html(cfg['project.version']);
-                renderFunctions(data.functions)
+                renderFunctions(data.functions);
                 renderMetrics(data.metrics)
             }
         });
