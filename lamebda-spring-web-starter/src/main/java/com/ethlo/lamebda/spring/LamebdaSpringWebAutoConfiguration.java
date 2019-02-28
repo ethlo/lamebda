@@ -21,10 +21,7 @@ package com.ethlo.lamebda.spring;
  */
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,23 +33,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.HandlerMapping;
 
-import com.ethlo.lamebda.BaseServerFunction;
-import com.ethlo.lamebda.ConfigurableFunctionManager;
-import com.ethlo.lamebda.DelegatingFunctionManager;
 import com.ethlo.lamebda.FunctionManagerDirector;
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.loaders.FunctionPostProcessor;
-import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
-import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.StringUtil;
-import groovy.lang.GroovyClassLoader;
 
 @Configuration
 @ConfigurationProperties("lamebda")
@@ -77,13 +65,6 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Bean
     @ConditionalOnMissingBean
-    public FunctionSourcePreProcessor functionLoadPreNotification()
-    {
-        return ((classLoader, source) -> source);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
     @ConditionalOnProperty("lamebda.enabled")
     public FunctionManagerDirector functionManagerDirector() throws IOException
     {
@@ -104,7 +85,7 @@ public class LamebdaSpringWebAutoConfiguration
     @Bean
     public LamebdaController lamebdaController(FunctionManagerDirector functionManagerDirector)
     {
-        return new LamebdaController(new DelegatingFunctionManager(functionManagerDirector), rootContextPath);
+        return new LamebdaController(functionManagerDirector, rootContextPath);
     }
 
     @Bean

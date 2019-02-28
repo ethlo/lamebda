@@ -20,9 +20,15 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import java.util.Optional;
+
 public interface FunctionManager extends AutoCloseable
 {
     boolean handle(HttpRequest request, HttpResponse response) throws Exception;
 
+    ProjectConfiguration getProjectConfiguration();
+
+    Optional<ServerFunction> getHandler(String name);
+    
     void close();
 }

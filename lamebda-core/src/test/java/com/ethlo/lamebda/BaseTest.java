@@ -32,7 +32,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -42,8 +41,8 @@ import com.ethlo.lamebda.util.IoUtil;
 @RunWith(SpringRunner.class)
 public abstract class BaseTest
 {
-    private final Path rootPath = Paths.get(System.getProperty("java.io.tmpdir"));
-    protected final Path projectPath = rootPath.resolve("lamebda-unit-test");
+    private final Path rootPath = Paths.get("src/test/projects");
+    protected final Path projectPath = rootPath.resolve("myproject");
     protected final FunctionManagerImpl functionManager;
     private final Logger logger = LoggerFactory.getLogger(getClass());
     protected final FileSystemLamebdaResourceLoader loader;
@@ -55,16 +54,9 @@ public abstract class BaseTest
     {
         try
         {
-            if (Files.exists(projectPath))
-            {
-                IoUtil.deleteDirectory(projectPath);
-            }
-
-            Files.createDirectories(projectPath);
-
             deployGenerator();
 
-            final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).listenForChanges(false).build();
+            final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).listenForChanges(false).basePackages("acme").build();
             loader = new FileSystemLamebdaResourceLoader(cfg);
             functionManager = new FunctionManagerImpl(parentContext, loader);
         }

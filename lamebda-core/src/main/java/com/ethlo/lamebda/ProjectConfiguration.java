@@ -22,6 +22,7 @@ package com.ethlo.lamebda;
 
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -248,7 +249,7 @@ public class ProjectConfiguration implements Serializable
 
     public Path getSpecificationPath()
     {
-        return this.getPath().resolve("resources").resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY);
+        return this.getPath().resolve("src").resolve("main").resolve("resources").resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY);
     }
 
     @JsonProperty("system.base-packages")
@@ -265,5 +266,10 @@ public class ProjectConfiguration implements Serializable
     public Path getGroovySourcePath()
     {
         return getPath().resolve("src").resolve("main").resolve("groovy");
+    }
+
+    public Path getMainResourcePath()
+    {
+        return getPath().resolve("src").resolve("main").resolve("resources");
     }
 }

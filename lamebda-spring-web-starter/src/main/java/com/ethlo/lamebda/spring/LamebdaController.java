@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.FunctionManager;
+import com.ethlo.lamebda.FunctionManagerDirector;
 import com.ethlo.lamebda.HttpRequest;
 import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.error.ErrorResponse;
@@ -37,12 +38,12 @@ public class LamebdaController
 {
     private static final Logger logger = LoggerFactory.getLogger(LamebdaController.class);
 
-    private FunctionManager functionManager;
+    private FunctionManagerDirector functionManagerDirector;
     private String rootContextPath;
 
-    public LamebdaController(FunctionManager functionManager, String rootContextPath)
+    public LamebdaController(FunctionManagerDirector functionManagerDirector, String rootContextPath)
     {
-        this.functionManager = functionManager;
+        this.functionManagerDirector = functionManagerDirector;
         this.rootContextPath = rootContextPath;
     }
 
@@ -51,11 +52,17 @@ public class LamebdaController
         final String contextPath = request.getContextPath();
         final HttpRequest req = new ServletHttpRequest(contextPath + this.rootContextPath, request);
         final HttpResponse res = new ServletHttpResponse(response);
-        if (!functionManager.handle(req, res))
+
+        for (FunctionManager functionManager : functionManagerDirector.getFunctionManagers().values())
         {
-            final String message = "No function found to handle " + request.getMethod() + " " + req.path();
-            logger.info(message);
-            res.error(ErrorResponse.notFound(message));
+            if (functionManager.handle(req, res))
+            {
+                return;
+            }
         }
+
+        final String message = "No function found to handle " + request.getMethod() + " " + req.path();
+        logger.info(message);
+        res.error(ErrorResponse.notFound(message));
     }
 }

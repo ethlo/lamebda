@@ -3,6 +3,7 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,11 +11,11 @@ import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.codehaus.groovy.tools.GroovyClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -22,7 +23,6 @@ import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
@@ -57,7 +57,7 @@ import groovy.lang.GroovyClassLoader;
  * #L%
  */
 
-public class FunctionManagerImpl implements ConfigurableFunctionManager
+public class FunctionManagerImpl implements FunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
     private final ProjectConfiguration projectConfiguration;
@@ -171,21 +171,39 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         createProjectConfigBean();
         compileSources();
 
+        //
+        GroovyClassLoader gcl = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
+
+        final URL mainResourcesUrl = IoUtil.toURL(projectConfiguration.getMainResourcePath());
+        logger.info("Adding main resources URL: {}", mainResourcesUrl);
+        gcl.addURL(mainResourcesUrl);
+
+
         // Scan for beans
         if (!projectConfiguration.getBasePackages().isEmpty())
         {
             logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(projectConfiguration.getBasePackages()));
             this.projectCtx.scan(projectConfiguration.getBasePackages().toArray(new String[0]));
         }
+        else
+        {
+            logger.warn("No base-packages set to scan");
+        }
 
         projectCtx.refresh();
 
-        logger.info("Beans: {}", StringUtils.arrayToCommaDelimitedString(projectCtx.getBeanDefinitionNames()));
-        logger.info("Controllers: {}", (projectCtx.getBeansWithAnnotation(Controller.class)));
+        //logger.info("Beans: {}", StringUtils.arrayToCommaDelimitedString(projectCtx.getBeanDefinitionNames()));
+        //logger.info("Controllers: {}", (projectCtx.getBeansWithAnnotation(Controller.class)));
 
         addBuiltinFunctions();
 
-        // Load all functions
+        // Load non-spring beans (Simple controller)
+        lamebdaResourceLoader.getServerFunctionClasses().forEach(f ->
+        {
+            projectCtx.register(f.getType());
+        });
+
+        // Load all functions that are beans
         projectCtx.getBeansOfType(ServerFunction.class).forEach((key, value) -> addFunction(new FunctionBundle(ServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
     }
 
@@ -197,14 +215,22 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private void compileSources()
     {
-        logger.info("Compiling sources");
-        final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
-        GroovyCompiler.compile(groovyClassLoader, getProjectConfiguration().getGroovySourcePath(), getProjectConfiguration().getTargetClassDirectory());
+        final Path groovySourcePath = getProjectConfiguration().getGroovySourcePath();
+        if (Files.isDirectory(groovySourcePath))
+        {
+            logger.info("Compiling sources in {}", groovySourcePath);
+            final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
+            GroovyCompiler.compile(groovyClassLoader, groovySourcePath, getProjectConfiguration().getTargetClassDirectory());
+        }
+        else
+        {
+            logger.info("No sources to compile at {}", groovySourcePath);
+        }
     }
 
     private void apiSpecProcessing()
     {
-        final Path apiPath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY).resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
+        final Path apiPath = projectConfiguration.getSpecificationPath().resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
         final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
 
         if (Files.exists(apiPath))
@@ -266,12 +292,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
             return OffsetDateTime.ofInstant(Files.getLastModifiedTime(path).toInstant(), ZoneOffset.UTC);
         }
         return OffsetDateTime.MIN;
-    }
-
-    @Override
-    public ApplicationContext getProjectApplicationContext()
-    {
-        return projectCtx;
     }
 
     @Override

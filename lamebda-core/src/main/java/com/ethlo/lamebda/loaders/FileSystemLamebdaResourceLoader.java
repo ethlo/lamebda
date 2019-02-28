@@ -45,6 +45,7 @@ import org.springframework.util.StringUtils;
 import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
+import com.ethlo.lamebda.SimpleServerFunction;
 import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.io.FileSystemEvent;
 import com.ethlo.lamebda.io.WatchDir;
@@ -166,14 +167,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     }
 
     @Override
-    public List<ServerFunctionInfo> findAll(long offset, int size)
-    {
-        final List<ServerFunctionInfo> all = new LinkedList<>();
-        all.addAll(getServerFunctionClasses());
-        return all.stream().skip(offset).limit(size).collect(Collectors.toList());
-    }
-
-    private List<ServerFunctionInfo> getServerFunctionClasses()
+    public List<ServerFunctionInfo> getServerFunctionClasses()
     {
         if (this.classFunctions != null)
         {

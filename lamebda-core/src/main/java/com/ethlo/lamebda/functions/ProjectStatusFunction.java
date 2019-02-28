@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.ethlo.lamebda.ServerFunctionInfo;
-import com.ethlo.lamebda.ConfigurableFunctionManager;
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.HttpRequest;
@@ -35,6 +33,7 @@ import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.HttpStatus;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
+import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.URLMappedServerFunction;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.FunctionStatusInfo;
@@ -46,7 +45,7 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
     private final ProjectConfiguration projectConfiguration;
     private final FunctionMetricsService functionMetricsService;
 
-    public ProjectStatusFunction(String pattern, ConfigurableFunctionManager functionManager, FunctionMetricsService functionMetricsService)
+    public ProjectStatusFunction(String pattern, FunctionManager functionManager, FunctionMetricsService functionMetricsService)
     {
         super(pattern, functionManager.getProjectConfiguration().isInfoProtected());
         this.functionManager = functionManager;

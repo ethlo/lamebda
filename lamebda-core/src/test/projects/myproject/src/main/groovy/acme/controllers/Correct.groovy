@@ -17,11 +17,13 @@
  * limitations under the License.
  * #L%
  */
-
-import com.ethlo.lamebda.*
+import com.ethlo.lamebda.HttpRequest
+import com.ethlo.lamebda.HttpResponse
+import com.ethlo.lamebda.HttpStatus
+import com.ethlo.lamebda.SimpleServerFunction
 import mypackage.*
-import spec.Pet
 import other.Other
+import spec.Pet
 
 class Correct extends SimpleServerFunction {
 

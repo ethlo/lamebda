@@ -37,10 +37,6 @@ import com.ethlo.lamebda.test.MockHttpResponse;
 
 public class ServerFunctionTest extends BaseTest
 {
-    public ServerFunctionTest() throws IOException
-    {
-    }
-
     @Test
     public void testServingStaticResource() throws Exception
     {
