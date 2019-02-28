@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -35,6 +36,7 @@ import com.ethlo.lamebda.reporting.MethodAndPattern;
 import com.ethlo.lamebda.test.MockHttpRequest;
 import com.ethlo.lamebda.test.MockHttpResponse;
 
+@Ignore("Considering not supporting SimpleServerFunction derivatives")
 public class ServerFunctionTest extends BaseTest
 {
     @Test

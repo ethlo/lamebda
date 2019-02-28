@@ -27,7 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -50,24 +49,17 @@ import com.ethlo.lamebda.util.IoUtil;
 @RunWith(SpringRunner.class)
 public class SpringMvcServerFunctionTest
 {
-    private final Path basepath = Paths.get(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
+    private final Path basepath = Paths.get("src/test/projects/myproject");
+    private final String packageName = "acme";
+
     private FunctionManagerImpl functionManager;
 
     @Autowired
     private ApplicationContext applicationContext;
 
-    private final String packageName = "mycontrollererer";
-
     @Before
     public void before() throws IOException
     {
-        if (Files.exists(basepath))
-        {
-            IoUtil.deleteDirectory(basepath);
-        }
-        Files.createDirectories(basepath);
-
-        move("SpringMvc.groovy");
         final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", basepath).basePackages(packageName).build();
         functionManager = new FunctionManagerImpl(applicationContext, new FileSystemLamebdaResourceLoader(cfg));
     }
@@ -78,19 +70,13 @@ public class SpringMvcServerFunctionTest
         assertThat(functionManager.getHandler(packageName + ".SpringMvc")).isPresent();
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
-        req.setRequestURI("/lamebda/lamebda-unit-test/test/123");
+        req.setRequestURI("/lamebda/myproject/test/123");
         req.setMethod("POST");
         req.setContentType("application/json");
         req.setContent("{\"payload\": \"hello world\"}".getBytes(StandardCharsets.UTF_8));
-        functionManager.handle(new ServletHttpRequest("/gateway", req), new ServletHttpResponse(res));
+        final boolean handled = functionManager.handle(new ServletHttpRequest("/lamebda", req), new ServletHttpResponse(res));
+        assertThat(handled).isTrue();
         assertThat(res.getStatus()).isEqualTo(200);
         assertThat(res.getContentAsString()).isEqualTo("{\"id\":\"123\"}");
-    }
-
-    private Path move(final String name) throws IOException
-    {
-        final Path dir = basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve(packageName);
-        Files.createDirectories(dir);
-        return Files.copy(Paths.get("src/test/groovy", packageName, name), dir.resolve(name), StandardCopyOption.REPLACE_EXISTING);
     }
 }

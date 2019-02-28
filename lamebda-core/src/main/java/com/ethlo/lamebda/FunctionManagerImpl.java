@@ -197,11 +197,13 @@ public class FunctionManagerImpl implements FunctionManager
 
         addBuiltinFunctions();
 
+        /*
         // Load non-spring beans (Simple controller)
         lamebdaResourceLoader.getServerFunctionClasses().forEach(f ->
         {
             projectCtx.register(f.getType());
         });
+        */
 
         // Load all functions that are beans
         projectCtx.getBeansOfType(ServerFunction.class).forEach((key, value) -> addFunction(new FunctionBundle(ServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));

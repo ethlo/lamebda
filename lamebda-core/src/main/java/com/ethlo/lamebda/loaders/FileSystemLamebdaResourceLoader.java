@@ -66,10 +66,8 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public static final String JAVA_EXTENSION = "java";
     public static final String PROPERTIES_EXTENSION = "properties";
 
-    public static final String SCRIPT_DIRECTORY = "scripts";
     public static final String STATIC_DIRECTORY = "static";
     public static final String SPECIFICATION_DIRECTORY = "specification";
-    public static final String SHARED_DIRECTORY = "shared";
     public static final String LIB_DIRECTORY = "lib";
 
     public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
