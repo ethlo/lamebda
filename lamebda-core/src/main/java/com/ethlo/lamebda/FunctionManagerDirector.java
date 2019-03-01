@@ -154,9 +154,11 @@ public class FunctionManagerDirector
     {
         logger.info("Loading {}", projectPath);
 
+        FileSystemLamebdaResourceLoader lamebdaResourceLoader = null;
+        FunctionManagerImpl fm = null;
         try
         {
-            final FileSystemLamebdaResourceLoader lamebdaResourceLoader = createResourceLoader(projectPath);
+            lamebdaResourceLoader = createResourceLoader(projectPath);
             lamebdaResourceLoader.setSourceChangeListener((fse) ->
             {
                 final boolean validFile = Files.isRegularFile(fse.getPath()) && isKnownType(fse.getPath().getFileName().toString());
@@ -169,12 +171,29 @@ public class FunctionManagerDirector
                 }
             });
 
-            final FunctionManagerImpl fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
+            fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
             functionManagers.put(projectPath, fm);
         }
-        catch (IOException exc)
+        catch (Exception exc)
         {
-            throw new UncheckedIOException(exc);
+            try
+            {
+                if (lamebdaResourceLoader != null)
+                {
+                    lamebdaResourceLoader.close();
+                }
+
+                if (fm != null)
+                {
+                    fm.close();
+                }
+            }
+            catch (Exception e)
+            {
+                logger.warn("An error occurred cleaning up failed project initialization", e);
+            }
+
+            logger.warn("Unable to load project in " + projectPath, exc);
         }
     }
 

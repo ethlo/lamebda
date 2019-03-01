@@ -78,7 +78,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
             throw new FileNotFoundException("Cannot use " + projectPath.toAbsolutePath() + " as project directory as it does not exist");
         }
 
-        logger.info("Loading project: {}", projectConfiguration.toPrettyString());
+        logger.debug("Loading project: {}", projectConfiguration.toPrettyString());
 
         this.groovyClassLoader = new GroovyClassLoader();
 
@@ -90,7 +90,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
         handleProject(projectPath);
 
-        logger.info("Project directory: {}", projectPath);
+        logger.debug("Project directory: {}", projectPath);
     }
 
     private void decompress(final Path projectPath, final Path archivePath) throws IOException
