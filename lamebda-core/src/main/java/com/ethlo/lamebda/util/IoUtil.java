@@ -138,8 +138,17 @@ public class IoUtil
 
     public static Optional<byte[]> classPathResource(final String path)
     {
-        final String correctedPath = (!path.startsWith("/")) ? "/" + path : path;
-        final InputStream in = IoUtil.class.getResourceAsStream(correctedPath);
+        final InputStream in = IoUtil.class.getResourceAsStream(path);
+        if (in != null)
+        {
+            return Optional.of(toByteArray(in));
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<byte[]> classPathResource(final String path, ClassLoader classLoader)
+    {
+        final InputStream in = classLoader.getResourceAsStream(path);
         if (in != null)
         {
             return Optional.of(toByteArray(in));
@@ -159,19 +168,14 @@ public class IoUtil
         }
     }
 
-    public static void moveDirectory(final Path source, final Path target) throws IOException
-    {
-        Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-    }
-
-    public static List<URL> toClassPathList(final Path jarPath)
+    public static List<String> toClassPathList(final Path jarPath)
     {
         try
         {
             return Files
                     .list(jarPath)
                     .filter(p -> FileNameUtil.getExtension(p.getFileName().toString()).equals(FileSystemLamebdaResourceLoader.JAR_EXTENSION))
-                    .map(IoUtil::toURL)
+                    .map(Path::toString)
                     .collect(Collectors.toList());
         }
         catch (IOException e)

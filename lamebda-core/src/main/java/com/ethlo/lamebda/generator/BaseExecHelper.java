@@ -29,7 +29,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +48,7 @@ public abstract class BaseExecHelper
         Assert.isTrue(Files.exists(Paths.get(javaCmd)), "Java command " + javaCmd + " does not exist");
         this.javaCmd = javaCmd;
         Assert.isTrue(Files.exists(jarPath), "JAR directory" + jarPath + " does not exist");
-        this.classPath = IoUtil.toClassPathList(jarPath).stream().map(u -> u.getPath()).collect(Collectors.toList());
+        this.classPath = IoUtil.toClassPathList(jarPath);
     }
 
     protected int doExec(Path dir, String... cmd) throws IOException
@@ -63,7 +62,7 @@ public abstract class BaseExecHelper
 
         try
         {
-            final String[] fullCmd = combine(new String[]{javaCmd, "-cp",  StringUtil.join(classPath, File.pathSeparator), "org.openapitools.codegen.OpenAPIGenerator"}, cmd);
+            final String[] fullCmd = combine(new String[]{javaCmd, "-cp", StringUtil.join(classPath, File.pathSeparator), "org.openapitools.codegen.OpenAPIGenerator"}, cmd);
             logger.debug("Running {}", StringUtil.join(Arrays.asList(fullCmd), " "));
             process = new ProcessBuilder(fullCmd)
                     .inheritIO()
@@ -78,8 +77,7 @@ public abstract class BaseExecHelper
             {
                 e.notifyAll();
             }
-        }
-        finally
+        } finally
         {
             if (process != null)
             {

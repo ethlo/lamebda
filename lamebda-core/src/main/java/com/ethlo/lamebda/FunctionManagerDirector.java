@@ -37,7 +37,6 @@ import org.springframework.context.ApplicationContext;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.util.Assert;
 
 public class FunctionManagerDirector
@@ -155,7 +154,6 @@ public class FunctionManagerDirector
     {
         logger.info("Loading {}", projectPath);
 
-
         try
         {
             final FileSystemLamebdaResourceLoader lamebdaResourceLoader = createResourceLoader(projectPath);
@@ -167,22 +165,17 @@ public class FunctionManagerDirector
                 {
                     logger.info("Project is reloaded due to detected change in {}", fse.getPath());
                     close(projectPath);
-                    doCreate(projectPath, createResourceLoader(projectPath));
+                    create(projectPath);
                 }
             });
 
-            doCreate(projectPath, lamebdaResourceLoader);
+            final FunctionManagerImpl fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
+            functionManagers.put(projectPath, fm);
         }
         catch (IOException exc)
         {
             throw new UncheckedIOException(exc);
         }
-    }
-
-    private void doCreate(final Path projectPath, LamebdaResourceLoader lamebdaResourceLoader)
-    {
-        final FunctionManagerImpl fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
-        functionManagers.put(projectPath, fm);
     }
 
     private boolean isKnownType(final String filename)

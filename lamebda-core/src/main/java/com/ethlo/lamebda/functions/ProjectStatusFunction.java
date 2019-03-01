@@ -76,7 +76,7 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
             }
 
             return info;
-        }).skip(page * size).limit(size).collect(Collectors.toList());
+        }).sorted().skip(page * size).limit(size).collect(Collectors.toList());
         final Map<String, Object> res = new LinkedHashMap<>();
         final Map<String, Object> projectInfo = new LinkedHashMap<>();
         projectInfo.put("name", projectConfiguration.getName());

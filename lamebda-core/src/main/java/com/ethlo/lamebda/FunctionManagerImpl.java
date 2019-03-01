@@ -11,6 +11,7 @@ import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,7 +27,6 @@ import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
-import com.ethlo.lamebda.functions.SingleFileResourceFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.groovy.GroovyCompiler;
@@ -145,11 +145,42 @@ public class FunctionManagerImpl implements FunctionManager
     {
         final String name = bundle.getInfo().getName();
         final boolean exists = functions.put(name, bundle) != null;
-        logger.info(exists ? "Handler {} was reloaded" : "{} was loaded", name);
+        logger.info(exists ? "{} was replaced" : "{} was loaded", name);
         return this;
     }
 
     private void initialize()
+    {
+        setupSpringChildContext();
+        addResourceClasspath();
+        apiSpecProcessing();
+        createProjectConfigBean();
+        compileSources();
+        findBeans();
+        addBuiltinFunctions();
+
+        // Load all functions from Spring context
+        projectCtx.getBeansOfType(ServerFunction.class).forEach((key, value) -> addFunction(new FunctionBundle(ServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
+    }
+
+    private void findBeans()
+    {
+        // Scan for beans
+        final List<String> basePackages = projectConfiguration.getBasePackages();
+        if (!basePackages.isEmpty())
+        {
+            logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(basePackages));
+            this.projectCtx.scan(basePackages.toArray(new String[0]));
+        }
+        else
+        {
+            logger.warn("No base-packages set to scan");
+        }
+
+        projectCtx.refresh();
+    }
+
+    private void setupSpringChildContext()
     {
         final PropertyPlaceholderConfigurer propertyPlaceholderConfigurer = new PropertyPlaceholderConfigurer();
 
@@ -165,47 +196,14 @@ public class FunctionManagerImpl implements FunctionManager
         this.projectCtx.setAllowBeanDefinitionOverriding(false);
         this.projectCtx.setClassLoader(lamebdaResourceLoader.getClassLoader());
         this.projectCtx.setId(projectConfiguration.getName());
+    }
 
-        apiSpecProcessing();
-        createProjectConfigBean();
-        compileSources();
-
-        //
-        GroovyClassLoader gcl = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
-
+    private void addResourceClasspath()
+    {
+        final GroovyClassLoader gcl = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
         final URL mainResourcesUrl = IoUtil.toURL(projectConfiguration.getMainResourcePath());
         logger.info("Adding main resources URL: {}", mainResourcesUrl);
         gcl.addURL(mainResourcesUrl);
-
-
-        // Scan for beans
-        if (!projectConfiguration.getBasePackages().isEmpty())
-        {
-            logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(projectConfiguration.getBasePackages()));
-            this.projectCtx.scan(projectConfiguration.getBasePackages().toArray(new String[0]));
-        }
-        else
-        {
-            logger.warn("No base-packages set to scan");
-        }
-
-        projectCtx.refresh();
-
-        //logger.info("Beans: {}", StringUtils.arrayToCommaDelimitedString(projectCtx.getBeanDefinitionNames()));
-        //logger.info("Controllers: {}", (projectCtx.getBeansWithAnnotation(Controller.class)));
-
-        addBuiltinFunctions();
-
-        /*
-        // Load non-spring beans (Simple controller)
-        lamebdaResourceLoader.getServerFunctionClasses().forEach(f ->
-        {
-            projectCtx.register(f.getType());
-        });
-        */
-
-        // Load all functions that are beans
-        projectCtx.getBeansOfType(ServerFunction.class).forEach((key, value) -> addFunction(new FunctionBundle(ServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
     }
 
     private void createProjectConfigBean()
@@ -282,8 +280,8 @@ public class FunctionManagerImpl implements FunctionManager
             addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), initWithProjectCfg(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
         }
 
-        final Optional<Path> specificationFile = lamebdaResourceLoader.getApiSpecification();
-        specificationFile.ifPresent(f -> addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), initWithProjectCfg(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
+        final Optional<byte[]> specPathYaml = IoUtil.classPathResource("specification/oas.yaml", lamebdaResourceLoader.getClassLoader());
+        specPathYaml.ifPresent(bytes -> addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction(specificationBasePath + "/api/api.yaml", HttpMimeType.YAML, bytes)))));
     }
 
     private OffsetDateTime lastModified(final Path path) throws IOException

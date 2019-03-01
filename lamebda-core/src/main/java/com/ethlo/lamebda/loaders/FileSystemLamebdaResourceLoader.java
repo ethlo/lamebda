@@ -23,7 +23,6 @@ package com.ethlo.lamebda.loaders;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -31,7 +30,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -102,12 +100,19 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     private void handleProject(final Path projectPath) throws IOException
     {
-        this.libPath = Files.createDirectories(projectPath.resolve(LIB_DIRECTORY));
-        getLibUrls().forEach(url ->
+        this.libPath = projectPath.resolve(LIB_DIRECTORY);
+        if (Files.isDirectory(libPath))
         {
-            groovyClassLoader.addURL(url);
-            logger.info("Adding library classpath {}", url);
-        });
+            getLibUrls().forEach(url ->
+            {
+                groovyClassLoader.addClasspath(url);
+                logger.info("Adding library classpath {}", url);
+            });
+        }
+        else
+        {
+            logger.info("Lib directory {} does not exist. Skipping", libPath);
+        }
     }
 
     private void unzipDirectory(final Path archivePath, Path targetDir) throws IOException
@@ -137,7 +142,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         }
     }
 
-    private List<URL> getLibUrls()
+    private List<String> getLibUrls()
     {
         if (!Files.exists(libPath, LinkOption.NOFOLLOW_LINKS))
         {
@@ -150,19 +155,14 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public void close() throws IOException
     {
         this.watchThread = null;
-        this.watchDir.close();
-        this.groovyClassLoader.close();
-    }
-
-    @Override
-    public Optional<Path> getApiSpecification()
-    {
-        final Path specPathYaml = projectConfiguration.getPath().resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_YAML_FILENAME);
-        if (Files.exists(specPathYaml))
+        if (this.watchDir != null)
         {
-            return Optional.of(specPathYaml);
+            logger.info("Closing watcher");
+            this.watchDir.close();
         }
-        return Optional.empty();
+
+        logger.info("Closing class loader");
+        this.groovyClassLoader.close();
     }
 
     @Override

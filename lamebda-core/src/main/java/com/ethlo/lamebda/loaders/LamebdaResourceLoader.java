@@ -21,15 +21,11 @@ package com.ethlo.lamebda.loaders;
  */
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Optional;
 
 import com.ethlo.lamebda.ProjectConfiguration;
 
 public interface LamebdaResourceLoader extends AutoCloseable
 {
-    Optional<Path> getApiSpecification();
-
     ProjectConfiguration getProjectConfiguration();
 
     void close() throws IOException;
