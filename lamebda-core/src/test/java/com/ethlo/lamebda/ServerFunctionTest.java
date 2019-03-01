@@ -22,13 +22,11 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;

@@ -22,10 +22,8 @@ package com.ethlo.lamebda;
 
 import java.io.Serializable;
 import java.io.UncheckedIOException;
-import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.List;
 
 import org.slf4j.Logger;

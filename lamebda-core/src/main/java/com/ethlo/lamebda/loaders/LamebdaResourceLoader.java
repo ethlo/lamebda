@@ -22,16 +22,12 @@ package com.ethlo.lamebda.loaders;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 
 import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.ServerFunctionInfo;
 
 public interface LamebdaResourceLoader extends AutoCloseable
 {
-    List<ServerFunctionInfo> getServerFunctionClasses();
-
     Optional<Path> getApiSpecification();
 
     ProjectConfiguration getProjectConfiguration();

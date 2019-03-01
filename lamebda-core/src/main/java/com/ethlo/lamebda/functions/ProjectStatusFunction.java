@@ -60,7 +60,7 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
         final int size = Integer.parseInt(request.param("size", "25"));
         final List<FunctionStatusInfo> functionList = ((FunctionManagerImpl) functionManager).getFunctions().entrySet().stream().map(s ->
         {
-            final FunctionStatusInfo info = new FunctionStatusInfo(projectConfiguration.getPath(), ServerFunctionInfo.ofClass((Class<ServerFunction>) s.getValue().getFunction().getClass()));
+            final FunctionStatusInfo info = new FunctionStatusInfo(ServerFunctionInfo.ofClass((Class<ServerFunction>) s.getValue().getFunction().getClass()));
 
             final Optional<ServerFunction> funcOpt = functionManager.getHandler(s.getKey());
             final boolean isLoaded = funcOpt.isPresent();
@@ -76,7 +76,7 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
             }
 
             return info;
-        }).collect(Collectors.toList());
+        }).skip(page * size).limit(size).collect(Collectors.toList());
         final Map<String, Object> res = new LinkedHashMap<>();
         final Map<String, Object> projectInfo = new LinkedHashMap<>();
         projectInfo.put("name", projectConfiguration.getName());

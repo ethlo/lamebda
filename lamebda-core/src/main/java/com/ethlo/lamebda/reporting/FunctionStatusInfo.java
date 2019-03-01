@@ -20,8 +20,6 @@ package com.ethlo.lamebda.reporting;
  * #L%
  */
 
-import java.nio.file.Path;
-import java.time.OffsetDateTime;
 import java.util.Set;
 
 import com.ethlo.lamebda.ServerFunctionInfo;
@@ -29,13 +27,12 @@ import com.ethlo.lamebda.mapping.RequestMapping;
 
 public class FunctionStatusInfo
 {
-    private OffsetDateTime lastModified;
     private boolean running;
     private String relPath;
     private String name;
     private Set<RequestMapping> requestMappings;
 
-    public FunctionStatusInfo(Path projectDir, final ServerFunctionInfo info)
+    public FunctionStatusInfo(final ServerFunctionInfo info)
     {
         this.relPath = info.getType().getCanonicalName().replace('.', '/');
         this.name = info.getType().getSimpleName();
@@ -60,11 +57,6 @@ public class FunctionStatusInfo
     public String getRelPath()
     {
         return relPath;
-    }
-
-    public OffsetDateTime getLastModified()
-    {
-        return lastModified;
     }
 
     public Set<RequestMapping> getRequestMappings()

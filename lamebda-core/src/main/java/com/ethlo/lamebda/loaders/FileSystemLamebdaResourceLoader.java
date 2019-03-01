@@ -30,11 +30,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -42,17 +40,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.ServerFunction;
-import com.ethlo.lamebda.SimpleServerFunction;
-import com.ethlo.lamebda.functions.BuiltInServerFunction;
 import com.ethlo.lamebda.io.FileSystemEvent;
 import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
-import io.github.classgraph.ClassGraph;
-import io.github.classgraph.ScanResult;
 
 public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 {
@@ -63,7 +55,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     public static final String JAR_EXTENSION = "jar";
     public static final String GROOVY_EXTENSION = "groovy";
-    public static final String JAVA_EXTENSION = "java";
     public static final String PROPERTIES_EXTENSION = "properties";
 
     public static final String STATIC_DIRECTORY = "static";
@@ -76,7 +67,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private final ProjectConfiguration projectConfiguration;
 
     private Path libPath;
-    private List<ServerFunctionInfo> classFunctions;
     private WatchDir watchDir;
     private Thread watchThread;
 
@@ -165,38 +155,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     }
 
     @Override
-    public List<ServerFunctionInfo> getServerFunctionClasses()
-    {
-        if (this.classFunctions != null)
-        {
-            return this.classFunctions;
-        }
-
-        this.classFunctions = new LinkedList<>();
-        try (ScanResult scanResult = new ClassGraph().enableClassInfo().overrideClassLoaders(groovyClassLoader).scan())
-        {
-            scanResult.getClassesImplementing(ServerFunction.class.getCanonicalName()).forEach(classInfo ->
-            {
-                if (!classInfo.isAbstract() && !classInfo.implementsInterface(BuiltInServerFunction.class.getCanonicalName()))
-                {
-                    logger.info("Found function class: {}", classInfo.getName());
-
-                    try
-                    {
-                        classFunctions.add(ServerFunctionInfo.ofClass((Class<ServerFunction>) Class.forName(classInfo.getName(), false, groovyClassLoader)));
-                    }
-                    catch (ClassNotFoundException e)
-                    {
-                        logger.error("Cannot load class {}", classInfo.getName());
-                    }
-                }
-            });
-        }
-
-        return classFunctions;
-    }
-
-    @Override
     public Optional<Path> getApiSpecification()
     {
         final Path specPathYaml = projectConfiguration.getPath().resolve(SPECIFICATION_DIRECTORY).resolve(API_SPECIFICATION_YAML_FILENAME);
@@ -225,13 +183,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         return groovyClassLoader;
     }
 
-    public FileSystemLamebdaResourceLoader setSourceChangeListener(final Consumer<FileSystemEvent> l) throws IOException
+    public void setSourceChangeListener(final Consumer<FileSystemEvent> l) throws IOException
     {
         if (projectConfiguration.isListenForChanges())
         {
             listenForChanges(l, IoUtil.exists(projectConfiguration.getPath(), projectConfiguration.getGroovySourcePath(), projectConfiguration.getSpecificationPath(), projectConfiguration.getLibraryPath()));
         }
-        return this;
     }
 
     private void listenForChanges(final Consumer<FileSystemEvent> l, final Path[] exists) throws IOException

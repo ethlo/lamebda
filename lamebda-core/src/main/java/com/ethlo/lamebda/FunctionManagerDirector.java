@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -92,19 +92,19 @@ public class FunctionManagerDirector
         }, false, rootDirectory);
         new Thread(() ->
         {
-            logger.info("Watching {} for changes", Arrays.asList(rootDirectory));
+            logger.info("Watching {} for changes", Collections.singletonList(rootDirectory));
             try
             {
                 watchDir.processEvents();
             }
             catch (Exception exc)
             {
-                logger.warn(exc.getMessage(), exc)  ;
+                logger.warn(exc.getMessage(), exc);
             }
         }).start();
     }
 
-    public void initializeAll() throws IOException
+    private void initializeAll() throws IOException
     {
         setupDirectoryWatcher();
 
@@ -151,7 +151,7 @@ public class FunctionManagerDirector
         }
     }
 
-    FunctionManager create(final Path projectPath)
+    private void create(final Path projectPath)
     {
         logger.info("Loading {}", projectPath);
 
@@ -171,7 +171,7 @@ public class FunctionManagerDirector
                 }
             });
 
-            return doCreate(projectPath, lamebdaResourceLoader);
+            doCreate(projectPath, lamebdaResourceLoader);
         }
         catch (IOException exc)
         {
@@ -179,11 +179,10 @@ public class FunctionManagerDirector
         }
     }
 
-    private FunctionManager doCreate(final Path projectPath, LamebdaResourceLoader lamebdaResourceLoader)
+    private void doCreate(final Path projectPath, LamebdaResourceLoader lamebdaResourceLoader)
     {
         final FunctionManagerImpl fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
         functionManagers.put(projectPath, fm);
-        return fm;
     }
 
     private boolean isKnownType(final String filename)

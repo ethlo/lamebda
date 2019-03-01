@@ -27,10 +27,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class MockTest
 {
-    public MockTest()
-    {
-    }
-
     @Test
     public void testInit()
     {
