@@ -42,7 +42,6 @@ import org.springframework.aop.target.SingletonTargetSource;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.MimeType;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerExecutionChain;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;

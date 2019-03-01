@@ -31,9 +31,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.ethlo.lamebda.FunctionManager;
-import com.ethlo.lamebda.FunctionManagerDirector;
-import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.spring.LamebdaSpringWebAutoConfiguration;
 
 @SpringBootTest(classes = LamebdaSpringWebAutoConfiguration.class)

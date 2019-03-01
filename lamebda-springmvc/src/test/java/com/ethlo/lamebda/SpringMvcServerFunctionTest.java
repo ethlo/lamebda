@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -42,7 +41,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.servlet.ServletHttpRequest;
 import com.ethlo.lamebda.servlet.ServletHttpResponse;
-import com.ethlo.lamebda.util.IoUtil;
 
 @SpringBootTest(classes = SpringMvcServerFunctionTest.class)
 @EnableAutoConfiguration
