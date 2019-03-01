@@ -3,30 +3,38 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.net.URL;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.codehaus.groovy.control.CompilationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.context.FunctionConfiguration;
-import com.ethlo.lamebda.context.FunctionContext;
 import com.ethlo.lamebda.functions.DirectoryResourceFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
-import com.ethlo.lamebda.functions.SingleFileResourceFunction;
 import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.generator.GeneratorHelper;
-import com.ethlo.lamebda.io.ChangeType;
+import com.ethlo.lamebda.groovy.GroovyCompiler;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.loaders.FileSystemNotificationAware;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.util.IoUtil;
+import groovy.lang.GroovyClassLoader;
 
 /*-
  * #%L
@@ -48,10 +56,12 @@ import com.ethlo.lamebda.util.IoUtil;
  * #L%
  */
 
-public class FunctionManagerImpl implements ConfigurableFunctionManager
+public class FunctionManagerImpl implements FunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
     private final ProjectConfiguration projectConfiguration;
+    private final ApplicationContext parentContext;
+    private AnnotationConfigApplicationContext projectCtx;
 
     private Map<String, FunctionBundle> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
@@ -59,7 +69,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
 
     private final GeneratorHelper generatorHelper;
 
-    public FunctionManagerImpl(LamebdaResourceLoader lamebdaResourceLoader)
+    public FunctionManagerImpl(ApplicationContext parentContext, LamebdaResourceLoader lamebdaResourceLoader)
     {
         this.projectConfiguration = lamebdaResourceLoader.getProjectConfiguration();
         final Path jarDir = projectConfiguration.getPath().resolve(".generator");
@@ -74,97 +84,26 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         }
 
         this.lamebdaResourceLoader = lamebdaResourceLoader;
-
-        registerChangeListenersIfApplicable(lamebdaResourceLoader);
+        this.parentContext = parentContext;
 
         initialize();
-    }
-
-    private void registerChangeListenersIfApplicable(final LamebdaResourceLoader lamebdaResourceLoader)
-    {
-        if (lamebdaResourceLoader instanceof FileSystemNotificationAware)
-        {
-            final FileSystemNotificationAware fs = (FileSystemNotificationAware) lamebdaResourceLoader;
-            fs.setFunctionChangeListener(n -> {
-                switch (n.getChangeType())
-                {
-                    case CREATED:
-                    case MODIFIED:
-                        try
-                        {
-                            functionChanged(n.getPath());
-                        }
-                        catch (CompilationFailedException exc)
-                        {
-                            logger.warn("Unloading function {} due to script compilation error", n.getPath());
-                            functionRemoved(n.getPath());
-                            throw exc;
-                        }
-                        break;
-
-                    case DELETED:
-                        functionRemoved(n.getPath());
-                        break;
-
-                    default:
-                        throw new IllegalArgumentException("Unhandled event type: " + n.getChangeType());
-                }
-            });
-
-            // Listen for specification changes
-            fs.setApiSpecificationChangeListener(n ->
-            {
-                if (n.getChangeType() == ChangeType.MODIFIED)
-                {
-                    logger.info("Specification file changed: {}", n.getPath());
-                    specificationChanged(n.getPath());
-                }
-            });
-
-            // Listener for project configuration changes
-            fs.setProjectConfigChangeListener(n ->
-            {
-                if (n.getChangeType() == ChangeType.MODIFIED)
-                {
-                    logger.info("Project config file changed: {}", n.getPath());
-                    reloadFunctions();
-                }
-            });
-        }
     }
 
     private void addBuiltinFunctions()
     {
         if (projectConfiguration.enableStaticResourceFunction())
         {
-            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("static-data", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction("/" + projectConfiguration.getStaticResourcesContext(), projectConfiguration.getStaticResourceDirectory()))));
+            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("static-data", DirectoryResourceFunction.class), initWithProjectCfg(new DirectoryResourceFunction("/" + projectConfiguration.getStaticResourcesContext(), projectConfiguration.getStaticResourceDirectory()))));
         }
 
         if (projectConfiguration.enableInfoFunction())
         {
             // JSON data
             final String statusBasePath = "/status";
-            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("status-info", ProjectStatusFunction.class), withMinimalContext(new ProjectStatusFunction(statusBasePath + "/status.json", lamebdaResourceLoader, this, functionMetricsService))));
+            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("status-info", ProjectStatusFunction.class), initWithProjectCfg(new ProjectStatusFunction(statusBasePath + "/status.json", this, functionMetricsService))));
 
             // Page for viewing status
-            addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("status-info-page", SingleResourceFunction.class), withMinimalContext(new SingleResourceFunction(statusBasePath + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/status.html").get()))));
-        }
-    }
-
-    @Override
-    public void functionChanged(final Path sourcePath)
-    {
-        final ScriptServerFunctionInfo newInfo = ScriptServerFunctionInfo.ofScript(lamebdaResourceLoader, sourcePath);
-        try
-        {
-            logger.info("Loading function {}", sourcePath);
-            final ServerFunction function = lamebdaResourceLoader.load(sourcePath);
-            addFunction(new FunctionBundle(newInfo, function));
-        }
-        catch (CompilationFailedException exc)
-        {
-            functionRemoved(sourcePath);
-            throw exc;
+            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("status-info-page", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction(statusBasePath + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/status.html").get()))));
         }
     }
 
@@ -174,10 +113,6 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         {
             runRegen(projectConfiguration, ".models.gen");
         }
-
-        final String modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath().toString();
-        lamebdaResourceLoader.addClasspath(modelPath);
-        logger.info("Added model classpath {}", modelPath);
     }
 
     private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration) throws IOException
@@ -196,117 +131,174 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
         generatorHelper.generate(projectConfiguration.getPath(), args);
     }
 
-    private <T extends ServerFunction & FunctionContextAware> T withMinimalContext(final T function)
+    private <T extends ServerFunction & FunctionContextAware> T initWithProjectCfg(final T function)
     {
-        function.setContext(new FunctionContext(projectConfiguration, new FunctionConfiguration()));
+        function.init(projectConfiguration);
+        if (function instanceof BaseServerFunction)
+        {
+            ((BaseServerFunction) function).initInternal(projectConfiguration);
+        }
         return function;
-    }
-
-    private void reloadFunctions()
-    {
-        functions.forEach((name, func) -> {
-            final FunctionBundle oldInfo = functions.get(name);
-            if (oldInfo.getInfo() instanceof ScriptServerFunctionInfo)
-            {
-                final Path sourcePath = ((ScriptServerFunctionInfo) oldInfo.getInfo()).getSourcePath();
-                functionChanged(sourcePath);
-            }
-        });
     }
 
     private FunctionManagerImpl addFunction(FunctionBundle bundle)
     {
         final String name = bundle.getInfo().getName();
         final boolean exists = functions.put(name, bundle) != null;
-        logger.info(exists ? "'{}' was reloaded" : "'{}' was loaded", name);
+        logger.info(exists ? "{} was replaced" : "{} was loaded", name);
         return this;
     }
 
     private void initialize()
     {
-        initialApiProcessing();
-
-        for (AbstractServerFunctionInfo info : lamebdaResourceLoader.findAll(0, Integer.MAX_VALUE))
-        {
-            if (info instanceof ClassServerFunctionInfo)
-            {
-                addFunction(new FunctionBundle(info, lamebdaResourceLoader.prepare(info.getType())));
-            }
-            else
-            {
-                final ScriptServerFunctionInfo f = (ScriptServerFunctionInfo) info;
-                try
-                {
-                    addFunction(new FunctionBundle(info, lamebdaResourceLoader.load(f.getSourcePath())));
-                }
-                catch (Exception exc)
-                {
-                    logger.error("Error in function {}: {}", f.getSourcePath(), exc);
-                }
-            }
-        }
-
+        setupSpringChildContext();
+        addResourceClasspath();
+        apiSpecProcessing();
+        registerSpecificationController();
+        createProjectConfigBean();
+        compileSources();
+        findBeans();
         addBuiltinFunctions();
+
+        // Load all functions from Spring context
+        projectCtx.getBeansOfType(ServerFunction.class).forEach((key, value) -> addFunction(new FunctionBundle(ServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
     }
 
-    private void initialApiProcessing()
+    private void findBeans()
     {
-        final Path apiPath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY).resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
+        // Scan for beans
+        final List<String> basePackages = projectConfiguration.getBasePackages();
+        if (!basePackages.isEmpty())
+        {
+            logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(basePackages));
+            this.projectCtx.scan(basePackages.toArray(new String[0]));
+        }
+        else
+        {
+            logger.warn("No base-packages set to scan");
+        }
+
+        projectCtx.refresh();
+    }
+
+    private void setupSpringChildContext()
+    {
+        final PropertyPlaceholderConfigurer propertyPlaceholderConfigurer = new PropertyPlaceholderConfigurer();
+
+        final Path configFilePath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME);
+        if (Files.exists(configFilePath))
+        {
+            propertyPlaceholderConfigurer.setLocation(new FileSystemResource(configFilePath));
+        }
+
+        this.projectCtx = new AnnotationConfigApplicationContext();
+        this.projectCtx.addBeanFactoryPostProcessor(propertyPlaceholderConfigurer);
+        this.projectCtx.setParent(parentContext);
+        this.projectCtx.setAllowBeanDefinitionOverriding(false);
+        this.projectCtx.setClassLoader(lamebdaResourceLoader.getClassLoader());
+        this.projectCtx.setId(projectConfiguration.getName());
+    }
+
+    private void addResourceClasspath()
+    {
+        final GroovyClassLoader gcl = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
+        final URL mainResourcesUrl = IoUtil.toURL(projectConfiguration.getMainResourcePath());
+        logger.info("Adding main resources to classpath: {}", mainResourcesUrl);
+        gcl.addURL(mainResourcesUrl);
+
+        final URL targetResourcesUrl = IoUtil.toURL(projectConfiguration.getTargetClassDirectory());
+        logger.info("Adding main classes to classpath: {}", targetResourcesUrl);
+        gcl.addURL(targetResourcesUrl);
+    }
+
+    private void createProjectConfigBean()
+    {
+        final ConfigurableListableBeanFactory bf = projectCtx.getBeanFactory();
+        bf.registerSingleton("projectConfiguration", lamebdaResourceLoader.getProjectConfiguration());
+    }
+
+    private void compileSources()
+    {
+        final Path groovySourcePath = getProjectConfiguration().getGroovySourcePath();
+        if (Files.isDirectory(groovySourcePath))
+        {
+            logger.info("Compiling sources in {}", groovySourcePath);
+            final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
+            GroovyCompiler.compile(groovyClassLoader, groovySourcePath, getProjectConfiguration().getTargetClassDirectory());
+        }
+        else
+        {
+            logger.info("No sources to compile at {}", groovySourcePath);
+        }
+    }
+
+    private void apiSpecProcessing()
+    {
+        final Path apiPath = projectConfiguration.getSpecificationPath().resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
+        final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
+
         if (Files.exists(apiPath))
         {
             try
             {
-                generateModels();
+                final Path marker = targetPath.resolve(".lastmodified");
 
-                generateHumanReadableApiDoc(projectConfiguration);
+                final OffsetDateTime specModified = lastModified(apiPath);
+                final OffsetDateTime modelModified = lastModified(marker);
 
-                final String specificationBasePath = "/specification";
-                final Optional<Path> specificationFile = lamebdaResourceLoader.getApiSpecification();
-                specificationFile.ifPresent(f -> addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), withMinimalContext(new SingleFileResourceFunction(specificationBasePath + "/api/api.yaml", f)))));
-
-                final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
-                if (Files.exists(targetPath))
+                if (specModified.isAfter(modelModified))
                 {
-                    addFunction(new FunctionBundle(ScriptServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), withMinimalContext(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
+                    generateModels();
+
+                    generateHumanReadableApiDoc(projectConfiguration);
                 }
+
+                try
+                {
+                    Files.createFile(marker);
+
+                }
+                catch (FileAlreadyExistsException exc)
+                {
+                    // Ignore
+                }
+
+                Files.setLastModifiedTime(marker, FileTime.from(specModified.toInstant()));
             }
             catch (IOException exc)
             {
                 throw new UncheckedIOException(exc);
             }
         }
+
+        final String modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath().toString();
+        lamebdaResourceLoader.addClasspath(modelPath);
+        logger.info("Added model classpath {}", modelPath);
     }
 
-    @Override
-    public void functionRemoved(final Path sourcePath)
+    private void registerSpecificationController()
     {
-        final FunctionBundle func = functions.remove(sourcePath.toString());
-        if (func != null)
+        final Optional<byte[]> specPathHumanReadable = IoUtil.classPathResource("api-doc/index.html", lamebdaResourceLoader.getClassLoader());
+        specPathHumanReadable.ifPresent(bytes -> addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-human-readable", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction("/specification/api/doc/", HttpMimeType.HTML, bytes)))));
+
+        final Optional<byte[]> specPathYaml = IoUtil.classPathResource("specification/oas.yaml", lamebdaResourceLoader.getClassLoader());
+        specPathYaml.ifPresent(bytes -> addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction("/specification/api/api.yaml", HttpMimeType.YAML, bytes)))));
+    }
+
+    private OffsetDateTime lastModified(final Path path) throws IOException
+    {
+        if (Files.exists(path))
         {
-            logger.info("'{}' was unloaded", sourcePath);
+            return OffsetDateTime.ofInstant(Files.getLastModifiedTime(path).toInstant(), ZoneOffset.UTC);
         }
+        return OffsetDateTime.MIN;
     }
 
     @Override
-    public void specificationChanged(final Path path)
-    {
-        initialApiProcessing();
-
-        logger.info("Reloading functions due to API specification change: {}", path);
-        reloadFunctions();
-    }
-
-    @Override
-    public Optional<ServerFunction> getFunction(final String name)
+    public Optional<ServerFunction> getHandler(final String name)
     {
         final FunctionBundle res = functions.get(name);
         return res != null ? Optional.of(res.getFunction()) : Optional.empty();
-    }
-
-    @Override
-    public Optional<ServerFunction> getFunction(final Path sourcePath)
-    {
-        return getFunction(sourcePath.toString());
     }
 
     @Override
@@ -328,6 +320,7 @@ public class FunctionManagerImpl implements ConfigurableFunctionManager
     {
         try
         {
+            projectCtx.close();
             this.lamebdaResourceLoader.close();
         }
         catch (IOException e)

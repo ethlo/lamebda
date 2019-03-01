@@ -24,6 +24,7 @@ import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,7 @@ public class ProjectConfiguration implements Serializable
     private String version;
 
     private String apiDocGenerator;
+    private List<String> basePackages;
 
     ProjectConfiguration(ProjectConfigurationBuilder b)
     {
@@ -76,6 +78,7 @@ public class ProjectConfiguration implements Serializable
         adminCredentials = b.getAdminCredentials();
         apiDocGenerator = b.getApiDocGenerator();
         listenForChanges = b.isListenForChanges();
+        basePackages = b.getBasePackages();
     }
 
     /**
@@ -237,11 +240,6 @@ public class ProjectConfiguration implements Serializable
         }
     }
 
-    public Path getScriptPath()
-    {
-        return this.getPath().resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY);
-    }
-
     public Path getLibraryPath()
     {
         return this.getPath().resolve(FileSystemLamebdaResourceLoader.LIB_DIRECTORY);
@@ -249,6 +247,27 @@ public class ProjectConfiguration implements Serializable
 
     public Path getSpecificationPath()
     {
-        return this.getPath().resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY);
+        return this.getPath().resolve("src").resolve("main").resolve("resources").resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY);
+    }
+
+    @JsonProperty("system.base-packages")
+    public List<String> getBasePackages()
+    {
+        return this.basePackages;
+    }
+
+    public Path getTargetClassDirectory()
+    {
+        return getPath().resolve("target").resolve("classes");
+    }
+
+    public Path getGroovySourcePath()
+    {
+        return getPath().resolve("src").resolve("main").resolve("groovy");
+    }
+
+    public Path getMainResourcePath()
+    {
+        return getPath().resolve("src").resolve("main").resolve("resources");
     }
 }

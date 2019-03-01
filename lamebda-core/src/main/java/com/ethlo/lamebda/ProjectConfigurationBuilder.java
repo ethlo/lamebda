@@ -27,11 +27,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.security.UsernamePasswordCredentials;
@@ -58,6 +63,7 @@ public class ProjectConfigurationBuilder
     private String apiDocGenerator;
 
     private boolean listenForChanges;
+    private List<String> basePackages = Collections.emptyList();
 
     protected ProjectConfigurationBuilder(String rootContextPath, Path projectPath)
     {
@@ -75,6 +81,12 @@ public class ProjectConfigurationBuilder
         this.staticResourcesPrefix = "static";
         this.staticResourceDirectory = projectPath.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY);
         this.listenForChanges = true;
+    }
+
+    public ProjectConfigurationBuilder basePackages(String... basePackages)
+    {
+        this.basePackages = Arrays.asList(basePackages);
+        return this;
     }
 
     public ProjectConfigurationBuilder projectContextPath(String projectContextPath)
@@ -173,6 +185,7 @@ public class ProjectConfigurationBuilder
             enableInfoFunction = Boolean.parseBoolean(p.getProperty("functions.info.enabled", Boolean.toString(enableInfoFunction)));
 
             listenForChanges = Boolean.parseBoolean(p.getProperty("system.listen-for-changes", Boolean.toString(listenForChanges)));
+            basePackages = new ArrayList<>(StringUtils.commaDelimitedListToSet(p.getProperty("system.base-packages", "service")));
         }
         return this;
     }
@@ -256,5 +269,10 @@ public class ProjectConfigurationBuilder
     public boolean isInfoProtected()
     {
         return isInfoProtected;
+    }
+
+    public List<String> getBasePackages()
+    {
+        return basePackages;
     }
 }

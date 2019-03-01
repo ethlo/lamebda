@@ -22,10 +22,10 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
@@ -34,12 +34,9 @@ import com.ethlo.lamebda.reporting.MethodAndPattern;
 import com.ethlo.lamebda.test.MockHttpRequest;
 import com.ethlo.lamebda.test.MockHttpResponse;
 
+@Ignore("Considering not supporting SimpleServerFunction derivatives")
 public class ServerFunctionTest extends BaseTest
 {
-    public ServerFunctionTest() throws IOException
-    {
-    }
-
     @Test
     public void testServingStaticResource() throws Exception
     {
@@ -55,7 +52,7 @@ public class ServerFunctionTest extends BaseTest
     public void testProjectStatusInfo()
     {
         final FunctionMetricsService metricsService = FunctionMetricsService.getInstance();
-        final ProjectStatusFunction projectStatusFunction = new ProjectStatusFunction("/status", loader, functionManager, metricsService);
+        final ProjectStatusFunction projectStatusFunction = new ProjectStatusFunction("/status", functionManager, metricsService);
 
         final MethodAndPattern requestMapping = new MethodAndPattern(HttpMethod.POST.toString(), "/foo/bar/{baz}");
         final int millis = (int) (Math.random() * 1000);

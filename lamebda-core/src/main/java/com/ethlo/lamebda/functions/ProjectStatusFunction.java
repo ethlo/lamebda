@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.ethlo.lamebda.AbstractServerFunctionInfo;
-import com.ethlo.lamebda.ConfigurableFunctionManager;
 import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.HttpRequest;
@@ -35,10 +33,8 @@ import com.ethlo.lamebda.HttpResponse;
 import com.ethlo.lamebda.HttpStatus;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
+import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.URLMappedServerFunction;
-import com.ethlo.lamebda.context.FunctionConfiguration;
-import com.ethlo.lamebda.context.FunctionContext;
-import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.reporting.FunctionStatusInfo;
 import com.ethlo.lamebda.security.UsernamePasswordCredentials;
@@ -46,18 +42,15 @@ import com.ethlo.lamebda.security.UsernamePasswordCredentials;
 public class ProjectStatusFunction extends AdminSimpleServerFunction implements BuiltInServerFunction
 {
     private final FunctionManager functionManager;
-    private final LamebdaResourceLoader resourceLoader;
     private final ProjectConfiguration projectConfiguration;
     private final FunctionMetricsService functionMetricsService;
 
-    public ProjectStatusFunction(String pattern, LamebdaResourceLoader resourceLoader, ConfigurableFunctionManager functionManager, FunctionMetricsService functionMetricsService)
+    public ProjectStatusFunction(String pattern, FunctionManager functionManager, FunctionMetricsService functionMetricsService)
     {
         super(pattern, functionManager.getProjectConfiguration().isInfoProtected());
-        this.resourceLoader = resourceLoader;
         this.functionManager = functionManager;
         this.projectConfiguration = functionManager.getProjectConfiguration();
         this.functionMetricsService = functionMetricsService;
-        setContext(new FunctionContext(functionManager.getProjectConfiguration(), new FunctionConfiguration()));
     }
 
     @Override
@@ -65,17 +58,17 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
     {
         final int page = Integer.parseInt(request.param("page", "0"));
         final int size = Integer.parseInt(request.param("size", "25"));
-        final List<FunctionStatusInfo> functionList = getFunctionInfoList(page, size).stream().map(s ->
+        final List<FunctionStatusInfo> functionList = ((FunctionManagerImpl) functionManager).getFunctions().entrySet().stream().map(s ->
         {
-            final FunctionStatusInfo info = new FunctionStatusInfo(projectConfiguration.getPath(), s);
+            final FunctionStatusInfo info = new FunctionStatusInfo(ServerFunctionInfo.ofClass((Class<ServerFunction>) s.getValue().getFunction().getClass()));
 
-            final Optional<ServerFunction> funcOpt = ((FunctionManagerImpl) functionManager).getFunction(s.getName());
+            final Optional<ServerFunction> funcOpt = functionManager.getHandler(s.getKey());
             final boolean isLoaded = funcOpt.isPresent();
             info.setRunning(isLoaded);
 
             if (funcOpt.isPresent())
             {
-                final ServerFunction func = funcOpt.get();
+                final Object func = funcOpt.get();
                 if (func instanceof URLMappedServerFunction)
                 {
                     info.setRequestMappings(((URLMappedServerFunction) func).getUrlMapping());
@@ -83,7 +76,7 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
             }
 
             return info;
-        }).collect(Collectors.toList());
+        }).sorted().skip(page * size).limit(size).collect(Collectors.toList());
         final Map<String, Object> res = new LinkedHashMap<>();
         final Map<String, Object> projectInfo = new LinkedHashMap<>();
         projectInfo.put("name", projectConfiguration.getName());
@@ -94,15 +87,10 @@ public class ProjectStatusFunction extends AdminSimpleServerFunction implements 
         response.json(HttpStatus.OK, res);
     }
 
-    private List<? extends AbstractServerFunctionInfo> getFunctionInfoList(int page, int pageSize)
-    {
-        return resourceLoader.findAll(page * pageSize, pageSize);
-    }
-
     @Override
     protected boolean allow(String username, String password)
     {
-        final UsernamePasswordCredentials adminCredentials = getContext().getProjectConfiguration().getAdminCredentials();
+        final UsernamePasswordCredentials adminCredentials = projectConfiguration.getAdminCredentials();
         return adminCredentials.matches(username, password);
     }
 }

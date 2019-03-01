@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,12 +32,12 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
-import com.ethlo.lamebda.loaders.ChangeAwareFileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.loaders.FunctionPostProcessor;
+import com.ethlo.lamebda.util.Assert;
 
 public class FunctionManagerDirector
 {
@@ -45,14 +45,16 @@ public class FunctionManagerDirector
 
     private final Path rootDirectory;
     private final String rootContext;
-
-    private FunctionPostProcessor functionPostProcessor;
+    private final ApplicationContext parentContext;
 
     private Map<Path, FunctionManager> functionManagers = new ConcurrentHashMap<>();
     private WatchDir watchDir;
 
-    public FunctionManagerDirector(final Path rootDirectory, String rootContext, FunctionPostProcessor functionPostProcessor) throws IOException
+    public FunctionManagerDirector(final Path rootDirectory, String rootContext, ApplicationContext parentContext) throws IOException
     {
+        Assert.notNull(rootDirectory, "rootDirectory cannot be null");
+        Assert.notNull(rootDirectory, "rootContext cannot be null");
+
         logger.info("Initializing Lamebda");
 
         if (!Files.isDirectory(rootDirectory))
@@ -62,7 +64,7 @@ public class FunctionManagerDirector
 
         this.rootDirectory = rootDirectory;
         this.rootContext = rootContext;
-        this.functionPostProcessor = functionPostProcessor;
+        this.parentContext = parentContext;
 
         initializeAll();
     }
@@ -87,19 +89,21 @@ public class FunctionManagerDirector
                 }
             }
         }, false, rootDirectory);
-        new Thread()
+        new Thread(() ->
         {
-            @Override
-            public void run()
+            logger.info("Watching {} for changes", Collections.singletonList(rootDirectory));
+            try
             {
-                setName("root-filesystem-watcher");
-                logger.info("Watching {} for changes", Arrays.asList(rootDirectory));
                 watchDir.processEvents();
             }
-        }.start();
+            catch (Exception exc)
+            {
+                logger.warn(exc.getMessage(), exc);
+            }
+        }).start();
     }
 
-    public void initializeAll() throws IOException
+    private void initializeAll() throws IOException
     {
         setupDirectoryWatcher();
 
@@ -146,13 +150,58 @@ public class FunctionManagerDirector
         }
     }
 
-    private FunctionManager create(final Path projectPath)
+    private void create(final Path projectPath)
     {
         logger.info("Loading {}", projectPath);
-        final FileSystemLamebdaResourceLoader lamebdaResourceLoader = createResourceLoader(projectPath);
-        final FunctionManager fm = new FunctionManagerImpl(lamebdaResourceLoader);
-        functionManagers.put(projectPath, fm);
-        return fm;
+
+        FileSystemLamebdaResourceLoader lamebdaResourceLoader = null;
+        FunctionManagerImpl fm = null;
+        try
+        {
+            lamebdaResourceLoader = createResourceLoader(projectPath);
+            lamebdaResourceLoader.setSourceChangeListener((fse) ->
+            {
+                final boolean validFile = Files.isRegularFile(fse.getPath()) && isKnownType(fse.getPath().getFileName().toString());
+                final boolean validDirectory = projectPath.equals(fse.getPath());
+                if (fse.getChangeType() == ChangeType.MODIFIED && (validDirectory || validFile))
+                {
+                    logger.info("Project is reloaded due to detected change in {}", fse.getPath());
+                    close(projectPath);
+                    create(projectPath);
+                }
+            });
+
+            fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
+            functionManagers.put(projectPath, fm);
+        }
+        catch (Exception exc)
+        {
+            try
+            {
+                if (lamebdaResourceLoader != null)
+                {
+                    lamebdaResourceLoader.close();
+                }
+
+                if (fm != null)
+                {
+                    fm.close();
+                }
+            }
+            catch (Exception e)
+            {
+                logger.warn("An error occurred cleaning up failed project initialization", e);
+            }
+
+            logger.warn("Unable to load project in " + projectPath, exc);
+        }
+    }
+
+    private boolean isKnownType(final String filename)
+    {
+        return filename.endsWith(FileSystemLamebdaResourceLoader.GROOVY_EXTENSION)
+                || filename.endsWith(FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION)
+                || filename.equals(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
     }
 
     private FileSystemLamebdaResourceLoader createResourceLoader(Path projectPath)
@@ -160,7 +209,7 @@ public class FunctionManagerDirector
         final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
         try
         {
-            return new ChangeAwareFileSystemLamebdaResourceLoader(cfg, functionPostProcessor);
+            return new FileSystemLamebdaResourceLoader(cfg);
         }
         catch (IOException exc)
         {

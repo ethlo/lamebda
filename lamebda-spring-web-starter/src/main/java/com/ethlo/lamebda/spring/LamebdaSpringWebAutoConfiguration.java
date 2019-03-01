@@ -23,8 +23,6 @@ package com.ethlo.lamebda.spring;
 import java.io.IOException;
 import java.nio.file.Path;
 
-import javax.validation.constraints.NotNull;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,16 +35,9 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.servlet.HandlerMapping;
 
-import com.ethlo.lamebda.BaseServerFunction;
-import com.ethlo.lamebda.DelegatingFunctionManager;
 import com.ethlo.lamebda.FunctionManagerDirector;
-import com.ethlo.lamebda.loaders.FunctionPostProcessor;
-import com.ethlo.lamebda.loaders.FunctionSourcePreProcessor;
-import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.servlet.LamebdaMetricsFilter;
 import com.ethlo.lamebda.util.StringUtil;
@@ -61,8 +52,11 @@ public class LamebdaSpringWebAutoConfiguration
     @Value("${lamebda.request-path:/lamebda}")
     private String rootContextPath;
 
+    @Value("${lamebda.source.directory:/lamebda}")
+    private Path rootDir;
+
     @Autowired
-    private ApplicationContext applicationContext;
+    private ApplicationContext parentContext;
 
     public void setRootContextPath(String rootContextPath)
     {
@@ -71,53 +65,10 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Bean
     @ConditionalOnMissingBean
-    public FunctionPostProcessor functionPostProcessor()
+    @ConditionalOnProperty("lamebda.enabled")
+    public FunctionManagerDirector functionManagerDirector() throws IOException
     {
-        return AutowireHelper.postProcessor(applicationContext);
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    public FunctionSourcePreProcessor functionLoadPreNotification()
-    {
-        return ((classLoader, source) -> source);
-    }
-
-    @Validated
-    @Component
-    @ConditionalOnMissingBean(LamebdaResourceLoader.class)
-    @ConditionalOnProperty("lamebda.source.directory")
-    @ConfigurationProperties("lamebda.source")
-    public class FileSourceConfiguration
-    {
-        @NotNull
-        private Path directory;
-
-        public Path getDirectory()
-        {
-            return directory;
-        }
-
-        public void setDirectory(Path directory)
-        {
-            this.directory = directory;
-        }
-    }
-
-    @Bean
-    @ConditionalOnMissingBean
-    @ConditionalOnBean(FileSourceConfiguration.class)
-    public FunctionManagerDirector functionManagerDirector(FileSourceConfiguration cfg) throws IOException
-    {
-        return new FunctionManagerDirector(cfg.getDirectory(), rootContextPath, function ->
-        {
-            AutowireHelper.postProcessor(applicationContext).process(function);
-            if (function instanceof BaseServerFunction)
-            {
-                ((BaseServerFunction) function).handlePostConstructMethods();
-            }
-            return function;
-        });
+        return new FunctionManagerDirector(rootDir, rootContextPath, parentContext);
     }
 
     @Bean
@@ -134,7 +85,7 @@ public class LamebdaSpringWebAutoConfiguration
     @Bean
     public LamebdaController lamebdaController(FunctionManagerDirector functionManagerDirector)
     {
-        return new LamebdaController(new DelegatingFunctionManager(functionManagerDirector), rootContextPath);
+        return new LamebdaController(functionManagerDirector, rootContextPath);
     }
 
     @Bean

@@ -20,9 +20,7 @@ package com.ethlo.lamebda.util;
  * #L%
  */
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -37,20 +35,14 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 
 public class IoUtil
 {
-    private static Logger logger = LoggerFactory.getLogger(IoUtil.class);
-
     private IoUtil()
     {
     }
@@ -146,8 +138,17 @@ public class IoUtil
 
     public static Optional<byte[]> classPathResource(final String path)
     {
-        final String correctedPath = (!path.startsWith("/")) ? "/" + path : path;
-        final InputStream in = IoUtil.class.getResourceAsStream(correctedPath);
+        final InputStream in = IoUtil.class.getResourceAsStream(path);
+        if (in != null)
+        {
+            return Optional.of(toByteArray(in));
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<byte[]> classPathResource(final String path, ClassLoader classLoader)
+    {
+        final InputStream in = classLoader.getResourceAsStream(path);
         if (in != null)
         {
             return Optional.of(toByteArray(in));
@@ -167,20 +168,15 @@ public class IoUtil
         }
     }
 
-    public static void moveDirectory(final Path source, final Path target) throws IOException
-    {
-        Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-    }
-
-    public static List<URL> toClassPathList(final Path jarPath)
+    public static List<String> toClassPathList(final Path jarPath)
     {
         try
         {
             return Files
-                .list(jarPath)
-                .filter(p -> FileNameUtil.getExtension(p.getFileName().toString()).equals(FileSystemLamebdaResourceLoader.JAR_EXTENSION))
-                .map(IoUtil::toURL)
-                .collect(Collectors.toList());
+                    .list(jarPath)
+                    .filter(p -> FileNameUtil.getExtension(p.getFileName().toString()).equals(FileSystemLamebdaResourceLoader.JAR_EXTENSION))
+                    .map(Path::toString)
+                    .collect(Collectors.toList());
         }
         catch (IOException e)
         {
@@ -214,7 +210,6 @@ public class IoUtil
 
     public static Path[] exists(final Path... paths)
     {
-        final List<Path> result = new LinkedList<>();
         return Arrays.stream(paths).filter(Files::exists).toArray(Path[]::new);
     }
 }

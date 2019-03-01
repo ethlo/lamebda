@@ -24,10 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -43,15 +41,15 @@ import org.springframework.test.context.junit4.SpringRunner;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.servlet.ServletHttpRequest;
 import com.ethlo.lamebda.servlet.ServletHttpResponse;
-import com.ethlo.lamebda.spring.AutowireHelper;
-import com.ethlo.lamebda.util.IoUtil;
 
 @SpringBootTest(classes = SpringMvcServerFunctionTest.class)
 @EnableAutoConfiguration
 @RunWith(SpringRunner.class)
 public class SpringMvcServerFunctionTest
 {
-    private final Path basepath = Paths.get(System.getProperty("java.io.tmpdir"), "lamebda-unit-test");
+    private final Path basepath = Paths.get("src/test/projects/myproject");
+    private final String packageName = "acme";
+
     private FunctionManagerImpl functionManager;
 
     @Autowired
@@ -60,35 +58,23 @@ public class SpringMvcServerFunctionTest
     @Before
     public void before() throws IOException
     {
-        if (Files.exists(basepath))
-        {
-            IoUtil.deleteDirectory(basepath);
-        }
-        Files.createDirectories(basepath);
-
-        final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", basepath).build();
-        functionManager = new FunctionManagerImpl(new FileSystemLamebdaResourceLoader(cfg, AutowireHelper.postProcessor(applicationContext)));
+        final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", basepath).basePackages(packageName).build();
+        functionManager = new FunctionManagerImpl(applicationContext, new FileSystemLamebdaResourceLoader(cfg));
     }
 
     @Test
     public void testInvokeSpringMvc() throws Exception
     {
-        final Path sourcePath = move("SpringMvc.groovy");
-        functionManager.functionChanged(sourcePath);
-        assertThat(functionManager.getFunction(sourcePath)).isPresent();
+        assertThat(functionManager.getHandler(packageName + ".SpringMvc")).isPresent();
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
-        req.setRequestURI("/lamebda/lamebda-unit-test/test/123");
+        req.setRequestURI("/lamebda/myproject/test/123");
         req.setMethod("POST");
         req.setContentType("application/json");
         req.setContent("{\"payload\": \"hello world\"}".getBytes(StandardCharsets.UTF_8));
-        functionManager.handle(new ServletHttpRequest("/gateway", req), new ServletHttpResponse(res));
+        final boolean handled = functionManager.handle(new ServletHttpRequest("/lamebda", req), new ServletHttpResponse(res));
+        assertThat(handled).isTrue();
         assertThat(res.getStatus()).isEqualTo(200);
         assertThat(res.getContentAsString()).isEqualTo("{\"id\":\"123\"}");
-    }
-
-    private Path move(final String name) throws IOException
-    {
-        return Files.copy(Paths.get("src/test/groovy", name), basepath.resolve(FileSystemLamebdaResourceLoader.SCRIPT_DIRECTORY).resolve(name), StandardCopyOption.REPLACE_EXISTING);
     }
 }

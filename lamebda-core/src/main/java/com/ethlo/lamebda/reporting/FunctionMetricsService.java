@@ -78,7 +78,7 @@ public class FunctionMetricsService
         totalRuntime.compute(mapping, (k, v) -> {
             if (v != null)
             {
-                v.addAndGet(elapsedTime.toNanos());
+                v.addAndGet(elapsedTime.toMillis());
             }
             else
             {
@@ -106,7 +106,7 @@ public class FunctionMetricsService
             final MethodAndPattern mapping = e.getKey();
             final AtomicLong totalElapsed = totalRuntime.getOrDefault(mapping, new AtomicLong(1));
             final double lastResponseTime = lastResponseTimes.get(mapping);
-            final double avg = (totalElapsed.doubleValue() / e.getValue().values().stream().mapToDouble(d -> d).sum()) / 1_000_000; // Nano til ms
+            final double avg = (totalElapsed.doubleValue() / e.getValue().values().stream().mapToDouble(d -> d).sum());
             final String lastError = lastErrors.get(mapping);
             retVal.put(mapping, new FunctionMetric(firstInvocation.get(mapping), e.getValue(), lastInvocation.get(mapping), avg, lastError, lastResponseTime));
         }
