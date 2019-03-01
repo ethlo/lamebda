@@ -154,6 +154,7 @@ public class FunctionManagerImpl implements FunctionManager
         setupSpringChildContext();
         addResourceClasspath();
         apiSpecProcessing();
+        registerSpecificationController();
         createProjectConfigBean();
         compileSources();
         findBeans();
@@ -202,8 +203,12 @@ public class FunctionManagerImpl implements FunctionManager
     {
         final GroovyClassLoader gcl = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
         final URL mainResourcesUrl = IoUtil.toURL(projectConfiguration.getMainResourcePath());
-        logger.info("Adding main resources URL: {}", mainResourcesUrl);
+        logger.info("Adding main resources to classpath: {}", mainResourcesUrl);
         gcl.addURL(mainResourcesUrl);
+
+        final URL targetResourcesUrl = IoUtil.toURL(projectConfiguration.getTargetClassDirectory());
+        logger.info("Adding main classes to classpath: {}", targetResourcesUrl);
+        gcl.addURL(targetResourcesUrl);
     }
 
     private void createProjectConfigBean()
@@ -251,19 +256,19 @@ public class FunctionManagerImpl implements FunctionManager
                 try
                 {
                     Files.createFile(marker);
-                    Files.setLastModifiedTime(marker, FileTime.from(specModified.toInstant()));
+
                 }
                 catch (FileAlreadyExistsException exc)
                 {
                     // Ignore
                 }
+
+                Files.setLastModifiedTime(marker, FileTime.from(specModified.toInstant()));
             }
             catch (IOException exc)
             {
                 throw new UncheckedIOException(exc);
             }
-
-            registerSpecificationController(targetPath);
         }
 
         final String modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath().toString();
@@ -271,17 +276,13 @@ public class FunctionManagerImpl implements FunctionManager
         logger.info("Added model classpath {}", modelPath);
     }
 
-    private void registerSpecificationController(final Path targetPath)
+    private void registerSpecificationController()
     {
-        final String specificationBasePath = "/specification";
-
-        if (Files.exists(targetPath))
-        {
-            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-human-readable", DirectoryResourceFunction.class), initWithProjectCfg(new DirectoryResourceFunction(specificationBasePath + "/api/doc/", targetPath))));
-        }
+        final Optional<byte[]> specPathHumanReadable = IoUtil.classPathResource("api-doc/index.html", lamebdaResourceLoader.getClassLoader());
+        specPathHumanReadable.ifPresent(bytes -> addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-human-readable", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction("/specification/api/doc/", HttpMimeType.HTML, bytes)))));
 
         final Optional<byte[]> specPathYaml = IoUtil.classPathResource("specification/oas.yaml", lamebdaResourceLoader.getClassLoader());
-        specPathYaml.ifPresent(bytes -> addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction(specificationBasePath + "/api/api.yaml", HttpMimeType.YAML, bytes)))));
+        specPathYaml.ifPresent(bytes -> addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction("/specification/api/api.yaml", HttpMimeType.YAML, bytes)))));
     }
 
     private OffsetDateTime lastModified(final Path path) throws IOException

@@ -201,7 +201,6 @@ public class FunctionManagerDirector
     {
         return filename.endsWith(FileSystemLamebdaResourceLoader.GROOVY_EXTENSION)
                 || filename.endsWith(FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION)
-                || filename.endsWith(FileSystemLamebdaResourceLoader.JAR_EXTENSION)
                 || filename.equals(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
     }
 
