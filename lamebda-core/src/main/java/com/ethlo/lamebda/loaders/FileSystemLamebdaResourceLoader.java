@@ -30,17 +30,13 @@ import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.io.FileSystemEvent;
-import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
@@ -65,8 +61,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     private final ProjectConfiguration projectConfiguration;
 
     private Path libPath;
-    private WatchDir watchDir;
-    private Thread watchThread;
 
     public FileSystemLamebdaResourceLoader(ProjectConfiguration projectConfiguration) throws IOException
     {
@@ -154,13 +148,6 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     @Override
     public void close() throws IOException
     {
-        this.watchThread = null;
-        if (this.watchDir != null)
-        {
-            logger.info("Closing watcher");
-            this.watchDir.close();
-        }
-
         logger.info("Closing class loader");
         this.groovyClassLoader.close();
     }
@@ -181,32 +168,5 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public ClassLoader getClassLoader()
     {
         return groovyClassLoader;
-    }
-
-    public void setSourceChangeListener(final Consumer<FileSystemEvent> l) throws IOException
-    {
-        if (projectConfiguration.isListenForChanges())
-        {
-            listenForChanges(l, IoUtil.exists(projectConfiguration.getPath(), projectConfiguration.getGroovySourcePath(), projectConfiguration.getSpecificationPath(), projectConfiguration.getLibraryPath()));
-        }
-    }
-
-    private void listenForChanges(final Consumer<FileSystemEvent> l, final Path[] exists) throws IOException
-    {
-        watchDir = new WatchDir(l, false, exists);
-        this.watchThread = new Thread(() ->
-        {
-            logger.info("Watching {} for changes", StringUtils.arrayToCommaDelimitedString(exists));
-
-            try
-            {
-                watchDir.processEvents();
-            }
-            catch (Exception exc)
-            {
-                logger.warn(exc.getMessage(), exc);
-            }
-        });
-        this.watchThread.start();
     }
 }

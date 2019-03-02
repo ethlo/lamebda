@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -72,35 +71,56 @@ public class FunctionManagerDirector
     private void setupDirectoryWatcher() throws IOException
     {
         // Register directory watcher to discover new project directories created in root directory
-        this.watchDir = new WatchDir(e -> {
-            if (isValidProjectDir(e.getPath()))
-            {
-                if (e.getChangeType() == ChangeType.DELETED)
-                {
-                    logger.info("Closing project due to deletion: {}", e.getPath());
-                    close(e.getPath());
-                }
-
-                if (e.getChangeType() == ChangeType.MODIFIED)
-                {
-                    logger.info("Loading project due to modification {}", e.getPath());
-                    close(e.getPath());
-                    create(e.getPath());
-                }
-            }
-        }, false, rootDirectory);
-        new Thread(() ->
+        this.watchDir = new WatchDir(e ->
         {
-            logger.info("Watching {} for changes", Collections.singletonList(rootDirectory));
-            try
+            final Path path = e.getPath();
+            final Path projectPath = getProjectPath(path);
+            final boolean isProjectPath = projectPath.equals(path);
+            final boolean isKnownType = isKnownType(path.getFileName().toString());
+
+            if (e.getChangeType() == ChangeType.DELETED && isProjectPath)
             {
+                logger.info("Closing project due to deletion of project directory: {}", e.getPath());
+                close(projectPath);
+            }
+            else if (e.getChangeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath))
+            {
+                logger.info("Reloading project due to modification of {}", path);
+                close(projectPath);
+                create(projectPath);
+            }
+            else if (e.getChangeType() == ChangeType.DELETED && isKnownType)
+            {
+                logger.info("Reloading project due to deletion of {}", path);
+                close(projectPath);
+                create(projectPath);
+            }
+        }, true, rootDirectory);
+        new Thread()
+        {
+            @Override
+            public void run()
+            {
+                setName("watch-dir");
+                logger.info("Watching {} for changes", rootDirectory);
                 watchDir.processEvents();
             }
-            catch (Exception exc)
+        }.start();
+    }
+
+    private Path getProjectPath(final Path path)
+    {
+        Path latest = path;
+        do
+        {
+            if (rootDirectory.equals(latest.getParent()))
             {
-                logger.warn(exc.getMessage(), exc);
+                return latest;
             }
-        }).start();
+            latest = latest.getParent();
+        } while (latest != null);
+
+        throw new IllegalStateException("Could not determine project path");
     }
 
     private void initializeAll() throws IOException
@@ -153,24 +173,11 @@ public class FunctionManagerDirector
     private void create(final Path projectPath)
     {
         logger.info("Loading {}", projectPath);
-
         FileSystemLamebdaResourceLoader lamebdaResourceLoader = null;
         FunctionManagerImpl fm = null;
         try
         {
             lamebdaResourceLoader = createResourceLoader(projectPath);
-            lamebdaResourceLoader.setSourceChangeListener((fse) ->
-            {
-                final boolean validFile = Files.isRegularFile(fse.getPath()) && isKnownType(fse.getPath().getFileName().toString());
-                final boolean validDirectory = projectPath.equals(fse.getPath());
-                if (fse.getChangeType() == ChangeType.MODIFIED && (validDirectory || validFile))
-                {
-                    logger.info("Project is reloaded due to detected change in {}", fse.getPath());
-                    close(projectPath);
-                    create(projectPath);
-                }
-            });
-
             fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
             functionManagers.put(projectPath, fm);
         }

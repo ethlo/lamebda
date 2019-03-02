@@ -29,11 +29,14 @@ import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -58,10 +61,28 @@ public class WatchDir implements AutoCloseable
         return (WatchEvent<T>) event;
     }
 
-    public void register(Path dir) throws IOException
+    private void register(Path dir) throws IOException
     {
         final WatchKey key = doRegisterSingle(dir);
         keys.put(key, dir);
+    }
+
+    private void registerRecursive(final Path dir) throws IOException
+    {
+        Files.walkFileTree(dir, new SimpleFileVisitor<Path>()
+        {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException
+            {
+                if (Files.isHidden(dir))
+                {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+
+                register(dir);
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
 
     private static WatchEvent.Modifier getComSunNioFileSensitivityWatchEventModifierHigh()
@@ -96,9 +117,17 @@ public class WatchDir implements AutoCloseable
         this.keys = new HashMap<>();
         this.listener = listener;
         this.recursive = recursive;
+
         for (Path dir : dirs)
         {
-            register(dir);
+            if (recursive)
+            {
+                registerRecursive(dir);
+            }
+            else
+            {
+                register(dir);
+            }
         }
     }
 
