@@ -72,14 +72,15 @@ public class FunctionManagerImpl implements FunctionManager
     public FunctionManagerImpl(ApplicationContext parentContext, LamebdaResourceLoader lamebdaResourceLoader)
     {
         this.projectConfiguration = lamebdaResourceLoader.getProjectConfiguration();
+        final Path apiPath = projectConfiguration.getSpecificationPath().resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
         final Path jarDir = projectConfiguration.getPath().resolve(".generator");
         if (Files.exists(jarDir))
         {
             this.generatorHelper = new GeneratorHelper(projectConfiguration.getJavaCmd(), jarDir);
         }
-        else
+        else if (Files.exists(apiPath))
         {
-            logger.warn("No directory for code generation: {}", jarDir);
+            logger.info("Found specification file in {}, but there is no directory for code generation libraries: {}", apiPath, jarDir);
             generatorHelper = null;
         }
 
