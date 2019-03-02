@@ -80,7 +80,11 @@ public class FunctionManagerImpl implements FunctionManager
         }
         else if (Files.exists(apiPath))
         {
-            logger.info("Found specification file in {}, but there is no directory for code generation libraries: {}", apiPath, jarDir);
+            logger.info("Found specification file in {}, but there are not generator libraries in {}. Skipping.", apiPath, jarDir);
+            generatorHelper = null;
+        }
+        else
+        {
             generatorHelper = null;
         }
 
