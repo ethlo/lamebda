@@ -56,9 +56,7 @@
         <thead class="thead-light">
         <tr>
             <th scope="col">Name</th>
-            <th scope="col">Running</th>
             <th scope="col">Request mapping</th>
-            <th scope="col">Modified</th>
         </tr>
         </thead>
         <tbody>
@@ -134,31 +132,33 @@
     }
 
     function renderFunctions(functions) {
-        for (var i = 0; i < functions.length; i++) {
-            var f = functions[i];
+        for (var beanName in functions) {
+            var requestMappings = functions[beanName];
 
             var requestMappingMarkup = '<span class="text-warning">None</span>';
 
-            if (f.requestMappings) {
-                var mapCount = f.requestMappings.length;
+            if (requestMappings) {
+                var mapCount = requestMappings.length;
                 requestMappingMarkup = '<ul class="list-unstyled">';
                 for (var j = 0; j < mapCount; j++) {
-                    var rm = f.requestMappings[j];
+                    var rm = requestMappings[j];
                     requestMappingMarkup += '<li>';
                     requestMappingMarkup += rm.methods;
                     requestMappingMarkup += '<span> ' + rm.patterns + '</span>';
-                    requestMappingMarkup += '<span title="Consumes ' + rm.consumes + '"> &#8628; ' + rm.consumes + '</span>';
-                    requestMappingMarkup += '<span title="Produces ' + rm.produces + '"> &#8625; ' + rm.produces + '</span>';
+                    if (rm.consumes) {
+                        requestMappingMarkup += '<span title="Consumes ' + rm.consumes + '"> &#8628; ' + rm.consumes + '</span>';
+                    }
+                    if (rm.produces) {
+                        requestMappingMarkup += '<span title="Produces ' + rm.produces + '"> &#8625; ' + rm.produces + '</span>';
+                    }
                     requestMappingMarkup += '</li>'
                 }
                 requestMappingMarkup += '</ul>';
             }
             var markup = '' +
                 '<tr>' +
-                '<td>' + f.name + '</td>' +
-                '<td><span class="' + (f.running ? 'text-success' : 'text-danger') + '">' + f.running + '</td>' +
+                '<td>' + beanName + '</td>' +
                 '<td>' + requestMappingMarkup + '</td>' +
-                '<td>' + dateFormat(f.lastModified) + '</td>' +
                 '</tr>';
             $("#functiontable").append(markup);
         }

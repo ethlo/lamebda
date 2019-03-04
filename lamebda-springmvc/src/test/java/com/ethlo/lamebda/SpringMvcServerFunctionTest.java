@@ -21,6 +21,7 @@ package com.ethlo.lamebda;
  */
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -39,8 +40,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.servlet.ServletHttpRequest;
-import com.ethlo.lamebda.servlet.ServletHttpResponse;
 
 @SpringBootTest(classes = SpringMvcServerFunctionTest.class)
 @EnableAutoConfiguration
@@ -65,16 +64,18 @@ public class SpringMvcServerFunctionTest
     @Test
     public void testInvokeSpringMvc() throws Exception
     {
-        assertThat(functionManager.getHandler(packageName + ".SpringMvc")).isPresent();
+        //assertThat(functionManager.getHandler(packageName + ".SpringMvc")).isPresent();
         final MockHttpServletRequest req = new MockHttpServletRequest();
         final MockHttpServletResponse res = new MockHttpServletResponse();
         req.setRequestURI("/lamebda/myproject/test/123");
         req.setMethod("POST");
         req.setContentType("application/json");
         req.setContent("{\"payload\": \"hello world\"}".getBytes(StandardCharsets.UTF_8));
-        final boolean handled = functionManager.handle(new ServletHttpRequest("/lamebda", req), new ServletHttpResponse(res));
+        /*final boolean handled = functionManager.handle(req, res);
         assertThat(handled).isTrue();
         assertThat(res.getStatus()).isEqualTo(200);
         assertThat(res.getContentAsString()).isEqualTo("{\"id\":\"123\"}");
+        */
+        fail("Implement me");
     }
 }

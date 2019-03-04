@@ -26,11 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.security.UsernamePasswordCredentials;
 import com.ethlo.lamebda.util.Assert;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -39,24 +35,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ProjectConfiguration implements Serializable
 {
-    private static final Logger logger = LoggerFactory.getLogger(ProjectConfiguration.class);
     private final boolean listenForChanges;
-    private final boolean isInfoProtected;
 
     private String rootContextPath;
 
     private String contextPath;
 
-    private boolean enableInfoFunction;
-
-    private boolean enableStaticResourceFunction;
-    private String staticResourcesPrefix;
-    private String staticResourceDirectory;
-
     private boolean enableUrlProjectContextPrefix;
     private String path;
     private String name;
-    private transient UsernamePasswordCredentials adminCredentials;
     private String version;
 
     private String apiDocGenerator;
@@ -66,16 +53,10 @@ public class ProjectConfiguration implements Serializable
     {
         rootContextPath = b.getRootContextPath();
         path = b.getProjectPath();
-        staticResourcesPrefix = b.getStaticResourcesPrefix();
         contextPath = b.getProjectContextPath();
-        staticResourceDirectory = b.getStaticResourceDirectory().toAbsolutePath().toString();
-        enableInfoFunction = b.isEnableInfoFunction();
-        isInfoProtected = b.isInfoProtected();
-        enableStaticResourceFunction = b.isEnableStaticResourceFunction();
         enableUrlProjectContextPrefix = b.isEnableUrlProjectContextPrefix();
         name = b.getProjectName();
         version = b.getProjectVersion();
-        adminCredentials = b.getAdminCredentials();
         apiDocGenerator = b.getApiDocGenerator();
         listenForChanges = b.isListenForChanges();
         basePackages = b.getBasePackages();
@@ -88,34 +69,6 @@ public class ProjectConfiguration implements Serializable
     public String getContextPath()
     {
         return contextPath;
-    }
-
-    /**
-     * Enable info function to show simple function overview
-     *
-     * @return True if enabled, otherwise false
-     */
-    public boolean enableInfoFunction()
-    {
-        return enableInfoFunction;
-    }
-
-    @JsonProperty("function.static.enabled")
-    public boolean enableStaticResourceFunction()
-    {
-        return enableStaticResourceFunction;
-    }
-
-    @JsonProperty("function.static.prefix")
-    public String getStaticResourcesContext()
-    {
-        return staticResourcesPrefix;
-    }
-
-    @JsonProperty("function.static.path")
-    public Path getStaticResourceDirectory()
-    {
-        return Paths.get(staticResourceDirectory).toAbsolutePath();
     }
 
     @JsonIgnore
@@ -159,28 +112,6 @@ public class ProjectConfiguration implements Serializable
         return listenForChanges;
     }
 
-    @JsonProperty("functions.info.protected")
-    public boolean isInfoProtected()
-    {
-        return isInfoProtected;
-    }
-
-    @JsonProperty("functions.info.enabled")
-    public boolean isEnableInfoFunction()
-    {
-        return enableInfoFunction;
-    }
-
-    public boolean isEnableStaticResourceFunction()
-    {
-        return enableStaticResourceFunction;
-    }
-
-    public String getStaticResourcesPrefix()
-    {
-        return staticResourcesPrefix;
-    }
-
     public boolean isEnableUrlProjectContextPrefix()
     {
         return enableUrlProjectContextPrefix;
@@ -194,12 +125,6 @@ public class ProjectConfiguration implements Serializable
     public String getRootContextPath()
     {
         return rootContextPath;
-    }
-
-    @JsonIgnore
-    public UsernamePasswordCredentials getAdminCredentials()
-    {
-        return this.adminCredentials;
     }
 
     public String getJavaCmd()
@@ -220,11 +145,7 @@ public class ProjectConfiguration implements Serializable
                 ", path=" + path +
                 ", name='" + name + '\'' +
                 ", contextPath='" + contextPath + '\'' +
-                ", enableInfoFunction=" + enableInfoFunction +
-                ", enableStaticResourceFunction=" + enableStaticResourceFunction +
                 ", enableUrlProjectContextPrefix=" + enableUrlProjectContextPrefix +
-                ", staticResourcesPrefix='" + staticResourcesPrefix + '\'' +
-                ", staticResourceDirectory=" + staticResourceDirectory +
                 '}';
     }
 

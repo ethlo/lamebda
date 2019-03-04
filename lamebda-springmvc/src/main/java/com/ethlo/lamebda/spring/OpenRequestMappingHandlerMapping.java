@@ -27,9 +27,14 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 public class OpenRequestMappingHandlerMapping extends RequestMappingHandlerMapping
 {
-    @Override
-    public RequestMappingInfo getMappingForMethod(final Method method, final Class<?> handlerType)
+    public RequestMappingInfo getMappingForMethod(final Method method, final Object handler)
     {
-        return super.getMappingForMethod(method, handlerType);
+        Class<?> objClz = handler.getClass();
+        if (org.springframework.aop.support.AopUtils.isAopProxy(handler))
+        {
+
+            objClz = org.springframework.aop.support.AopUtils.getTargetClass(handler);
+        }
+        return super.getMappingForMethod(method, objClz);
     }
 }

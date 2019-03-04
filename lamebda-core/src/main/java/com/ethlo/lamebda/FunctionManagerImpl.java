@@ -2,7 +2,6 @@ package com.ethlo.lamebda;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.lang.reflect.UndeclaredThrowableException;
 import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -25,11 +24,10 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.functions.DirectoryResourceFunction;
-import com.ethlo.lamebda.functions.ProjectStatusFunction;
-import com.ethlo.lamebda.functions.SingleResourceFunction;
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.groovy.GroovyCompiler;
+import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
+import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
@@ -94,24 +92,6 @@ public class FunctionManagerImpl implements FunctionManager
         initialize();
     }
 
-    private void addBuiltinFunctions()
-    {
-        if (projectConfiguration.enableStaticResourceFunction())
-        {
-            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("static-data", DirectoryResourceFunction.class), initWithProjectCfg(new DirectoryResourceFunction("/" + projectConfiguration.getStaticResourcesContext(), projectConfiguration.getStaticResourceDirectory()))));
-        }
-
-        if (projectConfiguration.enableInfoFunction())
-        {
-            // JSON data
-            final String statusBasePath = "/status";
-            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("status-info", ProjectStatusFunction.class), initWithProjectCfg(new ProjectStatusFunction(statusBasePath + "/status.json", this, functionMetricsService))));
-
-            // Page for viewing status
-            addFunction(new FunctionBundle(ServerFunctionInfo.builtin("status-info-page", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction(statusBasePath + "/", HttpMimeType.HTML, IoUtil.classPathResource("/lamebda/templates/status.html").get()))));
-        }
-    }
-
     private void generateModels() throws IOException
     {
         if (generatorHelper != null)
@@ -136,16 +116,6 @@ public class FunctionManagerImpl implements FunctionManager
         generatorHelper.generate(projectConfiguration.getPath(), args);
     }
 
-    private <T extends ServerFunction & FunctionContextAware> T initWithProjectCfg(final T function)
-    {
-        function.init(projectConfiguration);
-        if (function instanceof BaseServerFunction)
-        {
-            ((BaseServerFunction) function).initInternal(projectConfiguration);
-        }
-        return function;
-    }
-
     private FunctionManagerImpl addFunction(FunctionBundle bundle)
     {
         final String name = bundle.getInfo().getName();
@@ -159,14 +129,11 @@ public class FunctionManagerImpl implements FunctionManager
         setupSpringChildContext();
         addResourceClasspath();
         apiSpecProcessing();
-        registerSpecificationController();
         createProjectConfigBean();
         compileSources();
         findBeans();
-        addBuiltinFunctions();
 
-        // Load all functions from Spring context
-        projectCtx.getBeansOfType(ServerFunction.class).forEach((key, value) -> addFunction(new FunctionBundle(ServerFunctionInfo.ofClass((Class<ServerFunction>) value.getClass()), value)));
+        parentContext.publishEvent(new ProjectLoadedEvent(projectConfiguration, projectCtx, this));
     }
 
     private void findBeans()
@@ -281,15 +248,6 @@ public class FunctionManagerImpl implements FunctionManager
         logger.info("Added model classpath {}", modelPath);
     }
 
-    private void registerSpecificationController()
-    {
-        final Optional<byte[]> specPathHumanReadable = IoUtil.classPathResource("api-doc/index.html", lamebdaResourceLoader.getClassLoader());
-        specPathHumanReadable.ifPresent(bytes -> addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-human-readable", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction("/specification/api/doc/", HttpMimeType.HTML, bytes)))));
-
-        final Optional<byte[]> specPathYaml = IoUtil.classPathResource("specification/oas.yaml", lamebdaResourceLoader.getClassLoader());
-        specPathYaml.ifPresent(bytes -> addFunction(new FunctionBundle(ServerFunctionInfo.builtin("api-yaml", SingleResourceFunction.class), initWithProjectCfg(new SingleResourceFunction("/specification/api/api.yaml", HttpMimeType.YAML, bytes)))));
-    }
-
     private OffsetDateTime lastModified(final Path path) throws IOException
     {
         if (Files.exists(path))
@@ -300,29 +258,10 @@ public class FunctionManagerImpl implements FunctionManager
     }
 
     @Override
-    public Optional<ServerFunction> getHandler(final String name)
-    {
-        final FunctionBundle res = functions.get(name);
-        return res != null ? Optional.of(res.getFunction()) : Optional.empty();
-    }
-
-    @Override
-    public boolean handle(HttpRequest request, HttpResponse response) throws Exception
-    {
-        for (final FunctionBundle serverFunction : functions.values())
-        {
-            final boolean handled = doHandle(request, response, serverFunction.getFunction());
-            if (handled)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
     public void close()
     {
+        parentContext.publishEvent(new ProjectClosingEvent(projectConfiguration, projectCtx, this));
+
         try
         {
             projectCtx.close();
@@ -338,38 +277,6 @@ public class FunctionManagerImpl implements FunctionManager
     public ProjectConfiguration getProjectConfiguration()
     {
         return projectConfiguration;
-    }
-
-    private boolean doHandle(HttpRequest request, HttpResponse response, ServerFunction f) throws Exception
-    {
-        try
-        {
-            final FunctionResult result = f.handle(request, response);
-            if (result == null)
-            {
-                throw new IllegalStateException("A function should never return null. Expected FunctionResult");
-            }
-            return result == FunctionResult.PROCESSED;
-        }
-        catch (RuntimeException exc)
-        {
-            throw handleError(exc);
-        }
-    }
-
-    private RuntimeException handleError(final RuntimeException exc)
-    {
-        Throwable cause = exc;
-        if (exc instanceof UndeclaredThrowableException && exc.getCause() != null)
-        {
-            cause = exc.getCause();
-        }
-
-        if (cause instanceof RuntimeException)
-        {
-            throw (RuntimeException) cause;
-        }
-        throw new RuntimeException(cause);
     }
 
     public Map<String, FunctionBundle> getFunctions()

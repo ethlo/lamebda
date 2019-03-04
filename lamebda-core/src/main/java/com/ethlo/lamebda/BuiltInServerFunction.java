@@ -1,10 +1,10 @@
-package com.ethlo.lamebda.error;
+package com.ethlo.lamebda;
 
 /*-
  * #%L
  * lamebda-core
  * %%
- * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,6 @@ package com.ethlo.lamebda.error;
  * #L%
  */
 
-public class InvalidJsonException extends ClientException
+public interface BuiltInServerFunction
 {
-    private static final long serialVersionUID = 6998488211390868027L;
-
-    public InvalidJsonException(String msg, Throwable cause)
-    {
-        super(msg, cause);
-    }
 }

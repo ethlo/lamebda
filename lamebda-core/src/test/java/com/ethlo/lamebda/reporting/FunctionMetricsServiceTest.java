@@ -28,9 +28,6 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import com.ethlo.lamebda.HttpMethod;
-import com.ethlo.lamebda.HttpStatus;
-
 public class FunctionMetricsServiceTest
 {
     private final FunctionMetricsService metricsService = FunctionMetricsService.getInstance();
@@ -49,14 +46,14 @@ public class FunctionMetricsServiceTest
         }
 
         final Map<Integer, Long> perPattern = metricsService.getMetrics(requestMapping);
-        assertThat(perPattern.get(HttpStatus.OK)).isEqualTo(101);
+        assertThat(perPattern.get(200)).isEqualTo(101);
     }
 
     private MethodAndPattern invoke()
     {
-        final MethodAndPattern requestMapping = new MethodAndPattern(HttpMethod.POST.toString(), pattern);
+        final MethodAndPattern requestMapping = new MethodAndPattern("POST", pattern);
         final int millis = (int) (Math.random() * 1000);
-        metricsService.requestHandled("smith", OffsetDateTime.now(), requestMapping, Duration.ofMillis(millis), HttpStatus.OK);
+        metricsService.requestHandled("smith", OffsetDateTime.now(), requestMapping, Duration.ofMillis(millis), 200);
         return requestMapping;
     }
 }

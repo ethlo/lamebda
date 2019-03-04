@@ -26,7 +26,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,29 +38,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.security.UsernamePasswordCredentials;
 
 public class ProjectConfigurationBuilder
 {
     private static final Logger logger = LoggerFactory.getLogger(ProjectConfigurationBuilder.class);
 
-    private UsernamePasswordCredentials adminCredentials;
     private String rootContextPath;
     private String projectPath;
-
     private String projectName;
     private String projectContextPath;
-    private boolean enableInfoFunction;
-    private boolean isInfoProtected = true;
-    private boolean enableStaticResourceFunction;
     private boolean enableUrlProjectContextPrefix;
-
-    private String staticResourcesPrefix;
-    private Path staticResourceDirectory;
     private String projectVersion;
-
     private String apiDocGenerator;
-
     private boolean listenForChanges;
     private List<String> basePackages = Collections.emptyList();
 
@@ -75,11 +63,7 @@ public class ProjectConfigurationBuilder
 
         this.projectName = projectPath.getFileName().toString();
         this.projectContextPath = projectPath.getFileName().toString();
-        this.enableInfoFunction = true;
-        this.enableStaticResourceFunction = true;
         this.enableUrlProjectContextPrefix = true;
-        this.staticResourcesPrefix = "static";
-        this.staticResourceDirectory = projectPath.resolve(FileSystemLamebdaResourceLoader.STATIC_DIRECTORY);
         this.listenForChanges = true;
     }
 
@@ -95,35 +79,12 @@ public class ProjectConfigurationBuilder
         return this;
     }
 
-    public ProjectConfigurationBuilder enableInfoFunction(boolean enableInfoFunction)
-    {
-        this.enableInfoFunction = enableInfoFunction;
-        return this;
-    }
-
-    public ProjectConfigurationBuilder enableStaticResourceFunction(boolean enableStaticResourceFunction)
-    {
-        this.enableStaticResourceFunction = enableStaticResourceFunction;
-        return this;
-    }
-
     public ProjectConfigurationBuilder enableUrlProjectContextPrefix(boolean enableUrlProjectContextPrefix)
     {
         this.enableUrlProjectContextPrefix = enableUrlProjectContextPrefix;
         return this;
     }
 
-    public ProjectConfigurationBuilder staticResourcesPrefix(String staticResourcesPrefix)
-    {
-        this.staticResourcesPrefix = staticResourcesPrefix;
-        return this;
-    }
-
-    public ProjectConfigurationBuilder staticResourceDirectory(Path staticResourceDirectory)
-    {
-        this.staticResourceDirectory = staticResourceDirectory;
-        return this;
-    }
 
     public ProjectConfigurationBuilder projectName(String projectName)
     {
@@ -164,25 +125,7 @@ public class ProjectConfigurationBuilder
             projectContextPath = p.getProperty("mapping.project-context-path", projectContextPath);
             enableUrlProjectContextPrefix = Boolean.parseBoolean(p.getProperty("mapping.use-project-context-path", Boolean.toString(enableUrlProjectContextPrefix)));
 
-            // Static resource function
-            enableStaticResourceFunction = Boolean.parseBoolean(p.getProperty("functions.static.enabled", Boolean.toString(enableStaticResourceFunction)));
-            staticResourcesPrefix = p.getProperty("functions.static.prefix", staticResourcesPrefix);
-            staticResourceDirectory = Paths.get(p.getProperty("function.static.path", staticResourceDirectory.toString()));
-
             apiDocGenerator = p.getProperty("specification.api.doc.generator", apiDocGenerator);
-
-            final String adminUsername = p.getProperty("admin.credentials.username", "admin");
-            String adminPassword = p.getProperty("admin.credentials.password");
-            if (adminPassword == null)
-            {
-                adminPassword = generateRandomString(new SecureRandom(), 12);
-                logger.info("Using generated admin password: {}. Please set it using 'admin.credentials.password=' in project.properties", adminPassword);
-            }
-            adminCredentials = new UsernamePasswordCredentials(adminUsername, adminPassword);
-
-            // Info function
-            isInfoProtected = Boolean.parseBoolean(p.getProperty("functions.info.protected", Boolean.toString(isInfoProtected)));
-            enableInfoFunction = Boolean.parseBoolean(p.getProperty("functions.info.enabled", Boolean.toString(enableInfoFunction)));
 
             listenForChanges = Boolean.parseBoolean(p.getProperty("system.listen-for-changes", Boolean.toString(listenForChanges)));
             basePackages = new ArrayList<>(StringUtils.commaDelimitedListToSet(p.getProperty("system.base-packages", "service")));
@@ -198,12 +141,6 @@ public class ProjectConfigurationBuilder
                 .limit(length)
                 .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                 .toString();
-    }
-
-
-    public UsernamePasswordCredentials getAdminCredentials()
-    {
-        return adminCredentials;
     }
 
     public String getRootContextPath()
@@ -226,29 +163,9 @@ public class ProjectConfigurationBuilder
         return projectContextPath;
     }
 
-    public boolean isEnableInfoFunction()
-    {
-        return enableInfoFunction;
-    }
-
-    public boolean isEnableStaticResourceFunction()
-    {
-        return enableStaticResourceFunction;
-    }
-
     public boolean isEnableUrlProjectContextPrefix()
     {
         return enableUrlProjectContextPrefix;
-    }
-
-    public String getStaticResourcesPrefix()
-    {
-        return staticResourcesPrefix;
-    }
-
-    public Path getStaticResourceDirectory()
-    {
-        return staticResourceDirectory;
     }
 
     public String getProjectVersion()
@@ -264,11 +181,6 @@ public class ProjectConfigurationBuilder
     public boolean isListenForChanges()
     {
         return listenForChanges;
-    }
-
-    public boolean isInfoProtected()
-    {
-        return isInfoProtected;
     }
 
     public List<String> getBasePackages()
