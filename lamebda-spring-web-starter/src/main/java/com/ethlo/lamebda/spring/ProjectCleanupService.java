@@ -20,6 +20,8 @@ package com.ethlo.lamebda.spring;
  * #L%
  */
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -55,12 +57,17 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
         final RequestMappingHandlerMapping mappingHandler = event.getProjectCtx().getBean(RequestMappingHandlerMapping.class);
         final Map<RequestMappingInfo, HandlerMethod> handlerMethods = mappingHandler.getHandlerMethods();
         final String prefix = projectConfiguration.getRootContextPath() + "/" + projectConfiguration.getContextPath();
+        final List<RequestMappingInfo> toRemove = new LinkedList<>();
         handlerMethods.forEach((key, value) -> {
             if (isProjectMapped(prefix, key))
             {
-                logger.info("Unregistering {}, ", key);
-                mappingHandler.unregisterMapping(key);
+                toRemove.add(key);
             }
+        });
+
+        toRemove.forEach(key -> {
+            logger.info("Unregistering {}, ", key);
+            mappingHandler.unregisterMapping(key);
         });
     }
 }
