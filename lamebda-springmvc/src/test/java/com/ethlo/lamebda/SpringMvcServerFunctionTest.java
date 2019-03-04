@@ -20,11 +20,13 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -32,50 +34,43 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
 
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
+import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 
-@SpringBootTest(classes = SpringMvcServerFunctionTest.class)
-@EnableAutoConfiguration
 @RunWith(SpringRunner.class)
+@SpringBootTest(classes = TestCfg.class)
+@AutoConfigureMockMvc
 public class SpringMvcServerFunctionTest
 {
-    private final Path basepath = Paths.get("src/test/projects/myproject");
-    private final String packageName = "acme";
-
-    private FunctionManagerImpl functionManager;
+    private final Path basepath = Paths.get("src/test/projects");
 
     @Autowired
     private ApplicationContext applicationContext;
 
+    @Autowired
+    private MockMvc mockMvc;
+
     @Before
     public void before() throws IOException
     {
-        final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", basepath).basePackages(packageName).build();
-        functionManager = new FunctionManagerImpl(applicationContext, new FileSystemLamebdaResourceLoader(cfg));
+        final FunctionManagerDirector fmd = new FunctionManagerDirector(basepath, "lamebda", applicationContext);
+        final FunctionManager fm = fmd.getFunctionManagers().values().iterator().next();
+        new ProjectSetupService().onApplicationEvent(new ProjectLoadedEvent(fm.getProjectConfiguration(), fm.getProjectContext()));
     }
 
     @Test
-    public void testInvokeSpringMvc() throws Exception
+    public void shouldCallController() throws Exception
     {
-        //assertThat(functionManager.getHandler(packageName + ".SpringMvc")).isPresent();
-        final MockHttpServletRequest req = new MockHttpServletRequest();
-        final MockHttpServletResponse res = new MockHttpServletResponse();
-        req.setRequestURI("/lamebda/myproject/test/123");
-        req.setMethod("POST");
-        req.setContentType("application/json");
-        req.setContent("{\"payload\": \"hello world\"}".getBytes(StandardCharsets.UTF_8));
-        /*final boolean handled = functionManager.handle(req, res);
-        assertThat(handled).isTrue();
-        assertThat(res.getStatus()).isEqualTo(200);
-        assertThat(res.getContentAsString()).isEqualTo("{\"id\":\"123\"}");
-        */
-        fail("Implement me");
+        this.mockMvc.
+                perform(post("/lamebda/myproject/test/123").content("{\"payload\": 999}").contentType(MediaType.APPLICATION_JSON_UTF8))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("{\"id\":\"123\"}")));
     }
 }

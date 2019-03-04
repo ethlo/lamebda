@@ -33,6 +33,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.ethlo.lamebda.FunctionManagerDirector;
+import com.ethlo.lamebda.ProjectCleanupService;
+import com.ethlo.lamebda.ProjectSetupService;
 
 @Configuration
 @ConfigurationProperties("lamebda")

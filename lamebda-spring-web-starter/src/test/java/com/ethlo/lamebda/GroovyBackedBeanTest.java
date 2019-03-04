@@ -28,13 +28,15 @@ import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.ethlo.lamebda.spring.LamebdaSpringWebAutoConfiguration;
 
-@SpringBootTest(classes = LamebdaSpringWebAutoConfiguration.class)
+@SpringBootTest(classes = {LamebdaSpringWebAutoConfiguration.class, TestCfg.class})
 @RunWith(SpringRunner.class)
+@AutoConfigureMockMvc
 public class GroovyBackedBeanTest
 {
     @Autowired
@@ -47,6 +49,5 @@ public class GroovyBackedBeanTest
         final Map<Path, FunctionManager> managers = functionManagerDirector.getFunctionManagers();
         final FunctionManagerImpl fm = (FunctionManagerImpl) managers.get(projectPath);
         assertThat(fm).isNotNull();
-        assertThat(fm.getFunctions()).containsKey("mycontrollers.Correct");
     }
 }

@@ -20,9 +20,13 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
 public interface FunctionManager extends AutoCloseable
 {
     ProjectConfiguration getProjectConfiguration();
 
     void close();
+
+    AnnotationConfigApplicationContext getProjectContext();
 }

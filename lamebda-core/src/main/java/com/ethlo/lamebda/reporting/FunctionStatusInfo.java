@@ -23,7 +23,6 @@ package com.ethlo.lamebda.reporting;
 import java.util.Set;
 
 import com.ethlo.lamebda.BuiltInServerFunction;
-import com.ethlo.lamebda.FunctionManager;
 import com.ethlo.lamebda.ServerFunctionInfo;
 import com.ethlo.lamebda.mapping.RequestMapping;
 

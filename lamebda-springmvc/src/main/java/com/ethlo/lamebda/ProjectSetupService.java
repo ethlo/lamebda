@@ -1,4 +1,4 @@
-package com.ethlo.lamebda.spring;
+package com.ethlo.lamebda;
 
 /*-
  * #%L
@@ -36,12 +36,10 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import com.ethlo.lamebda.HttpMethod;
-import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.functions.ProjectStatusFunction;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.mapping.RequestMapping;
+import com.ethlo.lamebda.spring.OpenRequestMappingHandlerMapping;
 
 public class ProjectSetupService implements ApplicationListener<ProjectLoadedEvent>
 {

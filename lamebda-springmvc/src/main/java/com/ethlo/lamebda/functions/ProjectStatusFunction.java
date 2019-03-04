@@ -21,7 +21,6 @@ package com.ethlo.lamebda.functions;
  */
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +38,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
-import com.ethlo.lamebda.util.IoUtil;
 
 @RestController
 @RequestMapping(value = "/status", produces = "application/json")

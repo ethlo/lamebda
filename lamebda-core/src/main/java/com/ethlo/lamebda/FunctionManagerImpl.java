@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,7 +29,6 @@ import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
-import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
@@ -63,7 +61,6 @@ public class FunctionManagerImpl implements FunctionManager
 
     private Map<String, FunctionBundle> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
-    private final FunctionMetricsService functionMetricsService = FunctionMetricsService.getInstance();
 
     private final GeneratorHelper generatorHelper;
 
@@ -78,7 +75,7 @@ public class FunctionManagerImpl implements FunctionManager
         }
         else if (Files.exists(apiPath))
         {
-            logger.info("Found specification file in {}, but there are not generator libraries in {}. Skipping.", apiPath, jarDir);
+            logger.info("Found specification file in {}, but there are no generator libraries in {}. Skipping.", apiPath, jarDir);
             generatorHelper = null;
         }
         else
@@ -133,7 +130,7 @@ public class FunctionManagerImpl implements FunctionManager
         compileSources();
         findBeans();
 
-        parentContext.publishEvent(new ProjectLoadedEvent(projectConfiguration, projectCtx, this));
+        parentContext.publishEvent(new ProjectLoadedEvent(projectConfiguration, projectCtx));
     }
 
     private void findBeans()
@@ -260,7 +257,7 @@ public class FunctionManagerImpl implements FunctionManager
     @Override
     public void close()
     {
-        parentContext.publishEvent(new ProjectClosingEvent(projectConfiguration, projectCtx, this));
+        parentContext.publishEvent(new ProjectClosingEvent(projectConfiguration, projectCtx));
 
         try
         {
@@ -274,13 +271,14 @@ public class FunctionManagerImpl implements FunctionManager
     }
 
     @Override
+    public AnnotationConfigApplicationContext getProjectContext()
+    {
+        return projectCtx;
+    }
+
+    @Override
     public ProjectConfiguration getProjectConfiguration()
     {
         return projectConfiguration;
-    }
-
-    public Map<String, FunctionBundle> getFunctions()
-    {
-        return Collections.unmodifiableMap(functions);
     }
 }

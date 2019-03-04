@@ -27,8 +27,8 @@ import com.ethlo.lamebda.ProjectConfiguration;
 
 public class ProjectLoadedEvent extends ProjectEvent
 {
-    public ProjectLoadedEvent(final ProjectConfiguration cfg, final AnnotationConfigApplicationContext projectCtx, final FunctionManager functionManager)
+    public ProjectLoadedEvent(final ProjectConfiguration cfg, final AnnotationConfigApplicationContext projectCtx)
     {
-        super(cfg, projectCtx, functionManager);
+        super(cfg, projectCtx);
     }
 }

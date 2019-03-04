@@ -27,8 +27,8 @@ import com.ethlo.lamebda.ProjectConfiguration;
 
 public class ProjectClosingEvent extends ProjectEvent
 {
-    public ProjectClosingEvent(final ProjectConfiguration cfg, final AnnotationConfigApplicationContext projectCtx, final FunctionManager functionManager)
+    public ProjectClosingEvent(final ProjectConfiguration cfg, final AnnotationConfigApplicationContext projectCtx)
     {
-        super(cfg, projectCtx, functionManager);
+        super(cfg, projectCtx);
     }
 }

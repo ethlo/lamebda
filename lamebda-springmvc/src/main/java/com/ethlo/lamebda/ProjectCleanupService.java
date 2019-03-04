@@ -1,4 +1,4 @@
-package com.ethlo.lamebda.spring;
+package com.ethlo.lamebda;
 
 /*-
  * #%L
@@ -31,7 +31,6 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 
 public class ProjectCleanupService implements ApplicationListener<ProjectClosingEvent>
