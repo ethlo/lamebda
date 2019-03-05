@@ -22,24 +22,14 @@ package com.ethlo.lamebda.functions;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.reporting.FunctionMetricsService;
 import com.ethlo.lamebda.util.IoUtil;
 
 @RestController
@@ -53,7 +43,7 @@ public class DocumentationController
         this.classLoader = classLoader;
     }
 
-    @GetMapping(value="/api/api.yaml", produces = "text/yaml")
+    @GetMapping(value = "/api/api.yaml", produces = "text/yaml")
     public ResponseEntity<String> getSpecFile() throws IOException
     {
         final ClassPathResource res = new ClassPathResource("/specification/oas.yaml", classLoader);
@@ -64,7 +54,7 @@ public class DocumentationController
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @GetMapping(value="/api/doc", produces = "text/html")
+    @GetMapping(value = "/api/doc", produces = "text/html")
     public ResponseEntity<String> getDocFile() throws IOException
     {
         final ClassPathResource res = new ClassPathResource("/api-doc/index.html", classLoader);

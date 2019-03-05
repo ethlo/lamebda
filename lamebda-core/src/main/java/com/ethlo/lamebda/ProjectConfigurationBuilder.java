@@ -41,8 +41,6 @@ import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 
 public class ProjectConfigurationBuilder
 {
-    private static final Logger logger = LoggerFactory.getLogger(ProjectConfigurationBuilder.class);
-
     private String rootContextPath;
     private String projectPath;
     private String projectName;
@@ -131,16 +129,6 @@ public class ProjectConfigurationBuilder
             basePackages = new ArrayList<>(StringUtils.commaDelimitedListToSet(p.getProperty("system.base-packages", "service")));
         }
         return this;
-    }
-
-    private static String generateRandomString(Random random, int length)
-    {
-        return random.ints(48, 122)
-                .filter(i -> (i < 57 || i > 65) && (i < 90 || i > 97))
-                .mapToObj(i -> (char) i)
-                .limit(length)
-                .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
-                .toString();
     }
 
     public String getRootContextPath()

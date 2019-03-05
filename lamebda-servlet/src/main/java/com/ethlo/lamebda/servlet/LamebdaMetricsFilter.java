@@ -66,8 +66,6 @@ public class LamebdaMetricsFilter implements Filter
             final String pattern = (String) request.getAttribute(LamebdaMetricsFilter.PATTERN_ATTRIBUTE_NAME);
             if (pattern != null)
             {
-                final String reason = (String) request.getAttribute(REASON_ATTRIBUTE_NAME);
-
                 final MethodAndPattern requestMapping = new MethodAndPattern(request.getMethod(), pattern);
                 logInvocation(requestMapping, request, startedTimestamp, startedNanos, System.nanoTime(), response.getStatus());
             }
