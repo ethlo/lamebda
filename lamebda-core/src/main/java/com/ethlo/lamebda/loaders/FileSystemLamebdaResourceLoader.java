@@ -92,7 +92,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         unzipDirectory(archivePath, projectPath);
     }
 
-    private void handleProject(final Path projectPath) throws IOException
+    private void handleProject(final Path projectPath)
     {
         this.libPath = projectPath.resolve(LIB_DIRECTORY);
         if (Files.isDirectory(libPath))

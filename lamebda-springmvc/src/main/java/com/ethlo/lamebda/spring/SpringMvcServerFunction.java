@@ -23,26 +23,16 @@ package com.ethlo.lamebda.spring;
 import java.util.Collections;
 import java.util.Set;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.ethlo.lamebda.FunctionResult;
-import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.URLMappedServerFunction;
 import com.ethlo.lamebda.mapping.RequestMapping;
 
 @Deprecated
-public abstract class SpringMvcServerFunction implements ServerFunction, URLMappedServerFunction
+public abstract class SpringMvcServerFunction implements URLMappedServerFunction
 {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-
-    public FunctionResult handle(final HttpServletRequest request, final HttpServletResponse response) throws Exception
-    {
-        throw new UnsupportedOperationException();
-    }
 
     @Override
     public Set<RequestMapping> getUrlMapping()

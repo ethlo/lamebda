@@ -10,9 +10,7 @@ import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +57,6 @@ public class FunctionManagerImpl implements FunctionManager
     private final ApplicationContext parentContext;
     private AnnotationConfigApplicationContext projectCtx;
 
-    private Map<String, FunctionBundle> functions = new ConcurrentHashMap<>();
     private LamebdaResourceLoader lamebdaResourceLoader;
 
     private final GeneratorHelper generatorHelper;
@@ -111,14 +108,6 @@ public class FunctionManagerImpl implements FunctionManager
         final Optional<String> defaultGenFile = IoUtil.toString("/generation/" + generationCommandFile);
         final String[] args = genFile.map(s -> s.split(" ")).orElseGet(() -> defaultGenFile.get().split(" "));
         generatorHelper.generate(projectConfiguration.getPath(), args);
-    }
-
-    private FunctionManagerImpl addFunction(FunctionBundle bundle)
-    {
-        final String name = bundle.getInfo().getName();
-        final boolean exists = functions.put(name, bundle) != null;
-        logger.info(exists ? "{} was replaced" : "{} was loaded", name);
-        return this;
     }
 
     private void initialize()

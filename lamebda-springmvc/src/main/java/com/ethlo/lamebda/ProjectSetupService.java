@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.stereotype.Controller;
 import org.springframework.util.MimeType;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
@@ -97,7 +98,7 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         register(handlerMapping, psf, projectCfg);
 
         // Register controller beans
-        projectCtx.getBeansOfType(ServerFunction.class).forEach((beanName, controller) ->
+        projectCtx.getBeansWithAnnotation(Controller.class).forEach((beanName, controller) ->
         {
             final List<RequestMapping> mappings = register(handlerMapping, controller, projectCfg);
             if (!mappings.isEmpty())

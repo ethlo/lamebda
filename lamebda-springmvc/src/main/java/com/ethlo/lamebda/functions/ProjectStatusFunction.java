@@ -36,12 +36,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.ServerFunction;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
 
 @RestController
 @RequestMapping(value = "/status", produces = "application/json")
-public class ProjectStatusFunction implements ServerFunction
+public class ProjectStatusFunction
 {
     private final ProjectConfiguration projectConfiguration;
     private final MultiValueMap<String, com.ethlo.lamebda.mapping.RequestMapping> mappings = new LinkedMultiValueMap<>();
