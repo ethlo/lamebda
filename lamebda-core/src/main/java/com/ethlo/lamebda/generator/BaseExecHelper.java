@@ -26,16 +26,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.util.Assert;
 import com.ethlo.lamebda.util.IoUtil;
-import com.ethlo.lamebda.util.StringUtil;
 
 public abstract class BaseExecHelper
 {
@@ -62,8 +61,8 @@ public abstract class BaseExecHelper
 
         try
         {
-            final String[] fullCmd = combine(new String[]{javaCmd, "-cp", StringUtil.join(classPath, File.pathSeparator), "org.openapitools.codegen.OpenAPIGenerator"}, cmd);
-            logger.debug("Running {}", StringUtil.join(Arrays.asList(fullCmd), " "));
+            final String[] fullCmd = combine(new String[]{javaCmd, "-cp", StringUtils.collectionToDelimitedString(classPath, File.pathSeparator), "org.openapitools.codegen.OpenAPIGenerator"}, cmd);
+            logger.debug("Running {}", StringUtils.arrayToDelimitedString(fullCmd, " "));
             process = new ProcessBuilder(fullCmd)
                     .inheritIO()
                     .directory(dir.toFile())
