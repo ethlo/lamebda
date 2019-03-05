@@ -21,6 +21,7 @@ package com.ethlo.lamebda.functions;
  */
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StreamUtils;
@@ -37,41 +40,38 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ethlo.lamebda.ProjectConfiguration;
 import com.ethlo.lamebda.reporting.FunctionMetricsService;
+import com.ethlo.lamebda.util.IoUtil;
 
 @RestController
-@RequestMapping(value = "/status", produces = "application/json")
-public class ProjectStatusFunction
+@RequestMapping(value = "/specification")
+public class DocumentationController
 {
-    private final ProjectConfiguration projectConfiguration;
-    private final MultiValueMap<String, com.ethlo.lamebda.mapping.RequestMapping> mappings = new LinkedMultiValueMap<>();
+    private final ClassLoader classLoader;
 
-    public ProjectStatusFunction(ProjectConfiguration projectConfiguration)
+    public DocumentationController(ClassLoader classLoader)
     {
-        this.projectConfiguration = projectConfiguration;
+        this.classLoader = classLoader;
     }
 
-    @GetMapping("/")
-    public void getPage(HttpServletResponse response) throws IOException
+    @GetMapping(value="/api/api.yaml", produces = "text/yaml")
+    public ResponseEntity<String> getSpecFile() throws IOException
     {
-        response.setContentType("text/html");
-        StreamUtils.copy(new ClassPathResource("/lamebda/templates/status.html").getInputStream(), response.getOutputStream());
+        final ClassPathResource res = new ClassPathResource("/specification/oas.yaml", classLoader);
+        if (res.exists())
+        {
+            return new ResponseEntity<>(IoUtil.toString(res.getInputStream(), StandardCharsets.UTF_8), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @GetMapping("status.json")
-    public Map<String, Object> get()
+    @GetMapping(value="/api/doc", produces = "text/html")
+    public ResponseEntity<String> getDocFile() throws IOException
     {
-        final Map<String, Object> res = new LinkedHashMap<>();
-        final Map<String, Object> projectInfo = new LinkedHashMap<>();
-        projectInfo.put("name", projectConfiguration.getName());
-        projectInfo.put("configuration", projectConfiguration);
-        res.put("project", projectInfo);
-        res.put("functions", mappings);
-        res.put("metrics", FunctionMetricsService.getInstance().getMetrics());
-        return res;
-    }
-
-    public void add(final String beanName, final List<com.ethlo.lamebda.mapping.RequestMapping> mappings)
-    {
-        this.mappings.addAll(beanName, mappings);
+        final ClassPathResource res = new ClassPathResource("/api-doc/index.html", classLoader);
+        if (res.exists())
+        {
+            return new ResponseEntity<>(IoUtil.toString(res.getInputStream(), StandardCharsets.UTF_8), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 }

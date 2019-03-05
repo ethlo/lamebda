@@ -42,7 +42,7 @@ public abstract class ProjectEvent extends ApplicationEvent
         return projectConfiguration;
     }
 
-    public AnnotationConfigApplicationContext getProjectCtx()
+    public AnnotationConfigApplicationContext getProjectContext()
     {
         return projectCtx;
     }

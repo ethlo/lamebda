@@ -37,7 +37,8 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import com.ethlo.lamebda.functions.ProjectStatusFunction;
+import com.ethlo.lamebda.functions.DocumentationController;
+import com.ethlo.lamebda.functions.ProjectStatusController;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.spring.OpenRequestMappingHandlerMapping;
@@ -89,13 +90,16 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
     @Override
     public void onApplicationEvent(final ProjectLoadedEvent event)
     {
-        final AnnotationConfigApplicationContext projectCtx = event.getProjectCtx();
+        final AnnotationConfigApplicationContext projectCtx = event.getProjectContext();
         final ProjectConfiguration projectCfg = event.getProjectConfiguration();
 
         final RequestMappingHandlerMapping handlerMapping = projectCtx.getBean(RequestMappingHandlerMapping.class);
 
-        final ProjectStatusFunction psf = new ProjectStatusFunction(projectCfg);
+        final ProjectStatusController psf = new ProjectStatusController(projectCfg);
         register(handlerMapping, psf, projectCfg);
+
+        final DocumentationController documentationController = new DocumentationController(event.getProjectContext().getClassLoader());
+        register(handlerMapping, documentationController, projectCfg);
 
         // Register controller beans
         projectCtx.getBeansWithAnnotation(Controller.class).forEach((beanName, controller) ->
