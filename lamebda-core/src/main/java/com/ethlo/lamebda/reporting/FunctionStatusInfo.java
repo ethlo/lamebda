@@ -29,14 +29,12 @@ import com.ethlo.lamebda.mapping.RequestMapping;
 public class FunctionStatusInfo implements Comparable<FunctionStatusInfo>
 {
     private final boolean builtin;
-    private final String relPath;
     private final String name;
     private boolean running;
     private Set<RequestMapping> requestMappings;
 
     public FunctionStatusInfo(final ServerFunctionInfo info)
     {
-        this.relPath = info.getType().getCanonicalName().replace('.', '/');
         this.name = info.getType().getSimpleName();
         this.builtin = BuiltInServerFunction.class.isAssignableFrom(info.getType());
     }
@@ -55,11 +53,6 @@ public class FunctionStatusInfo implements Comparable<FunctionStatusInfo>
     public String getName()
     {
         return name;
-    }
-
-    public String getRelPath()
-    {
-        return relPath;
     }
 
     public Set<RequestMapping> getRequestMappings()
