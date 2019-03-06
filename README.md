@@ -36,7 +36,7 @@ Add dependency to your `pom.xml`
 <dependency>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda-spring-web-starter</artifactId>
-    <version>0.6.0</version>
+    <version>0.8.0</version>
 </dependency>
 ```
 
@@ -47,18 +47,10 @@ lamebda.source.directory=/var/lib/lamebda
 lamebda.request-path=/gateway
 ```
 
-#### Invocation/delegation from a standard HttpServlet
-
-```xml
-<dependency>
-    <groupId>com.ethlo.lamebda</groupId>
-    <artifactId>lamebda-servlet</artifactId>
-    <version>0.8.0</version>
-</dependency>
-```
-
 ### Project configuration
+`project.properties`
 * `project.name` - Human-readable name of the project
+* `system.base-packages` - The base packages that Spring IOC container is scanning
 * `mapping.project-context-path` - Project context path. Default is the project directory name.
 * `mapping.use-project-context-path` - Whether to prepend the request path with the project context name, i.e `/servlet/gateway/<project>/my-function`
 
@@ -77,7 +69,7 @@ Create a project folder. This folder is a logical grouping for your API function
 
 
 ### Add your first script
-1. Create a folder for the functions in the test project: `/var/lib/lamebda/test/scripts`
+1. Create a folder for the functions in the test project: `/var/lib/lamebda/test/src/main/groovy/com/acme`
 
 2. Add a simple script in the scripts folder:
 
@@ -90,6 +82,8 @@ class MyController {
     }
 }
 ```
+Add `com.acme` as base-package in your `project.properties`:
+`system.base-packages=com.acme`
 
 ### Access your first function
 
