@@ -193,13 +193,13 @@ public class FunctionManagerImpl implements FunctionManager
     private void apiSpecProcessing()
     {
         final Path apiPath = projectConfiguration.getSpecificationPath().resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
-        final Path projectPath = projectConfiguration.getPath();
+        final Path targetPath = projectConfiguration.getPath().resolve("target");
 
         if (Files.exists(apiPath))
         {
             try
             {
-                final Path marker = projectPath.resolve(".api_lastgenerated");
+                final Path marker = targetPath.resolve(".api_lastgenerated");
                 final OffsetDateTime specModified = lastModified(apiPath);
                 final OffsetDateTime modelModified = lastModified(marker);
 
@@ -210,7 +210,7 @@ public class FunctionManagerImpl implements FunctionManager
                     generateHumanReadableApiDoc(projectConfiguration);
                 }
 
-                setLastModified(marker, specModified);
+                setLastModified(targetPath, marker, specModified);
             }
             catch (IOException exc)
             {
@@ -226,8 +226,10 @@ public class FunctionManagerImpl implements FunctionManager
         }
     }
 
-    private void setLastModified(final Path marker, final OffsetDateTime specModified) throws IOException
+    private void setLastModified(final Path targetPath, final Path marker, final OffsetDateTime specModified) throws IOException
     {
+        if (Files.exists(targetPath))
+        {
             try
             {
                 Files.createFile(marker);
@@ -237,7 +239,9 @@ public class FunctionManagerImpl implements FunctionManager
             {
                 // Ignore
             }
+
             Files.setLastModifiedTime(marker, FileTime.from(specModified.toInstant()));
+        }
     }
 
     private OffsetDateTime lastModified(final Path path) throws IOException
