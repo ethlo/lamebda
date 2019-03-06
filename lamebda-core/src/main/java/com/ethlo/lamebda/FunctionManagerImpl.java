@@ -193,14 +193,13 @@ public class FunctionManagerImpl implements FunctionManager
     private void apiSpecProcessing()
     {
         final Path apiPath = projectConfiguration.getSpecificationPath().resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
-        final Path targetPath = projectConfiguration.getPath().resolve("target").resolve("api-doc");
+        final Path targetPath = projectConfiguration.getPath().resolve("target");
 
         if (Files.exists(apiPath))
         {
             try
             {
-                final Path marker = targetPath.resolve(".lastmodified");
-
+                final Path marker = targetPath.resolve(".api_lastmodified");
                 final OffsetDateTime specModified = lastModified(apiPath);
                 final OffsetDateTime modelModified = lastModified(marker);
 
@@ -211,17 +210,7 @@ public class FunctionManagerImpl implements FunctionManager
                     generateHumanReadableApiDoc(projectConfiguration);
                 }
 
-                try
-                {
-                    Files.createFile(marker);
-
-                }
-                catch (FileAlreadyExistsException exc)
-                {
-                    // Ignore
-                }
-
-                Files.setLastModifiedTime(marker, FileTime.from(specModified.toInstant()));
+                setLastModified(targetPath, marker, specModified);
             }
             catch (IOException exc)
             {
@@ -232,6 +221,24 @@ public class FunctionManagerImpl implements FunctionManager
         final String modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath().toString();
         lamebdaResourceLoader.addClasspath(modelPath);
         logger.info("Added model classpath {}", modelPath);
+    }
+
+    private void setLastModified(final Path targetPath, final Path marker, final OffsetDateTime specModified) throws IOException
+    {
+        if (Files.exists(targetPath))
+        {
+            try
+            {
+                Files.createFile(marker);
+
+            }
+            catch (FileAlreadyExistsException exc)
+            {
+                // Ignore
+            }
+
+            Files.setLastModifiedTime(marker, FileTime.from(specModified.toInstant()));
+        }
     }
 
     private OffsetDateTime lastModified(final Path path) throws IOException
