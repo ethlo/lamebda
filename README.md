@@ -4,7 +4,7 @@
 [![Build Status](https://travis-ci.org/ethlo/lamebda.svg?branch=master)](https://travis-ci.org/ethlo/lamebda)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/598913bc1fe9405c82be73d9a4f105c8)](https://www.codacy.com/app/ethlo/lamebda?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ethlo/lamebda&amp;utm_campaign=Badge_Grade)
 
-<p>Simple HTTP handler supporting dynamic loading of HTTP handler functions. Intended for running within your existing infrastructure as a gateway or integration layer embedded with your current framework like, but not limited to, Spring MVC or Spring Flux.<img alt="Lamebda" height="32" width="32" src="logo.svg" style="float:left; padding:10px;"/></p>
+A simple, powerful, plugin system for adding new API endpoints or custom functionality to you Spring project. Oftentimes there are conflicting requirements from different clients utilizing a common main application. The required custom functionality needed is often easy to do with a few lines of code, but is not acceptable to add to your main code-base. With Lamebda you can load either precompiled or source files (Groovy/Java) for adding custom functionality.
 
 > It Really Whips The Lambda's Ass!
 
@@ -53,40 +53,14 @@ lamebda.request-path=/gateway
 <dependency>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda-servlet</artifactId>
-    <version>0.6.0</version>
+    <version>0.8.0</version>
 </dependency>
 ```
 
-```java
-public class MyLamebdaServlet implements HttpServlet
-{
-    String contextPath = "/servlet";
-    String sourceDir = "/var/lib/lamebda";
-    final ClassResourceLoader classResourceLoader = new FileSystemClassResourceLoader(f->f, sourceDir);
-
-    @Override
-    public void service(HttpServletrequest req, HttpServletResponse res)
-    {
-        final HttpRequest request = new ServletHttpRequest(contextPath, request);
-        final HttpResponse ressponse = new ServletHttpResponse(response);
-        functionManager.handle(request, response);
-    }
-}
-```
-
-### Directory structure
-* A root folder, example: `/var/lib/lamebda`
-* Project directory, example: `var/lib/lamebda/test`
-* A Project configuration file: `/var/lib/lamebda/project.properties`
-
 ### Project configuration
 * `project.name` - Human-readable name of the project
-* `project.version` - The project version  
 * `mapping.project-context-path` - Project context path. Default is the project directory name.
 * `mapping.use-project-context-path` - Whether to prepend the request path with the project context name, i.e `/servlet/gateway/<project>/my-function`
-* `function.static.enabled` - Turn static content serving on/off. Default `true`
-* `function.static.prefix` - The path that static content is served under, default `static`
-* `function.static.path` - The folder that static content is served from, default is `<project-dir>/static`
 
 ### Extra preparations if you have an Open API Specification (OAS) file
 
@@ -108,25 +82,22 @@ Create a project folder. This folder is a logical grouping for your API function
 2. Add a simple script in the scripts folder:
 
 ```groovy
-class MyFunction extends SimpleServerFunction {
-    @Override
-    void get(HttpRequest request, HttpResponse response) {
-        response.json(HttpStatus.OK, [requestmethod: request.method, message:'Hello world'])
+@RestController
+class MyController {
+    @GetMapping("/my/{id}")
+    def get(@PathVariable("id") int id) {
+        return [requested: id]
     }
 }
 ```
 
 ### Access your first function
 
-Your function should be available under `/gateway/test/my-function`
+Your function should be available under `/gateway/test/my/123`
 
 ### Built in functions
 
-* /servet/gateway/test/status/ - Simple status page (by default) requiring authentication specified with `admin.credentials.username` and `admin.credentials.password` in the `project.properties` file.
-
-## Using pre-compilation
-
-Using pre-compilation the notion of scripts dissapear. Lamebda is then using classpath scanning for implementations of `ServerFunction`.
+* /<servlet>/gateway/test/status/ - Simple status page showing loaded controllers
 
 ### Building
 If the project is part of a build system it is easy to pre-compile the scripts and run OpenAPI model and human redable documentation generation. I recommend using Gradle. Below is a sample script showing how you can compile and package your project.
