@@ -193,13 +193,13 @@ public class FunctionManagerImpl implements FunctionManager
     private void apiSpecProcessing()
     {
         final Path apiPath = projectConfiguration.getSpecificationPath().resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
-        final Path targetPath = projectConfiguration.getPath().resolve("target");
+        final Path projectPath = projectConfiguration.getPath();
 
         if (Files.exists(apiPath))
         {
             try
             {
-                final Path marker = targetPath.resolve(".api_lastmodified");
+                final Path marker = projectPath.resolve(".api_lastgenerated");
                 final OffsetDateTime specModified = lastModified(apiPath);
                 final OffsetDateTime modelModified = lastModified(marker);
 
@@ -210,7 +210,7 @@ public class FunctionManagerImpl implements FunctionManager
                     generateHumanReadableApiDoc(projectConfiguration);
                 }
 
-                setLastModified(targetPath, marker, specModified);
+                setLastModified(marker, specModified);
             }
             catch (IOException exc)
             {
@@ -218,15 +218,16 @@ public class FunctionManagerImpl implements FunctionManager
             }
         }
 
-        final String modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath().toString();
-        lamebdaResourceLoader.addClasspath(modelPath);
-        logger.info("Added model classpath {}", modelPath);
+        final Path modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath();
+        if (Files.exists(modelPath))
+        {
+            lamebdaResourceLoader.addClasspath(modelPath.toString());
+            logger.info("Added model classpath {}", modelPath);
+        }
     }
 
-    private void setLastModified(final Path targetPath, final Path marker, final OffsetDateTime specModified) throws IOException
+    private void setLastModified(final Path marker, final OffsetDateTime specModified) throws IOException
     {
-        if (Files.exists(targetPath))
-        {
             try
             {
                 Files.createFile(marker);
@@ -236,9 +237,7 @@ public class FunctionManagerImpl implements FunctionManager
             {
                 // Ignore
             }
-
             Files.setLastModifiedTime(marker, FileTime.from(specModified.toInstant()));
-        }
     }
 
     private OffsetDateTime lastModified(final Path path) throws IOException
