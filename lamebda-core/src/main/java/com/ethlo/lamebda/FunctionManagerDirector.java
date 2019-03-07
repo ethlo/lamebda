@@ -75,10 +75,15 @@ public class FunctionManagerDirector
         {
             final Path path = e.getPath();
             final Path projectPath = getProjectPath(path);
+            final boolean isTargetPath = path.toAbsolutePath().startsWith(projectPath.resolve("target").toAbsolutePath());
             final boolean isProjectPath = projectPath.equals(path);
             final boolean isKnownType = isKnownType(path.getFileName().toString());
 
-            if (e.getChangeType() == ChangeType.DELETED && isProjectPath)
+            if (isTargetPath)
+            {
+                logger.debug("Skipping target file: {}", path);
+            }
+            else if (e.getChangeType() == ChangeType.DELETED && isProjectPath)
             {
                 logger.info("Closing project due to deletion of project directory: {}", e.getPath());
                 close(projectPath);
