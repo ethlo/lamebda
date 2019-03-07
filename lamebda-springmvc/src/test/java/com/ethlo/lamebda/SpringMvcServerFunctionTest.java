@@ -29,7 +29,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedList;
+import java.util.List;
 
+import org.aopalliance.intercept.MethodInterceptor;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,12 +59,15 @@ public class SpringMvcServerFunctionTest
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired(required = false)
+    private List<MethodInterceptor> methodInterceptors = new LinkedList<>();
+
     @Before
     public void before() throws IOException
     {
         final FunctionManagerDirector fmd = new FunctionManagerDirector(basepath, "lamebda", applicationContext);
         final FunctionManager fm = fmd.getFunctionManagers().values().iterator().next();
-        new ProjectSetupService().onApplicationEvent(new ProjectLoadedEvent(fm.getProjectConfiguration(), fm.getProjectContext()));
+        new ProjectSetupService(applicationContext, methodInterceptors).onApplicationEvent(new ProjectLoadedEvent(fm.getProjectConfiguration(), fm.getProjectContext()));
     }
 
     @Test

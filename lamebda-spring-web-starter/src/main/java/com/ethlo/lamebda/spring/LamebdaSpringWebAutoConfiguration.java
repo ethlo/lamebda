@@ -22,7 +22,10 @@ package com.ethlo.lamebda.spring;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.LinkedList;
+import java.util.List;
 
+import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -50,6 +53,9 @@ public class LamebdaSpringWebAutoConfiguration
     @Autowired
     private ApplicationContext parentContext;
 
+    @Autowired(required=false)
+    private List<MethodInterceptor> methodInterceptors = new LinkedList<>();
+
     public void setRootContextPath(String rootContextPath)
     {
         this.rootContextPath = rootContextPath;
@@ -66,7 +72,7 @@ public class LamebdaSpringWebAutoConfiguration
     @Bean
     public ProjectSetupService projectSetupService()
     {
-        return new ProjectSetupService();
+        return new ProjectSetupService(parentContext, methodInterceptors);
     }
 
     @Bean

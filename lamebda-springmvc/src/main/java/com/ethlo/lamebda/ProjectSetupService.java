@@ -27,8 +27,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.aopalliance.intercept.MethodInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.aop.Advisor;
+import org.springframework.aop.aspectj.annotation.BeanFactoryAspectJAdvisorsBuilder;
+import org.springframework.aop.framework.ProxyFactoryBean;
+import org.springframework.aop.target.SingletonTargetSource;
+import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.stereotype.Controller;
@@ -46,22 +52,39 @@ import com.ethlo.lamebda.spring.OpenRequestMappingHandlerMapping;
 public class ProjectSetupService implements ApplicationListener<ProjectLoadedEvent>
 {
     private static final Logger logger = LoggerFactory.getLogger(ProjectSetupService.class);
-
     private final OpenRequestMappingHandlerMapping openRequestMappingHandlerMapping = new OpenRequestMappingHandlerMapping();
+
+    private final ListableBeanFactory beanFactory;
+    private final List<MethodInterceptor> methodInterceptors;
+
+    public ProjectSetupService(final ListableBeanFactory beanFactory, final List<MethodInterceptor> methodInterceptors)
+    {
+        this.beanFactory = beanFactory;
+        this.methodInterceptors = methodInterceptors;
+    }
 
     private List<RequestMapping> register(RequestMappingHandlerMapping handlerMapping, Object controller, ProjectConfiguration projectConfiguration)
     {
+        final Object wrappedController = wrapController(controller);
+
         final List<RequestMapping> result = new LinkedList<>();
         Arrays.asList(ReflectionUtils.getUniqueDeclaredMethods(controller.getClass())).forEach(method ->
         {
             final RequestMappingInfo mapping = openRequestMappingHandlerMapping.getMappingForMethod(method, controller);
             if (mapping != null)
             {
-                final RequestMapping res = doRegister(handlerMapping, controller, method, mapping, projectConfiguration);
+                final RequestMapping res = doRegister(handlerMapping, wrappedController, method, mapping, projectConfiguration);
                 result.add(res);
             }
         });
         return result;
+    }
+
+    private Object wrapController(final Object controller)
+    {
+        final BeanFactoryAspectJAdvisorsBuilder advisorsBuilder = new BeanFactoryAspectJAdvisorsBuilder(beanFactory);
+        final List<Advisor> advisors = advisorsBuilder.buildAspectJAdvisors();
+        return createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors, controller);
     }
 
     private RequestMapping doRegister(final RequestMappingHandlerMapping handlerMapping, final Object object, final Method m, final RequestMappingInfo mapping, ProjectConfiguration projectConfiguration)
@@ -111,4 +134,17 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
             }
         });
     }
+
+    private Object createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors, Object controller)
+    {
+        final ProxyFactoryBean proxyFactoryBean = new ProxyFactoryBean();
+        proxyFactoryBean.setProxyTargetClass(true);
+        proxyFactoryBean.setProxyClassLoader(controller.getClass().getClassLoader());
+        proxyFactoryBean.setTargetSource(new SingletonTargetSource(controller));
+        proxyFactoryBean.addAdvisors(advisors);
+        methodInterceptors.forEach(proxyFactoryBean::addAdvice);
+        return proxyFactoryBean.getObject();
+    }
+
+
 }
