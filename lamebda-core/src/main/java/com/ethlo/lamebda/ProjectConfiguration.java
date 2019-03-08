@@ -192,4 +192,9 @@ public class ProjectConfiguration implements Serializable
     {
         return getPath().resolve("src").resolve("main").resolve("resources");
     }
+
+    public Path getJavaSourcePath()
+    {
+        return getPath().resolve("src").resolve("main").resolve("java");
+    }
 }

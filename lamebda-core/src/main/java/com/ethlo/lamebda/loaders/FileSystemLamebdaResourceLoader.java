@@ -49,6 +49,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
     public static final String JAR_EXTENSION = "jar";
     public static final String GROOVY_EXTENSION = "groovy";
+    public static final String JAVA_EXTENSION = "java";
     public static final String PROPERTIES_EXTENSION = "properties";
 
     public static final String STATIC_DIRECTORY = "static";

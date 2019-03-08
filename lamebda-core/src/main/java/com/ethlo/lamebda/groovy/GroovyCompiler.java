@@ -27,6 +27,8 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -43,10 +45,15 @@ public class GroovyCompiler
 {
     private static final Logger logger = LoggerFactory.getLogger(GroovyCompiler.class);
 
-    public static void compile(GroovyClassLoader cl, Path path, Path classesDir)
+    public static void compile(GroovyClassLoader cl, Set<Path> sourcePaths, Path classesDir)
     {
         final CompilationUnit compileUnit = new CompilationUnit(cl);
-        final List<Path> sourceFiles = findSourceFiles(path, FileSystemLamebdaResourceLoader.GROOVY_EXTENSION);
+        final Set<Path> sourceFiles = new TreeSet<>();
+        for (Path path : sourcePaths)
+        {
+            sourceFiles.addAll(findSourceFiles(path, FileSystemLamebdaResourceLoader.GROOVY_EXTENSION));
+        }
+
         for (Path sourceFile : sourceFiles)
         {
             logger.debug("Found source {}", sourceFile);

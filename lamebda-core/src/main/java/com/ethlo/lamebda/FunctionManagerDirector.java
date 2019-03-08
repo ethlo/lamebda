@@ -212,6 +212,7 @@ public class FunctionManagerDirector
     private boolean isKnownType(final String filename)
     {
         return filename.endsWith(FileSystemLamebdaResourceLoader.GROOVY_EXTENSION)
+                || filename.endsWith(FileSystemLamebdaResourceLoader.JAVA_EXTENSION)
                 || filename.endsWith(FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION)
                 || filename.equals(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
     }

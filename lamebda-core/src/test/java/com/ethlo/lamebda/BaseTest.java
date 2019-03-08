@@ -28,10 +28,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -43,14 +45,15 @@ public abstract class BaseTest
 {
     private final Path rootPath = Paths.get("src/test/projects");
     protected final Path projectPath = rootPath.resolve("myproject");
-    protected final FunctionManagerImpl functionManager;
+    protected FunctionManagerImpl functionManager;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    protected final FileSystemLamebdaResourceLoader loader;
+    protected FileSystemLamebdaResourceLoader loader;
 
     @Autowired
     private ApplicationContext parentContext;
 
-    public BaseTest()
+    @Before
+    public void setup()
     {
         try
         {

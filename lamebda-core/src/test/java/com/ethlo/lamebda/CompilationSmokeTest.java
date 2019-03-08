@@ -1,8 +1,10 @@
+package com.ethlo.lamebda;
+
 /*-
  * #%L
  * lamebda-core
  * %%
- * Copyright (C) 2018 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,25 +19,14 @@
  * limitations under the License.
  * #L%
  */
-import mypackage.*
-import other.Other
-import spec.Pet
 
-class Correct {
+import org.junit.Test;
 
-    Correct() {
+public class CompilationSmokeTest extends BaseTest
+{
+    @Test
+    public void testCompile()
+    {
 
-        // From /shared
-        new MyLib().helloWorld("John Smith")
-
-        // Nested class in /shared
-        Other.Nested p = new Other.Nested()
-
-        // From generated model
-        def pet = new Pet()
-    }
-
-    def get() {
-        return [method: "GET", message: 'Hello world']
     }
 }

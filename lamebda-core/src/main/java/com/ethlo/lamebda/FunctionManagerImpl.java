@@ -9,8 +9,11 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,10 +22,12 @@ import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.groovy.GroovyCompiler;
+import com.ethlo.lamebda.java.JavaCompiler;
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
@@ -63,6 +68,9 @@ public class FunctionManagerImpl implements FunctionManager
 
     public FunctionManagerImpl(ApplicationContext parentContext, LamebdaResourceLoader lamebdaResourceLoader)
     {
+        Assert.notNull(parentContext, "parentContext cannot be null");
+        Assert.notNull(parentContext, "lamebdaResourceLoader cannot be null");
+
         this.projectConfiguration = lamebdaResourceLoader.getProjectConfiguration();
         final Path apiPath = projectConfiguration.getSpecificationPath().resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
         final Path jarDir = projectConfiguration.getPath().resolve(".generator");
@@ -177,16 +185,39 @@ public class FunctionManagerImpl implements FunctionManager
 
     private void compileSources()
     {
-        final Path groovySourcePath = getProjectConfiguration().getGroovySourcePath();
-        if (Files.isDirectory(groovySourcePath))
+        final Path classesDir = projectConfiguration.getTargetClassDirectory();
+        compileGroovy(classesDir);
+        compileJava(classesDir);
+    }
+
+    private void compileGroovy(Path classesDir)
+    {
+        final Set<Path> sourcePaths = new TreeSet<>(Arrays.asList(IoUtil.exists(getProjectConfiguration().getGroovySourcePath(), getProjectConfiguration().getPath().resolve("target").resolve("generated-sources").resolve("models"))));
+
+        if (!sourcePaths.isEmpty())
         {
-            logger.info("Compiling sources in {}", groovySourcePath);
+            logger.info("Compiling groovy sources in {}", StringUtils.collectionToCommaDelimitedString(sourcePaths));
             final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
-            GroovyCompiler.compile(groovyClassLoader, groovySourcePath, getProjectConfiguration().getTargetClassDirectory());
+            GroovyCompiler.compile(groovyClassLoader, sourcePaths, classesDir);
         }
         else
         {
-            logger.info("No sources to compile at {}", groovySourcePath);
+            logger.info("No groovy sources to compile");
+        }
+    }
+
+    private void compileJava(Path classesDir)
+    {
+        final Path javaSourcePath = getProjectConfiguration().getJavaSourcePath();
+        if (Files.isDirectory(javaSourcePath))
+        {
+            logger.info("Compiling java sources in {}", javaSourcePath);
+            final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
+            JavaCompiler.compile(groovyClassLoader, javaSourcePath, classesDir);
+        }
+        else
+        {
+            logger.info("No java sources to compile");
         }
     }
 
