@@ -1,4 +1,4 @@
-package com.ethlo.lamebda.reporting;
+package com.ethlo.lamebda.mapping;
 
 /*-
  * #%L

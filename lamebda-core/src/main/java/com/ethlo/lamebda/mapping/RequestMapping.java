@@ -25,7 +25,6 @@ import java.util.Objects;
 import java.util.Set;
 
 import com.ethlo.lamebda.HttpMethod;
-import com.ethlo.lamebda.reporting.MethodAndPattern;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 public class RequestMapping implements Comparable<RequestMapping>

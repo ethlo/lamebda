@@ -1,4 +1,4 @@
-package com.ethlo.lamebda.groovy;
+package com.ethlo.lamebda.compiler;
 
 /*-
  * #%L
@@ -21,16 +21,11 @@ package com.ethlo.lamebda.groovy;
  */
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.codehaus.groovy.control.CompilationUnit;
 import org.codehaus.groovy.control.CompilerConfiguration;
@@ -41,19 +36,23 @@ import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
-public class GroovyCompiler
+public class GroovyCompiler implements LamebdaCompiler
 {
     private static final Logger logger = LoggerFactory.getLogger(GroovyCompiler.class);
+    private final GroovyClassLoader classLoader;
+    private final Set<Path> sourcePaths;
 
-    public static void compile(GroovyClassLoader cl, Set<Path> sourcePaths, Path classesDir)
+    public GroovyCompiler(GroovyClassLoader classLoader, Set<Path> sourcePaths)
     {
-        final CompilationUnit compileUnit = new CompilationUnit(cl);
-        final Set<Path> sourceFiles = new TreeSet<>();
-        for (Path path : sourcePaths)
-        {
-            sourceFiles.addAll(findSourceFiles(path, FileSystemLamebdaResourceLoader.GROOVY_EXTENSION));
-        }
+        this.classLoader = classLoader;
+        this.sourcePaths = sourcePaths;
+    }
 
+    @Override
+    public void compile(Path classesDir)
+    {
+        final CompilationUnit compileUnit = new CompilationUnit(classLoader);
+        final List<Path> sourceFiles = CompilerUtil.findSourceFiles(FileSystemLamebdaResourceLoader.GROOVY_EXTENSION, sourcePaths.toArray(new Path[0]));
         for (Path sourceFile : sourceFiles)
         {
             logger.debug("Found source {}", sourceFile);
@@ -66,23 +65,11 @@ public class GroovyCompiler
         compileUnit.compile();
         try
         {
-            cl.addURL(classesDir.toAbsolutePath().toUri().toURL());
+            classLoader.addURL(classesDir.toAbsolutePath().toUri().toURL());
         }
         catch (MalformedURLException e)
         {
             throw new UncheckedIOException(e);
-        }
-    }
-
-    public static List<Path> findSourceFiles(Path sourceDir, String extension)
-    {
-        try (Stream<Path> stream = Files.walk(sourceDir))
-        {
-            return stream.filter(e -> e.getFileName().toString().endsWith(extension) && Files.isRegularFile(e)).collect(Collectors.toList());
-        }
-        catch (IOException exc)
-        {
-            throw new UncheckedIOException(exc);
         }
     }
 }

@@ -19,7 +19,6 @@ package acme
  * #L%
  */
 
-import com.ethlo.lamebda.spring.SpringMvcServerFunction
 import org.springframework.stereotype.Controller
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -27,12 +26,10 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.ResponseBody
 
 @Controller
-class SpringMvc extends SpringMvcServerFunction {
+class SpringMvc {
     @PostMapping("test/{id}")
     @ResponseBody
     post(@RequestBody RequestClass request, @PathVariable("id") String id) {
-        logger.info("Request body payload={}", request.payload)
-        logger.info("id={}", id)
         return Collections.singletonMap("id", id)
     }
 }
