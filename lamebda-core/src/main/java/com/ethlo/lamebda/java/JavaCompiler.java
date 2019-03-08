@@ -72,7 +72,9 @@ public class JavaCompiler
 
     private static File[] getClassPathFiles(ClassLoader cl)
     {
-        final Set<File> files = new TreeSet<>(getCurrentClassPath(cl));
+        final Set<File> files = new TreeSet<>(getCurrentClassPath(cl.getParent()));
+        files.addAll(getCurrentClassPath(cl));
+
         return files.toArray(new File[0]);
     }
 
