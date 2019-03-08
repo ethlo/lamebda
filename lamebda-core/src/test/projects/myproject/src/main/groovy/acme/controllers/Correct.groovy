@@ -17,15 +17,11 @@
  * limitations under the License.
  * #L%
  */
-import com.ethlo.lamebda.HttpRequest
-import com.ethlo.lamebda.HttpResponse
-import com.ethlo.lamebda.HttpStatus
-import com.ethlo.lamebda.SimpleServerFunction
 import mypackage.*
 import other.Other
 import spec.Pet
 
-class Correct extends SimpleServerFunction {
+class Correct {
 
     Correct() {
 
@@ -39,8 +35,7 @@ class Correct extends SimpleServerFunction {
         def pet = new Pet()
     }
 
-    @Override
-    void get(HttpRequest request, HttpResponse response) {
-        response.json(HttpStatus.OK, [method: request.method, message: 'Hello world'])
+    def get() {
+        return [method: "GET", message: 'Hello world']
     }
 }

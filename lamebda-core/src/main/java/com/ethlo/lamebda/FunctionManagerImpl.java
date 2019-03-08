@@ -19,10 +19,12 @@ import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.groovy.GroovyCompiler;
+import com.ethlo.lamebda.java.JavaCompiler;
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
@@ -63,6 +65,9 @@ public class FunctionManagerImpl implements FunctionManager
 
     public FunctionManagerImpl(ApplicationContext parentContext, LamebdaResourceLoader lamebdaResourceLoader)
     {
+        Assert.notNull(parentContext, "parentContext cannot be null");
+        Assert.notNull(parentContext, "lamebdaResourceLoader cannot be null");
+
         this.projectConfiguration = lamebdaResourceLoader.getProjectConfiguration();
         final Path apiPath = projectConfiguration.getSpecificationPath().resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
         final Path jarDir = projectConfiguration.getPath().resolve(".generator");
@@ -177,6 +182,12 @@ public class FunctionManagerImpl implements FunctionManager
 
     private void compileSources()
     {
+        compileGroovy();
+        compileJava();
+    }
+
+    private void compileGroovy()
+    {
         final Path groovySourcePath = getProjectConfiguration().getGroovySourcePath();
         if (Files.isDirectory(groovySourcePath))
         {
@@ -187,6 +198,21 @@ public class FunctionManagerImpl implements FunctionManager
         else
         {
             logger.info("No sources to compile at {}", groovySourcePath);
+        }
+    }
+
+    private void compileJava()
+    {
+        final Path javaSourcePath = getProjectConfiguration().getJavaSourcePath();
+        if (Files.isDirectory(javaSourcePath))
+        {
+            logger.info("Compiling sources in {}", javaSourcePath);
+            final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
+            JavaCompiler.compile(groovyClassLoader, javaSourcePath, getProjectConfiguration().getTargetClassDirectory());
+        }
+        else
+        {
+            logger.info("No sources to compile at {}", javaSourcePath);
         }
     }
 
