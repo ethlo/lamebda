@@ -52,13 +52,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public static final String JAVA_EXTENSION = "java";
     public static final String PROPERTIES_EXTENSION = "properties";
 
-    public static final String STATIC_DIRECTORY = "static";
     public static final String SPECIFICATION_DIRECTORY = "specification";
     public static final String LIB_DIRECTORY = "lib";
 
     public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
 
-    private GroovyClassLoader groovyClassLoader;
+    private final GroovyClassLoader classLoader;
     private final ProjectConfiguration projectConfiguration;
 
     private Path libPath;
@@ -75,7 +74,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
 
         logger.debug("Loading project: {}", projectConfiguration.toPrettyString());
 
-        this.groovyClassLoader = new GroovyClassLoader();
+        this.classLoader = new GroovyClassLoader();
 
         final Path archivePath = projectPath.resolve(projectPath.getFileName() + "." + JAR_EXTENSION);
         if (Files.exists(archivePath))
@@ -100,7 +99,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
         {
             getLibUrls().forEach(url ->
             {
-                groovyClassLoader.addClasspath(url);
+                classLoader.addClasspath(url);
                 logger.info("Adding library classpath {}", url);
             });
         }
@@ -150,7 +149,7 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     public void close() throws IOException
     {
         logger.info("Closing class loader");
-        this.groovyClassLoader.close();
+        this.classLoader.close();
     }
 
     @Override
@@ -162,12 +161,12 @@ public class FileSystemLamebdaResourceLoader implements LamebdaResourceLoader
     @Override
     public void addClasspath(final String path)
     {
-        this.groovyClassLoader.addClasspath(path);
+        this.classLoader.addClasspath(path);
     }
 
     @Override
-    public ClassLoader getClassLoader()
+    public GroovyClassLoader getClassLoader()
     {
-        return groovyClassLoader;
+        return classLoader;
     }
 }

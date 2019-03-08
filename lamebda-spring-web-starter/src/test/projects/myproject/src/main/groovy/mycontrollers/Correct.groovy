@@ -18,7 +18,6 @@ package mycontrollers
  * limitations under the License.
  * #L%
  */
-import com.ethlo.lamebda.spring.SpringMvcServerFunction
 import mypackage.SharedService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
@@ -28,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/springmvc")
-class Correct extends SpringMvcServerFunction {
+class Correct {
 
     @Autowired
     SharedService sharedService

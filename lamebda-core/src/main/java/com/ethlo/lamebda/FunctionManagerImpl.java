@@ -25,9 +25,9 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import com.ethlo.lamebda.compiler.GroovyCompiler;
+import com.ethlo.lamebda.compiler.JavaCompiler;
 import com.ethlo.lamebda.generator.GeneratorHelper;
-import com.ethlo.lamebda.groovy.GroovyCompiler;
-import com.ethlo.lamebda.java.JavaCompiler;
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
@@ -167,7 +167,7 @@ public class FunctionManagerImpl implements FunctionManager
 
     private void addResourceClasspath()
     {
-        final GroovyClassLoader gcl = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
+        final GroovyClassLoader gcl = lamebdaResourceLoader.getClassLoader();
         final URL mainResourcesUrl = IoUtil.toURL(projectConfiguration.getMainResourcePath());
         logger.info("Adding main resources to classpath: {}", mainResourcesUrl);
         gcl.addURL(mainResourcesUrl);
@@ -197,8 +197,9 @@ public class FunctionManagerImpl implements FunctionManager
         if (!sourcePaths.isEmpty())
         {
             logger.info("Compiling groovy sources in {}", StringUtils.collectionToCommaDelimitedString(sourcePaths));
-            final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
-            GroovyCompiler.compile(groovyClassLoader, sourcePaths, classesDir);
+            final GroovyClassLoader classLoader = lamebdaResourceLoader.getClassLoader();
+            final GroovyCompiler groovyCompiler = new GroovyCompiler(classLoader, sourcePaths);
+            groovyCompiler.compile(classesDir);
         }
         else
         {
@@ -212,8 +213,9 @@ public class FunctionManagerImpl implements FunctionManager
         if (Files.isDirectory(javaSourcePath))
         {
             logger.info("Compiling java sources in {}", javaSourcePath);
-            final GroovyClassLoader groovyClassLoader = (GroovyClassLoader) lamebdaResourceLoader.getClassLoader();
-            JavaCompiler.compile(groovyClassLoader, javaSourcePath, classesDir);
+            final GroovyClassLoader classLoader = lamebdaResourceLoader.getClassLoader();
+            final JavaCompiler jp = new JavaCompiler(classLoader, javaSourcePath);
+            jp.compile(classesDir);
         }
         else
         {
@@ -252,7 +254,7 @@ public class FunctionManagerImpl implements FunctionManager
         final Path modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath();
         if (Files.exists(modelPath))
         {
-            lamebdaResourceLoader.addClasspath(modelPath.toString());
+            lamebdaResourceLoader.addClasspath(modelPath.toAbsolutePath().toString());
             logger.info("Added model classpath {}", modelPath);
         }
     }

@@ -36,7 +36,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.reporting.FunctionMetricsService;
 
 @RestController
 @RequestMapping(value = "/status", produces = "application/json")
@@ -66,7 +65,6 @@ public class ProjectStatusController
         projectInfo.put("configuration", projectConfiguration);
         res.put("project", projectInfo);
         res.put("functions", mappings);
-        res.put("metrics", FunctionMetricsService.getInstance().getMetrics());
         return res;
     }
 

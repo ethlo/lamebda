@@ -23,9 +23,8 @@
 	</developers>
 	<modules>
 		<module>lamebda-core</module>
-		<module>lamebda-servlet</module>
 		<module>lamebda-spring-web-starter</module>
-        <module>lamebda-springmvc</module>
+                <module>lamebda-springmvc</module>
     </modules>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

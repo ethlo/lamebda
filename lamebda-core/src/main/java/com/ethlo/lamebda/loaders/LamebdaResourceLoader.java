@@ -23,6 +23,7 @@ package com.ethlo.lamebda.loaders;
 import java.io.IOException;
 
 import com.ethlo.lamebda.ProjectConfiguration;
+import groovy.lang.GroovyClassLoader;
 
 public interface LamebdaResourceLoader extends AutoCloseable
 {
@@ -32,5 +33,5 @@ public interface LamebdaResourceLoader extends AutoCloseable
 
     void addClasspath(String path);
 
-    ClassLoader getClassLoader();
+    GroovyClassLoader getClassLoader();
 }

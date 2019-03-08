@@ -1,4 +1,4 @@
-package com.ethlo.lamebda;
+package com.ethlo.lamebda.compiler;
 
 /*-
  * #%L
@@ -20,11 +20,9 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.util.Set;
+import java.nio.file.Path;
 
-import com.ethlo.lamebda.mapping.RequestMapping;
-
-public interface URLMappedServerFunction
+public interface LamebdaCompiler
 {
-    Set<RequestMapping> getUrlMapping();
+    void compile(Path targetPath);
 }
