@@ -79,7 +79,7 @@ public class JavaCompiler implements LamebdaCompiler
         }
     }
 
-    private File[] getClassPathFiles(ClassLoader cl)
+    private File[] getClassPathFiles()
     {
         final Set<File> files = new TreeSet<>(getCurrentClassPath((URLClassLoader) classLoader.getParent()));
         files.addAll(getCurrentClassPath(classLoader));
@@ -108,7 +108,7 @@ public class JavaCompiler implements LamebdaCompiler
             logger.debug("Compiling: {}", StringUtils.collectionToCommaDelimitedString(sourceFiles));
 
             final Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(sourceFiles);
-            final File[] classPathFiles = getClassPathFiles(classLoader);
+            final File[] classPathFiles = getClassPathFiles();
 
             final String compileClassPath = StringUtils.arrayToDelimitedString(classPathFiles, File.pathSeparator);
             logger.debug("Classpath: " + compileClassPath);
