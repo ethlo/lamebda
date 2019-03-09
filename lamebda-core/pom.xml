@@ -5,17 +5,12 @@
     <parent>
         <groupId>com.ethlo.lamebda</groupId>
         <artifactId>lamebda</artifactId>
-        <version>0.8.3</version>
+        <version>0.8.4</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.ethlo.time</groupId>
-            <artifactId>itu</artifactId>
-            <version>1.2</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -29,10 +24,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.datatype</groupId>
-            <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
