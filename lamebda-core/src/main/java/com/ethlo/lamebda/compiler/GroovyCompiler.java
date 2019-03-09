@@ -31,8 +31,9 @@ import org.codehaus.groovy.control.CompilationUnit;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
+import com.ethlo.lamebda.FunctionManagerImpl;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
@@ -46,13 +47,20 @@ public class GroovyCompiler implements LamebdaCompiler
     {
         this.classLoader = classLoader;
         this.sourcePaths = sourcePaths;
+        logger.debug("Groovy source paths: {}", StringUtils.collectionToCommaDelimitedString(this.sourcePaths));
     }
 
     @Override
     public void compile(Path classesDir)
     {
         final CompilationUnit compileUnit = new CompilationUnit(classLoader);
-        final List<Path> sourceFiles = CompilerUtil.findSourceFiles(FileSystemLamebdaResourceLoader.GROOVY_EXTENSION, sourcePaths.toArray(new Path[0]));
+        final List<Path> sourceFiles = CompilerUtil.findSourceFiles(FunctionManagerImpl.GROOVY_EXTENSION, sourcePaths.toArray(new Path[0]));
+        if (sourceFiles.isEmpty())
+        {
+            return;
+        }
+        logger.info("Found {} groovy files", sourceFiles.size());
+
         for (Path sourceFile : sourceFiles)
         {
             logger.debug("Found source {}", sourceFile);
@@ -72,4 +80,5 @@ public class GroovyCompiler implements LamebdaCompiler
             throw new UncheckedIOException(e);
         }
     }
+
 }

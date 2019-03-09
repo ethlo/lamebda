@@ -48,7 +48,7 @@ public class WatchDir implements AutoCloseable
 {
     private static final Logger logger = LoggerFactory.getLogger(WatchDir.class);
 
-    private static WatchEvent.Modifier modifier = getComSunNioFileSensitivityWatchEventModifierHigh();
+    private static final WatchEvent.Modifier modifier = getComSunNioFileSensitivityWatchEventModifierHigh();
 
     private final WatchService watcher;
     private final Map<WatchKey, Path> keys;

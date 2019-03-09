@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,13 +44,17 @@ public class CompilerUtil
 
     public static List<Path> findSourceFiles(String extension, Path sourceDirectory)
     {
-        try (Stream<Path> stream = Files.walk(sourceDirectory))
+        if (Files.exists(sourceDirectory))
         {
-            return stream.filter(e -> e.getFileName().toString().endsWith(extension) && Files.isRegularFile(e)).collect(Collectors.toList());
+            try (Stream<Path> stream = Files.walk(sourceDirectory))
+            {
+                return stream.filter(e -> e.getFileName().toString().endsWith(extension) && Files.isRegularFile(e)).collect(Collectors.toList());
+            }
+            catch (IOException exc)
+            {
+                throw new UncheckedIOException(exc);
+            }
         }
-        catch (IOException exc)
-        {
-            throw new UncheckedIOException(exc);
-        }
+        return Collections.emptyList();
     }
 }

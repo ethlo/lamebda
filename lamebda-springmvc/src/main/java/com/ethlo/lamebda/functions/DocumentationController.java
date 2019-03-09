@@ -47,17 +47,18 @@ public class DocumentationController
     public ResponseEntity<String> getSpecFile() throws IOException
     {
         final ClassPathResource res = new ClassPathResource("/specification/oas.yaml", classLoader);
-        if (res.exists())
-        {
-            return new ResponseEntity<>(IoUtil.toString(res.getInputStream(), StandardCharsets.UTF_8), HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        return serveContent(res);
     }
 
     @GetMapping(value = "/api/doc", produces = "text/html")
     public ResponseEntity<String> getDocFile() throws IOException
     {
         final ClassPathResource res = new ClassPathResource("/api-doc/index.html", classLoader);
+        return serveContent(res);
+    }
+
+    private ResponseEntity<String> serveContent(final ClassPathResource res) throws IOException
+    {
         if (res.exists())
         {
             return new ResponseEntity<>(IoUtil.toString(res.getInputStream(), StandardCharsets.UTF_8), HttpStatus.OK);

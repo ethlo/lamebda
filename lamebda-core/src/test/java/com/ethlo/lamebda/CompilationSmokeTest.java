@@ -20,6 +20,8 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.Test;
 
 public class CompilationSmokeTest extends BaseTest
@@ -27,6 +29,7 @@ public class CompilationSmokeTest extends BaseTest
     @Test
     public void testCompile()
     {
-
+        assertThat(super.functionManager).isNotNull();
+        super.functionManager.close();
     }
 }

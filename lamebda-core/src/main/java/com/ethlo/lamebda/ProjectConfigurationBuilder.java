@@ -34,12 +34,10 @@ import java.util.Properties;
 
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-
 public class ProjectConfigurationBuilder
 {
-    private String rootContextPath;
-    private String projectPath;
+    private final String rootContextPath;
+    private final String projectPath;
     private String projectName;
     private String projectContextPath;
     private boolean enableUrlProjectContextPrefix;
@@ -100,7 +98,7 @@ public class ProjectConfigurationBuilder
 
     public ProjectConfigurationBuilder loadIfExists()
     {
-        final Path projectConfigFile = Paths.get(projectPath).resolve(FileSystemLamebdaResourceLoader.PROJECT_FILENAME);
+        final Path projectConfigFile = Paths.get(projectPath).resolve(FunctionManagerImpl.PROJECT_FILENAME);
         if (Files.exists(projectConfigFile))
         {
             final Properties p = new Properties();

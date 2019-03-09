@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
+import com.ethlo.lamebda.FunctionManagerImpl;
 
 public class IoUtil
 {
@@ -71,30 +71,6 @@ public class IoUtil
     public static String toString(InputStream in, Charset charset)
     {
         return new String(toByteArray(in), charset);
-    }
-
-    public static void deleteDirectory(final Path directory) throws IOException
-    {
-        if (!Files.exists(directory) || !Files.isDirectory(directory))
-        {
-            return;
-        }
-        Files.walkFileTree(directory, new SimpleFileVisitor<Path>()
-        {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
-            {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException
-            {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
     }
 
     public static void copyFolder(Path src, Path dest) throws IOException
@@ -136,45 +112,13 @@ public class IoUtil
         }
     }
 
-    public static Optional<byte[]> classPathResource(final String path)
-    {
-        final InputStream in = IoUtil.class.getResourceAsStream(path);
-        if (in != null)
-        {
-            return Optional.of(toByteArray(in));
-        }
-        return Optional.empty();
-    }
-
-    public static Optional<byte[]> classPathResource(final String path, ClassLoader classLoader)
-    {
-        final InputStream in = classLoader.getResourceAsStream(path);
-        if (in != null)
-        {
-            return Optional.of(toByteArray(in));
-        }
-        return Optional.empty();
-    }
-
-    public static Optional<byte[]> toByteArray(final Path file)
-    {
-        try
-        {
-            return Optional.of(Files.readAllBytes(file));
-        }
-        catch (IOException e)
-        {
-            return Optional.empty();
-        }
-    }
-
     public static List<String> toClassPathList(final Path jarPath)
     {
         try
         {
             return Files
                     .list(jarPath)
-                    .filter(p -> FileNameUtil.getExtension(p.getFileName().toString()).equals(FileSystemLamebdaResourceLoader.JAR_EXTENSION))
+                    .filter(p -> p.getFileName().toString().endsWith("." + FunctionManagerImpl.JAR_EXTENSION))
                     .map(Path::toString)
                     .collect(Collectors.toList());
         }

@@ -36,7 +36,6 @@ import org.springframework.util.Assert;
 
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 
 public class FunctionManagerDirector
 {
@@ -46,7 +45,7 @@ public class FunctionManagerDirector
     private final String rootContext;
     private final ApplicationContext parentContext;
 
-    private Map<Path, FunctionManager> functionManagers = new ConcurrentHashMap<>();
+    private final Map<Path, FunctionManager> functionManagers = new ConcurrentHashMap<>();
     private WatchDir watchDir;
 
     public FunctionManagerDirector(final Path rootDirectory, String rootContext, ApplicationContext parentContext) throws IOException
@@ -107,7 +106,7 @@ public class FunctionManagerDirector
             public void run()
             {
                 setName("watch-dir");
-                logger.info("Watching {} for changes", rootDirectory);
+                logger.debug("Watching {} for changes", rootDirectory);
                 watchDir.processEvents();
             }
         }.start();
@@ -178,23 +177,17 @@ public class FunctionManagerDirector
     private void create(final Path projectPath)
     {
         logger.info("Loading {}", projectPath);
-        FileSystemLamebdaResourceLoader lamebdaResourceLoader = null;
         FunctionManagerImpl fm = null;
         try
         {
-            lamebdaResourceLoader = createResourceLoader(projectPath);
-            fm = new FunctionManagerImpl(parentContext, lamebdaResourceLoader);
+            final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
+            fm = new FunctionManagerImpl(parentContext, cfg);
             functionManagers.put(projectPath, fm);
         }
         catch (Exception exc)
         {
             try
             {
-                if (lamebdaResourceLoader != null)
-                {
-                    lamebdaResourceLoader.close();
-                }
-
                 if (fm != null)
                 {
                     fm.close();
@@ -211,23 +204,10 @@ public class FunctionManagerDirector
 
     private boolean isKnownType(final String filename)
     {
-        return filename.endsWith(FileSystemLamebdaResourceLoader.GROOVY_EXTENSION)
-                || filename.endsWith(FileSystemLamebdaResourceLoader.JAVA_EXTENSION)
-                || filename.endsWith(FileSystemLamebdaResourceLoader.PROPERTIES_EXTENSION)
-                || filename.equals(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
-    }
-
-    private FileSystemLamebdaResourceLoader createResourceLoader(Path projectPath)
-    {
-        final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
-        try
-        {
-            return new FileSystemLamebdaResourceLoader(cfg);
-        }
-        catch (IOException exc)
-        {
-            throw new UncheckedIOException(exc);
-        }
+        return filename.endsWith(FunctionManagerImpl.GROOVY_EXTENSION)
+                || filename.endsWith(FunctionManagerImpl.JAVA_EXTENSION)
+                || filename.endsWith(FunctionManagerImpl.PROPERTIES_EXTENSION)
+                || filename.equals(FunctionManagerImpl.API_SPECIFICATION_YAML_FILENAME);
     }
 
     public Map<Path, FunctionManager> getFunctionManagers()

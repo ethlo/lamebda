@@ -28,7 +28,6 @@ import java.util.List;
 
 import org.springframework.util.Assert;
 
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,17 +37,17 @@ public class ProjectConfiguration implements Serializable
 {
     private final boolean listenForChanges;
 
-    private String rootContextPath;
+    private final String rootContextPath;
 
-    private String contextPath;
+    private final String contextPath;
 
-    private boolean enableUrlProjectContextPrefix;
-    private String path;
-    private String name;
-    private String version;
+    private final boolean enableUrlProjectContextPrefix;
+    private final String path;
+    private final String name;
+    private final String version;
 
-    private String apiDocGenerator;
-    private List<String> basePackages;
+    private final String apiDocGenerator;
+    private final List<String> basePackages;
 
     ProjectConfiguration(ProjectConfigurationBuilder b)
     {
@@ -121,7 +120,7 @@ public class ProjectConfiguration implements Serializable
     /**
      * Returns the left-most URL path component, typically after the servlet context path. For example /servlet-name/<root-context-path>/my-function
      *
-     * @return
+     * @return the left-most URL path component
      */
     public String getRootContextPath()
     {
@@ -164,12 +163,12 @@ public class ProjectConfiguration implements Serializable
 
     public Path getLibraryPath()
     {
-        return this.getPath().resolve(FileSystemLamebdaResourceLoader.LIB_DIRECTORY);
+        return this.getPath().resolve(FunctionManagerImpl.LIB_DIRECTORY);
     }
 
     public Path getSpecificationPath()
     {
-        return this.getPath().resolve("src").resolve("main").resolve("resources").resolve(FileSystemLamebdaResourceLoader.SPECIFICATION_DIRECTORY);
+        return this.getPath().resolve("src").resolve("main").resolve("resources").resolve(FunctionManagerImpl.SPECIFICATION_DIRECTORY);
     }
 
     @JsonProperty("system.base-packages")

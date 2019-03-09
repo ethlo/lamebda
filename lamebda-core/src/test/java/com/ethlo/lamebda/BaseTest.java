@@ -36,17 +36,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
 @RunWith(SpringRunner.class)
 public abstract class BaseTest
 {
     private final Path rootPath = Paths.get("src/test/projects");
-    protected final Path projectPath = rootPath.resolve("myproject");
+    private final Path projectPath = rootPath.resolve("myproject");
     protected FunctionManagerImpl functionManager;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    protected FileSystemLamebdaResourceLoader loader;
 
     @Autowired
     private ApplicationContext parentContext;
@@ -59,8 +57,7 @@ public abstract class BaseTest
             deployGenerator();
 
             final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).listenForChanges(false).basePackages("acme").build();
-            loader = new FileSystemLamebdaResourceLoader(cfg);
-            functionManager = new FunctionManagerImpl(parentContext, loader);
+            functionManager = new FunctionManagerImpl(parentContext, cfg);
         }
         catch (IOException exc)
         {

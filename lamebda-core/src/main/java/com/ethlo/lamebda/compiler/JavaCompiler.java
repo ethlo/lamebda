@@ -28,7 +28,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,20 +45,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import groovy.lang.GroovyClassLoader;
+import com.ethlo.lamebda.FunctionManagerImpl;
 
 public class JavaCompiler implements LamebdaCompiler
 {
     private static final Logger logger = LoggerFactory.getLogger(JavaCompiler.class);
 
-    private final GroovyClassLoader classLoader;
+    private final URLClassLoader classLoader;
     private final List<Path> sourcePaths;
 
-    public JavaCompiler(GroovyClassLoader classLoader, Path... sourcePaths)
+    public JavaCompiler(URLClassLoader classLoader, List<Path> sourcePaths)
     {
         this.classLoader = classLoader;
-        this.sourcePaths = Arrays.asList(sourcePaths);
+        this.sourcePaths = sourcePaths;
+        logger.debug("Java source paths: {}", StringUtils.collectionToCommaDelimitedString(sourcePaths));
     }
 
     private List<File> getCurrentClassPath(URLClassLoader cl)
@@ -83,7 +82,6 @@ public class JavaCompiler implements LamebdaCompiler
     {
         final Set<File> files = new TreeSet<>(getCurrentClassPath((URLClassLoader) classLoader.getParent()));
         files.addAll(getCurrentClassPath(classLoader));
-
         return files.toArray(new File[0]);
     }
 
@@ -98,12 +96,12 @@ public class JavaCompiler implements LamebdaCompiler
 
         try (final StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null))
         {
-            final List<File> sourceFiles = CompilerUtil.findSourceFiles(FileSystemLamebdaResourceLoader.JAVA_EXTENSION, sourcePaths.toArray(new Path[0])).stream().map(Path::toFile).collect(Collectors.toList());
+            final List<File> sourceFiles = CompilerUtil.findSourceFiles(FunctionManagerImpl.JAVA_EXTENSION, sourcePaths.toArray(new Path[0])).stream().map(Path::toFile).collect(Collectors.toList());
             if (sourceFiles.isEmpty())
             {
-                logger.info("No source files");
                 return;
             }
+            logger.info("Found {} java files", sourceFiles.size());
 
             logger.debug("Compiling: {}", StringUtils.collectionToCommaDelimitedString(sourceFiles));
 

@@ -1,7 +1,3 @@
-/**
- * Used under CC license https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
- */
-
 package com.ethlo.lamebda;
 
 /*-

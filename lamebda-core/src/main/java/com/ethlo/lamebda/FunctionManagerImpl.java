@@ -1,19 +1,28 @@
 package com.ethlo.lamebda;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,11 +36,10 @@ import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.compiler.GroovyCompiler;
 import com.ethlo.lamebda.compiler.JavaCompiler;
+import com.ethlo.lamebda.compiler.LamebdaCompiler;
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
-import com.ethlo.lamebda.loaders.FileSystemLamebdaResourceLoader;
-import com.ethlo.lamebda.loaders.LamebdaResourceLoader;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
@@ -58,21 +66,50 @@ import groovy.lang.GroovyClassLoader;
 public class FunctionManagerImpl implements FunctionManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
+
+    public static final String PROJECT_FILENAME = "project.properties";
+    public static final String DEFAULT_CONFIG_FILENAME = "application.properties";
+    public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
+
+    public static final String JAR_EXTENSION = "jar";
+    public static final String GROOVY_EXTENSION = "groovy";
+    public static final String JAVA_EXTENSION = "java";
+    public static final String PROPERTIES_EXTENSION = "properties";
+
+    public static final String SPECIFICATION_DIRECTORY = "specification";
+    public static final String LIB_DIRECTORY = "lib";
+
     private final ProjectConfiguration projectConfiguration;
     private final ApplicationContext parentContext;
     private AnnotationConfigApplicationContext projectCtx;
 
-    private LamebdaResourceLoader lamebdaResourceLoader;
-
     private final GeneratorHelper generatorHelper;
+    private LinkedList<LamebdaCompiler> compilers;
+    private final GroovyClassLoader groovyClassLoader = new GroovyClassLoader();
 
-    public FunctionManagerImpl(ApplicationContext parentContext, LamebdaResourceLoader lamebdaResourceLoader)
+    public FunctionManagerImpl(ApplicationContext parentContext, ProjectConfiguration projectConfiguration)
     {
         Assert.notNull(parentContext, "parentContext cannot be null");
-        Assert.notNull(parentContext, "lamebdaResourceLoader cannot be null");
+        Assert.notNull(projectConfiguration, "projectConfiguration cannot be null");
 
-        this.projectConfiguration = lamebdaResourceLoader.getProjectConfiguration();
-        final Path apiPath = projectConfiguration.getSpecificationPath().resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
+        this.projectConfiguration = projectConfiguration;
+        this.parentContext = parentContext;
+
+        final Path projectPath = projectConfiguration.getPath();
+        if (!Files.exists(projectPath))
+        {
+            throw new UncheckedIOException(new FileNotFoundException("Cannot use " + projectPath.toAbsolutePath() + " as project directory as it does not exist"));
+        }
+
+        logger.debug("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
+
+        decompressIfApplicable(projectPath);
+
+        setupCompilers();
+
+        addLibraries();
+
+        final Path apiPath = projectConfiguration.getSpecificationPath().resolve(API_SPECIFICATION_YAML_FILENAME);
         final Path jarDir = projectConfiguration.getPath().resolve(".generator");
         if (Files.exists(jarDir))
         {
@@ -88,11 +125,94 @@ public class FunctionManagerImpl implements FunctionManager
             generatorHelper = null;
         }
 
-        this.lamebdaResourceLoader = lamebdaResourceLoader;
-        this.parentContext = parentContext;
-
         initialize();
     }
+
+    private void setupCompilers()
+    {
+        this.compilers = new LinkedList<>();
+
+        final Set<Path> sourcePaths = new TreeSet<>(Arrays.asList(IoUtil.exists(getProjectConfiguration().getGroovySourcePath(), getProjectConfiguration().getPath().resolve("target").resolve("generated-sources").resolve("models"))));
+        compilers.add(new GroovyCompiler(groovyClassLoader, sourcePaths));
+
+        final Path javaSourcePath = getProjectConfiguration().getJavaSourcePath();
+        compilers.add(new JavaCompiler(groovyClassLoader, Collections.singletonList(javaSourcePath)));
+    }
+
+    private void decompressIfApplicable(final Path projectPath)
+    {
+        final Path archivePath = projectPath.resolve(projectPath.getFileName() + "." + JAR_EXTENSION);
+        if (Files.exists(archivePath))
+        {
+            decompress(projectPath, archivePath);
+        }
+    }
+
+    private void decompress(final Path projectPath, final Path archivePath)
+    {
+        try
+        {
+            unzipDirectory(archivePath, projectPath);
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private void addLibraries()
+    {
+        final Path libPath = projectConfiguration.getLibraryPath();
+        if (Files.isDirectory(libPath))
+        {
+            getLibUrls().forEach(url ->
+            {
+                groovyClassLoader.addClasspath(url);
+                logger.debug("Adding library classpath {}", url);
+            });
+        }
+        else
+        {
+            logger.debug("Lib directory {} does not exist. Skipping", libPath);
+        }
+    }
+
+    private void unzipDirectory(final Path archivePath, Path targetDir) throws IOException
+    {
+        final ZipFile zipFile = new ZipFile(archivePath.toString());
+        final Enumeration zipEntries = zipFile.entries();
+        while (zipEntries.hasMoreElements())
+        {
+            final ZipEntry ze = ((ZipEntry) zipEntries.nextElement());
+            final Path target = targetDir.resolve(ze.getName());
+            if (!ze.isDirectory())
+            {
+                Files.createDirectories(target.getParent());
+                final InputStream in = zipFile.getInputStream(ze);
+                final boolean overwrite = !target.getFileName().toString().endsWith("." + PROPERTIES_EXTENSION);
+                final boolean exists = Files.exists(target);
+                if (!exists || overwrite)
+                {
+                    logger.debug("Unpacking {} to {}", ze.getName(), target);
+                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+                else
+                {
+                    logger.info("Not overwriting {}", target);
+                }
+            }
+        }
+    }
+
+    private List<String> getLibUrls()
+    {
+        if (!Files.exists(projectConfiguration.getLibraryPath(), LinkOption.NOFOLLOW_LINKS))
+        {
+            return Collections.emptyList();
+        }
+        return IoUtil.toClassPathList(projectConfiguration.getLibraryPath());
+    }
+
 
     private void generateModels() throws IOException
     {
@@ -151,7 +271,7 @@ public class FunctionManagerImpl implements FunctionManager
     {
         final PropertyPlaceholderConfigurer propertyPlaceholderConfigurer = new PropertyPlaceholderConfigurer();
 
-        final Path configFilePath = projectConfiguration.getPath().resolve(FileSystemLamebdaResourceLoader.DEFAULT_CONFIG_FILENAME);
+        final Path configFilePath = projectConfiguration.getPath().resolve(DEFAULT_CONFIG_FILENAME);
         if (Files.exists(configFilePath))
         {
             propertyPlaceholderConfigurer.setLocation(new FileSystemResource(configFilePath));
@@ -161,71 +281,39 @@ public class FunctionManagerImpl implements FunctionManager
         this.projectCtx.addBeanFactoryPostProcessor(propertyPlaceholderConfigurer);
         this.projectCtx.setParent(parentContext);
         this.projectCtx.setAllowBeanDefinitionOverriding(false);
-        this.projectCtx.setClassLoader(lamebdaResourceLoader.getClassLoader());
+        this.projectCtx.setClassLoader(groovyClassLoader);
         this.projectCtx.setId(projectConfiguration.getName());
     }
 
     private void addResourceClasspath()
     {
-        final GroovyClassLoader gcl = lamebdaResourceLoader.getClassLoader();
         final URL mainResourcesUrl = IoUtil.toURL(projectConfiguration.getMainResourcePath());
-        logger.info("Adding main resources to classpath: {}", mainResourcesUrl);
-        gcl.addURL(mainResourcesUrl);
+        logger.debug("Adding main resources to classpath: {}", mainResourcesUrl);
+        groovyClassLoader.addURL(mainResourcesUrl);
 
         final URL targetResourcesUrl = IoUtil.toURL(projectConfiguration.getTargetClassDirectory());
-        logger.info("Adding main classes to classpath: {}", targetResourcesUrl);
-        gcl.addURL(targetResourcesUrl);
+        logger.debug("Adding main classes to classpath: {}", targetResourcesUrl);
+        groovyClassLoader.addURL(targetResourcesUrl);
     }
 
     private void createProjectConfigBean()
     {
         final ConfigurableListableBeanFactory bf = projectCtx.getBeanFactory();
-        bf.registerSingleton("projectConfiguration", lamebdaResourceLoader.getProjectConfiguration());
+        bf.registerSingleton("projectConfiguration", projectConfiguration);
     }
 
     private void compileSources()
     {
         final Path classesDir = projectConfiguration.getTargetClassDirectory();
-        compileGroovy(classesDir);
-        compileJava(classesDir);
-    }
-
-    private void compileGroovy(Path classesDir)
-    {
-        final Set<Path> sourcePaths = new TreeSet<>(Arrays.asList(IoUtil.exists(getProjectConfiguration().getGroovySourcePath(), getProjectConfiguration().getPath().resolve("target").resolve("generated-sources").resolve("models"))));
-
-        if (!sourcePaths.isEmpty())
+        for (LamebdaCompiler compiler : compilers)
         {
-            logger.info("Compiling groovy sources in {}", StringUtils.collectionToCommaDelimitedString(sourcePaths));
-            final GroovyClassLoader classLoader = lamebdaResourceLoader.getClassLoader();
-            final GroovyCompiler groovyCompiler = new GroovyCompiler(classLoader, sourcePaths);
-            groovyCompiler.compile(classesDir);
-        }
-        else
-        {
-            logger.info("No groovy sources to compile");
-        }
-    }
-
-    private void compileJava(Path classesDir)
-    {
-        final Path javaSourcePath = getProjectConfiguration().getJavaSourcePath();
-        if (Files.isDirectory(javaSourcePath))
-        {
-            logger.info("Compiling java sources in {}", javaSourcePath);
-            final GroovyClassLoader classLoader = lamebdaResourceLoader.getClassLoader();
-            final JavaCompiler jp = new JavaCompiler(classLoader, javaSourcePath);
-            jp.compile(classesDir);
-        }
-        else
-        {
-            logger.info("No java sources to compile");
+            compiler.compile(classesDir);
         }
     }
 
     private void apiSpecProcessing()
     {
-        final Path apiPath = projectConfiguration.getSpecificationPath().resolve(FileSystemLamebdaResourceLoader.API_SPECIFICATION_YAML_FILENAME);
+        final Path apiPath = projectConfiguration.getSpecificationPath().resolve(API_SPECIFICATION_YAML_FILENAME);
         final Path targetPath = projectConfiguration.getPath().resolve("target");
 
         if (Files.exists(apiPath))
@@ -254,8 +342,8 @@ public class FunctionManagerImpl implements FunctionManager
         final Path modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath();
         if (Files.exists(modelPath))
         {
-            lamebdaResourceLoader.addClasspath(modelPath.toAbsolutePath().toString());
-            logger.info("Added model classpath {}", modelPath);
+            groovyClassLoader.addClasspath(modelPath.toAbsolutePath().toString());
+            logger.debug("Added model classpath {}", modelPath);
         }
     }
 
@@ -294,7 +382,7 @@ public class FunctionManagerImpl implements FunctionManager
         try
         {
             projectCtx.close();
-            this.lamebdaResourceLoader.close();
+            groovyClassLoader.close();
         }
         catch (IOException e)
         {

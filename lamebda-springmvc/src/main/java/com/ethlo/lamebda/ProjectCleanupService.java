@@ -65,7 +65,7 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
         });
 
         toRemove.forEach(key -> {
-            logger.info("Unregistering {}, ", key);
+            logger.debug("Unregistering {}, ", key);
             mappingHandler.unregisterMapping(key);
         });
     }

@@ -26,7 +26,7 @@ import java.util.Objects;
 public class FileSystemEvent
 {
     private final Path path;
-    private ChangeType changeType;
+    private final ChangeType changeType;
 
     public FileSystemEvent(final ChangeType changeType, final Path path)
     {
