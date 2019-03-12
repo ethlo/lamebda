@@ -22,9 +22,10 @@ package com.ethlo.lamebda;
 
 import java.io.Serializable;
 import java.io.UncheckedIOException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.Set;
 
 import org.springframework.util.Assert;
 
@@ -42,12 +43,15 @@ public class ProjectConfiguration implements Serializable
     private final String contextPath;
 
     private final boolean enableUrlProjectContextPrefix;
-    private final String path;
+    private final Path path;
     private final String name;
     private final String version;
 
     private final String apiDocGenerator;
-    private final List<String> basePackages;
+    private final Set<String> basePackages;
+    private final Set<Path> groovySourcePaths;
+    private final Set<Path> javaSourcePaths;
+    private final Set<URL> classPath;
 
     ProjectConfiguration(ProjectConfigurationBuilder b)
     {
@@ -60,6 +64,9 @@ public class ProjectConfiguration implements Serializable
         apiDocGenerator = b.getApiDocGenerator();
         listenForChanges = b.isListenForChanges();
         basePackages = b.getBasePackages();
+        javaSourcePaths = b.getJavaSourcePaths();
+        groovySourcePaths = b.getGroovySourcePaths();
+        classPath = b.getClassPath();
     }
 
     /**
@@ -74,7 +81,7 @@ public class ProjectConfiguration implements Serializable
     @JsonIgnore
     public Path getPath()
     {
-        return Paths.get(path);
+        return path;
     }
 
     @JsonProperty("mapping.use-project-context-path")
@@ -172,7 +179,7 @@ public class ProjectConfiguration implements Serializable
     }
 
     @JsonProperty("system.base-packages")
-    public List<String> getBasePackages()
+    public Set<String> getBasePackages()
     {
         return this.basePackages;
     }
@@ -182,9 +189,9 @@ public class ProjectConfiguration implements Serializable
         return getPath().resolve("target").resolve("classes");
     }
 
-    public Path getGroovySourcePath()
+    public Set<Path> getGroovySourcePaths()
     {
-        return getPath().resolve("src").resolve("main").resolve("groovy");
+        return groovySourcePaths;
     }
 
     public Path getMainResourcePath()
@@ -192,8 +199,18 @@ public class ProjectConfiguration implements Serializable
         return getPath().resolve("src").resolve("main").resolve("resources");
     }
 
-    public Path getJavaSourcePath()
+    public Set<Path> getJavaSourcePaths()
     {
-        return getPath().resolve("src").resolve("main").resolve("java");
+        return javaSourcePaths;
+    }
+
+    public Set<URL> getClassPath()
+    {
+        return classPath;
+    }
+
+    public String staticUrlPath()
+    {
+        return getPath() + "/static/**";
     }
 }

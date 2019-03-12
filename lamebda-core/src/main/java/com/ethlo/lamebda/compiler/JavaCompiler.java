@@ -28,6 +28,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,9 +53,9 @@ public class JavaCompiler implements LamebdaCompiler
     private static final Logger logger = LoggerFactory.getLogger(JavaCompiler.class);
 
     private final URLClassLoader classLoader;
-    private final List<Path> sourcePaths;
+    private final Collection<Path> sourcePaths;
 
-    public JavaCompiler(URLClassLoader classLoader, List<Path> sourcePaths)
+    public JavaCompiler(URLClassLoader classLoader, Collection<Path> sourcePaths)
     {
         this.classLoader = classLoader;
         this.sourcePaths = sourcePaths;
@@ -134,7 +135,7 @@ public class JavaCompiler implements LamebdaCompiler
         }
     }
 
-    private static List<String> buildCompilerOptions(List<Path> sourcePath, String compileClassPath, Path classesDirectory)
+    private static List<String> buildCompilerOptions(Collection<Path> sourcePath, String compileClassPath, Path classesDirectory)
     {
         final Map<String, String> compilerOpts = new LinkedHashMap<>();
         compilerOpts.put("cp", compileClassPath);

@@ -1,1 +1,0 @@
-generate -isrc/main/resources/specification/oas.yaml -gcom.ethlo.openapi.GroovyModelGenerator -otarget/generated-sources/models -Dmodels -DdateLibrary=java8 --model-package=spec -DuseSwaggerAnnotations=false

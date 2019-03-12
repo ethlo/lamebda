@@ -21,10 +21,13 @@ package com.ethlo.lamebda.util;
  */
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -34,7 +37,6 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -112,6 +114,19 @@ public class IoUtil
         }
     }
 
+    public static URL toURL(final String path)
+    {
+        try
+        {
+            final URI newURI = new URI(path);
+            return newURI.toURL();
+        }
+        catch (URISyntaxException | IllegalArgumentException | MalformedURLException e)
+        {
+            return toURL(new File(path).toPath());
+        }
+    }
+
     public static List<String> toClassPathList(final Path jarPath)
     {
         try
@@ -150,10 +165,5 @@ public class IoUtil
             return Optional.of(new String(bytes, StandardCharsets.UTF_8));
         }
         return Optional.empty();
-    }
-
-    public static Path[] exists(final Path... paths)
-    {
-        return Arrays.stream(paths).filter(Files::exists).toArray(Path[]::new);
     }
 }

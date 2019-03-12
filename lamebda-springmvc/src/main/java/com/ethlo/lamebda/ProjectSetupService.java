@@ -145,6 +145,4 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         methodInterceptors.forEach(proxyFactoryBean::addAdvice);
         return proxyFactoryBean.getObject();
     }
-
-
 }

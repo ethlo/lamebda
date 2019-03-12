@@ -23,33 +23,41 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.springframework.util.StringUtils;
+
+import com.ethlo.lamebda.util.IoUtil;
 
 public class ProjectConfigurationBuilder
 {
     private final String rootContextPath;
-    private final String projectPath;
+    private final Path projectPath;
     private String projectName;
     private String projectContextPath;
     private boolean enableUrlProjectContextPrefix;
     private String projectVersion;
     private String apiDocGenerator;
     private boolean listenForChanges;
-    private List<String> basePackages = Collections.emptyList();
+    private Set<String> basePackages = Collections.emptySet();
+
+    private Set<Path> javaSourcePaths;
+    private Set<Path> groovySourcePaths;
+    private Set<URL> classPaths;
 
     protected ProjectConfigurationBuilder(String rootContextPath, Path projectPath)
     {
         this.rootContextPath = rootContextPath;
-        this.projectPath = projectPath.toAbsolutePath().toString();
+        this.projectPath = projectPath.toAbsolutePath();
 
         // Set defaults
         this.apiDocGenerator = "html";
@@ -58,11 +66,16 @@ public class ProjectConfigurationBuilder
         this.projectContextPath = projectPath.getFileName().toString();
         this.enableUrlProjectContextPrefix = true;
         this.listenForChanges = true;
+
+        final Path mainPath = projectPath.resolve("src").resolve("main");
+        this.javaSourcePaths = new LinkedHashSet<>(Collections.singleton(mainPath.resolve("java")));
+        this.groovySourcePaths = new LinkedHashSet<>(Collections.singleton(mainPath.resolve("groovy")));
+        this.classPaths = new LinkedHashSet<>(Collections.singleton(IoUtil.toURL(projectPath.resolve("target").resolve("classes"))));
     }
 
     public ProjectConfigurationBuilder basePackages(String... basePackages)
     {
-        this.basePackages = Arrays.asList(basePackages);
+        this.basePackages = new TreeSet<>(Arrays.asList(basePackages));
         return this;
     }
 
@@ -98,7 +111,7 @@ public class ProjectConfigurationBuilder
 
     public ProjectConfigurationBuilder loadIfExists()
     {
-        final Path projectConfigFile = Paths.get(projectPath).resolve(FunctionManagerImpl.PROJECT_FILENAME);
+        final Path projectConfigFile = projectPath.resolve(FunctionManagerImpl.PROJECT_FILENAME);
         if (Files.exists(projectConfigFile))
         {
             final Properties p = new Properties();
@@ -121,7 +134,32 @@ public class ProjectConfigurationBuilder
             apiDocGenerator = p.getProperty("specification.api.doc.generator", apiDocGenerator);
 
             listenForChanges = Boolean.parseBoolean(p.getProperty("system.listen-for-changes", Boolean.toString(listenForChanges)));
-            basePackages = new ArrayList<>(StringUtils.commaDelimitedListToSet(p.getProperty("system.base-packages", "service")));
+
+            final String legacyBasePackages = p.getProperty("system.base-packages");
+            final String projectBasePackages = p.getProperty("project.base-packages");
+            final String basePackages = projectBasePackages != null ? projectBasePackages : legacyBasePackages;
+            if (basePackages != null)
+            {
+                this.basePackages = StringUtils.commaDelimitedListToSet(basePackages);
+            }
+
+            final String javaSrcDirs = p.getProperty("project.src.java");
+            if (javaSrcDirs != null)
+            {
+                javaSourcePaths.addAll(StringUtils.commaDelimitedListToSet(javaSrcDirs).stream().map(projectPath::resolve).collect(Collectors.toSet()));
+            }
+
+            final String groovySrcDirs = p.getProperty("project.src.groovy");
+            if (groovySrcDirs != null)
+            {
+                groovySourcePaths.addAll(StringUtils.commaDelimitedListToSet(groovySrcDirs).stream().map(projectPath::resolve).collect(Collectors.toSet()));
+            }
+
+            final String additionalClassPath = p.getProperty("project.classpath");
+            if (additionalClassPath != null)
+            {
+                this.classPaths.addAll(StringUtils.commaDelimitedListToSet(additionalClassPath).stream().map(IoUtil::toURL).collect(Collectors.toSet()));
+            }
         }
         return this;
     }
@@ -131,7 +169,7 @@ public class ProjectConfigurationBuilder
         return rootContextPath;
     }
 
-    public String getProjectPath()
+    public Path getProjectPath()
     {
         return projectPath;
     }
@@ -166,8 +204,23 @@ public class ProjectConfigurationBuilder
         return listenForChanges;
     }
 
-    public List<String> getBasePackages()
+    public Set<String> getBasePackages()
     {
         return basePackages;
+    }
+
+    public Set<Path> getJavaSourcePaths()
+    {
+        return javaSourcePaths;
+    }
+
+    public Set<Path> getGroovySourcePaths()
+    {
+        return groovySourcePaths;
+    }
+
+    public Set<URL> getClassPath()
+    {
+        return classPaths;
     }
 }

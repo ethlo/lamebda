@@ -13,14 +13,12 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -103,6 +101,11 @@ public class FunctionManagerImpl implements FunctionManager
 
         logger.debug("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
 
+        for (URL cpUrl : projectConfiguration.getClassPath())
+        {
+            groovyClassLoader.addURL(cpUrl);
+        }
+
         decompressIfApplicable(projectPath);
 
         setupCompilers();
@@ -131,12 +134,8 @@ public class FunctionManagerImpl implements FunctionManager
     private void setupCompilers()
     {
         this.compilers = new LinkedList<>();
-
-        final Set<Path> sourcePaths = new TreeSet<>(Arrays.asList(IoUtil.exists(getProjectConfiguration().getGroovySourcePath(), getProjectConfiguration().getPath().resolve("target").resolve("generated-sources").resolve("models"))));
-        compilers.add(new GroovyCompiler(groovyClassLoader, sourcePaths));
-
-        final Path javaSourcePath = getProjectConfiguration().getJavaSourcePath();
-        compilers.add(new JavaCompiler(groovyClassLoader, Collections.singletonList(javaSourcePath)));
+        compilers.add(new GroovyCompiler(groovyClassLoader, projectConfiguration.getGroovySourcePaths()));
+        compilers.add(new JavaCompiler(groovyClassLoader, projectConfiguration.getJavaSourcePaths()));
     }
 
     private void decompressIfApplicable(final Path projectPath)
@@ -253,7 +252,7 @@ public class FunctionManagerImpl implements FunctionManager
     private void findBeans()
     {
         // Scan for beans
-        final List<String> basePackages = projectConfiguration.getBasePackages();
+        final Set<String> basePackages = projectConfiguration.getBasePackages();
         if (!basePackages.isEmpty())
         {
             logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(basePackages));
