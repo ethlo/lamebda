@@ -23,20 +23,21 @@ package com.ethlo.lamebda.compiler;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticCollector;
+import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
@@ -46,43 +47,25 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.FunctionManagerImpl;
+import groovy.lang.GroovyClassLoader;
 
 public class JavaCompiler implements LamebdaCompiler
 {
     private static final Logger logger = LoggerFactory.getLogger(JavaCompiler.class);
 
-    private final URLClassLoader classLoader;
+    private final GroovyClassLoader classLoader;
     private final List<Path> sourcePaths;
 
-    public JavaCompiler(URLClassLoader classLoader, List<Path> sourcePaths)
+    public JavaCompiler(GroovyClassLoader classLoader, List<Path> sourcePaths)
     {
         this.classLoader = classLoader;
         this.sourcePaths = sourcePaths;
         logger.debug("Java source paths: {}", StringUtils.collectionToCommaDelimitedString(sourcePaths));
     }
 
-    private List<File> getCurrentClassPath(URLClassLoader cl)
+    private List<URL> getCurrentClassPath(URLClassLoader cl)
     {
-        final List<File> retVal = new ArrayList<>();
-        try
-        {
-            for (URL url : cl.getURLs())
-            {
-                retVal.add(new File(url.toURI()));
-            }
-            return retVal;
-        }
-        catch (URISyntaxException exc)
-        {
-            throw new RuntimeException(exc.getMessage(), exc);
-        }
-    }
-
-    private File[] getClassPathFiles()
-    {
-        final Set<File> files = new TreeSet<>(getCurrentClassPath((URLClassLoader) classLoader.getParent()));
-        files.addAll(getCurrentClassPath(classLoader));
-        return files.toArray(new File[0]);
+        return Arrays.asList(cl.getURLs());
     }
 
     @Override
@@ -94,8 +77,9 @@ public class JavaCompiler implements LamebdaCompiler
             throw new IllegalStateException("You need to run build with JDK or have tools.jar on the classpath");
         }
 
-        try (final StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, null, null))
+        try (final StandardJavaFileManager standardFileManager = compiler.getStandardFileManager(null, null, null))
         {
+            final JavaFileManager fileManager = new CustomClassloaderJavaFileManager(classLoader, standardFileManager);
             final List<File> sourceFiles = CompilerUtil.findSourceFiles(FunctionManagerImpl.JAVA_EXTENSION, sourcePaths.toArray(new Path[0])).stream().map(Path::toFile).collect(Collectors.toList());
             if (sourceFiles.isEmpty())
             {
@@ -105,8 +89,8 @@ public class JavaCompiler implements LamebdaCompiler
 
             logger.debug("Compiling: {}", StringUtils.collectionToCommaDelimitedString(sourceFiles));
 
-            final Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(sourceFiles);
-            final File[] classPathFiles = getClassPathFiles();
+            final Iterable<? extends JavaFileObject> compilationUnits = standardFileManager.getJavaFileObjectsFromFiles(sourceFiles);
+            final URL[] classPathFiles = new URL[0]; //getClassPathFiles();
 
             final String compileClassPath = StringUtils.arrayToDelimitedString(classPathFiles, File.pathSeparator);
             logger.debug("Classpath: " + compileClassPath);
@@ -137,7 +121,7 @@ public class JavaCompiler implements LamebdaCompiler
     private static List<String> buildCompilerOptions(List<Path> sourcePath, String compileClassPath, Path classesDirectory)
     {
         final Map<String, String> compilerOpts = new LinkedHashMap<>();
-        compilerOpts.put("cp", compileClassPath);
+        //compilerOpts.put("cp", compileClassPath);
 
         compilerOpts.put("d", classesDirectory.toAbsolutePath().toString());
 
