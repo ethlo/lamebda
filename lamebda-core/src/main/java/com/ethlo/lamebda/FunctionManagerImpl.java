@@ -29,12 +29,13 @@ import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.instrument.classloading.SimpleThrowawayClassLoader;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.compiler.GroovyCompiler;
-import com.ethlo.lamebda.compiler.JavaCompiler;
 import com.ethlo.lamebda.compiler.LamebdaCompiler;
+import com.ethlo.lamebda.compiler.groovy.GroovyCompiler;
+import com.ethlo.lamebda.compiler.java.JavaCompiler;
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
@@ -134,8 +135,8 @@ public class FunctionManagerImpl implements FunctionManager
     private void setupCompilers()
     {
         this.compilers = new LinkedList<>();
+        compilers.add(new JavaCompiler(new SimpleThrowawayClassLoader(groovyClassLoader), projectConfiguration.getJavaSourcePaths()));
         compilers.add(new GroovyCompiler(groovyClassLoader, projectConfiguration.getGroovySourcePaths()));
-        compilers.add(new JavaCompiler(groovyClassLoader, projectConfiguration.getJavaSourcePaths()));
     }
 
     private void decompressIfApplicable(final Path projectPath)

@@ -1,4 +1,4 @@
-package com.ethlo.lamebda.compiler;
+package com.ethlo.lamebda.compiler.groovy;
 
 /*-
  * #%L
@@ -34,6 +34,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.FunctionManagerImpl;
+import com.ethlo.lamebda.compiler.CompilerUtil;
+import com.ethlo.lamebda.compiler.LamebdaCompiler;
 import com.ethlo.lamebda.util.IoUtil;
 import groovy.lang.GroovyClassLoader;
 
