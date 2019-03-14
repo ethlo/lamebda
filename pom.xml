@@ -99,7 +99,6 @@
                 <configuration>
                     <doclint>none</doclint>
                     <show>public</show>
-                    <additionalOptions>-html5</additionalOptions>
                 </configuration>
                 <version>3.0.1</version>
             </plugin>
