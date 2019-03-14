@@ -233,9 +233,14 @@ public class FunctionManagerImpl implements FunctionManager
     private void runRegen(final ProjectConfiguration projectConfiguration, final String generationCommandFile) throws IOException
     {
         final Optional<String> genFile = IoUtil.toString(projectConfiguration.getPath().resolve(generationCommandFile));
-        final Optional<String> defaultGenFile = IoUtil.toString("/generation/" + generationCommandFile);
-        final String[] args = genFile.map(s -> s.split(" ")).orElseGet(() -> defaultGenFile.get().split(" "));
-        generatorHelper.generate(projectConfiguration.getPath(), args);
+        if (genFile.isPresent())
+        {
+            generatorHelper.generate(projectConfiguration.getPath(), genFile.get());
+        }
+        else
+        {
+            logger.info("No " + generationCommandFile + " file found on classpath. Generation skipped");
+        }
     }
 
     private void initialize()
