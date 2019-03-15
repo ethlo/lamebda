@@ -54,14 +54,26 @@ public abstract class BaseTest
     {
         try
         {
+            deleteTarget();
             deployGenerator();
-
             final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).addJavaSourcePath(Paths.get("target/generated-sources/java")).listenForChanges(false).basePackages("acme").build();
             functionManager = new FunctionManagerImpl(parentContext, cfg);
         }
         catch (IOException exc)
         {
             throw new UncheckedIOException(exc);
+        }
+    }
+
+    private void deleteTarget()
+    {
+        try
+        {
+            IoUtil.deleteDirectory(projectPath.resolve("target"));
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
         }
     }
 

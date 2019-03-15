@@ -114,6 +114,30 @@ public class IoUtil
         }
     }
 
+    public static void deleteDirectory(final Path directory) throws IOException
+    {
+        if (!Files.exists(directory) || !Files.isDirectory(directory))
+        {
+            return;
+        }
+        Files.walkFileTree(directory, new SimpleFileVisitor<Path>()
+        {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
+            {
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException
+            {
+                Files.delete(dir);
+                return FileVisitResult.CONTINUE;
+            }
+        });
+    }
+
     public static URL toURL(final String path)
     {
         try
