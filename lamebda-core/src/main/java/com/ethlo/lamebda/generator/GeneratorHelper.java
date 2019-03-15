@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 
+import org.springframework.util.StringUtils;
+
 public class GeneratorHelper extends BaseExecHelper
 {
     public GeneratorHelper(final String javaCmd, final Path jarDirectory)
@@ -36,7 +38,7 @@ public class GeneratorHelper extends BaseExecHelper
         final int exitCode = doExec(dir, args);
         if (exitCode != 0)
         {
-            throw new UncheckedIOException(new IOException("Generator returned exit code " + exitCode));
+            throw new UncheckedIOException("Work directory:" + dir + " Command: " + StringUtils.arrayToDelimitedString(args, " "), new IOException("Generator returned exit code " + exitCode));
         }
     }
 }

@@ -21,10 +21,8 @@ package com.ethlo.lamebda.compiler.groovy;
  */
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
@@ -57,15 +55,6 @@ public class GroovyCompiler implements LamebdaCompiler
     @Override
     public void compile(Path classesDirectory)
     {
-        try
-        {
-            Files.createDirectories(classesDirectory);
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
-
         final CompilationUnit compileUnit = new CompilationUnit(classLoader);
         final List<Path> sourceFiles = CompilerUtil.findSourceFiles(FunctionManagerImpl.GROOVY_EXTENSION, sourcePaths.toArray(new Path[0]));
         if (sourceFiles.isEmpty())

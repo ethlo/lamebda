@@ -223,4 +223,16 @@ public class ProjectConfigurationBuilder
     {
         return classPaths;
     }
+
+    public ProjectConfigurationBuilder addJavaSourcePath(final Path path)
+    {
+        javaSourcePaths.add(projectPath.resolve(path));
+        return this;
+    }
+
+    public ProjectConfigurationBuilder addgroovySourcePath(final Path path)
+    {
+        groovySourcePaths.add(projectPath.resolve(path));
+        return this;
+    }
 }

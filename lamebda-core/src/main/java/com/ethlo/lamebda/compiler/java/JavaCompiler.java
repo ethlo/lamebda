@@ -23,7 +23,6 @@ package com.ethlo.lamebda.compiler.java;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,15 +63,6 @@ public class JavaCompiler implements LamebdaCompiler
     @Override
     public void compile(Path classesDirectory)
     {
-        try
-        {
-            Files.createDirectories(classesDirectory);
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
-
         final javax.tools.JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         if (compiler == null)
         {

@@ -102,6 +102,15 @@ public class FunctionManagerImpl implements FunctionManager
 
         logger.debug("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
 
+        try
+        {
+            Files.createDirectories(projectConfiguration.getTargetClassDirectory());
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException("Unable to create target class directory: " + projectConfiguration.getTargetClassDirectory(), e);
+        }
+
         for (URL cpUrl : projectConfiguration.getClassPath())
         {
             groovyClassLoader.addURL(cpUrl);
@@ -235,7 +244,8 @@ public class FunctionManagerImpl implements FunctionManager
         final Optional<String> genFile = IoUtil.toString(projectConfiguration.getPath().resolve(generationCommandFile));
         if (genFile.isPresent())
         {
-            generatorHelper.generate(projectConfiguration.getPath(), genFile.get());
+            final String[] args = genFile.get().split(" ");
+            generatorHelper.generate(projectConfiguration.getPath(), args);
         }
         else
         {

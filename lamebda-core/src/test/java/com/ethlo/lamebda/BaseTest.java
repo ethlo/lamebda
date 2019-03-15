@@ -56,7 +56,7 @@ public abstract class BaseTest
         {
             deployGenerator();
 
-            final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).listenForChanges(false).basePackages("acme").build();
+            final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).addJavaSourcePath(Paths.get("target/generated-sources/java")).listenForChanges(false).basePackages("acme").build();
             functionManager = new FunctionManagerImpl(parentContext, cfg);
         }
         catch (IOException exc)
