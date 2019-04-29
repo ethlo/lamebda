@@ -21,10 +21,10 @@ package com.ethlo.lamebda.compiler.java;
  */
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 
 import javax.tools.FileObject;
@@ -33,13 +33,8 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class CustomClassloaderJavaFileManager implements JavaFileManager
 {
-    private static final Logger logger = LoggerFactory.getLogger(CustomClassloaderJavaFileManager.class);
-
     private final ClassLoader classLoader;
     private final StandardJavaFileManager standardFileManager;
     private final PackageInternalsFinder finder;
@@ -127,23 +122,54 @@ public class CustomClassloaderJavaFileManager implements JavaFileManager
     @Override
     public Iterable<JavaFileObject> list(Location location, String packageName, Set<JavaFileObject.Kind> kinds, boolean recurse) throws IOException
     {
-        logger.trace("Lookup package name: {}", packageName);
-
-        if (location == StandardLocation.PLATFORM_CLASS_PATH)
-        {
+        boolean baseModule = location.getName().equals("SYSTEM_MODULES[java.base]");
+        if (baseModule || location == StandardLocation.PLATFORM_CLASS_PATH)
+        { // **MODIFICATION CHECK FOR BASE MODULE**
             return standardFileManager.list(location, packageName, kinds, recurse);
         }
         else if (location == StandardLocation.CLASS_PATH && kinds.contains(JavaFileObject.Kind.CLASS))
         {
-            final Iterable<JavaFileObject> stdClasses = standardFileManager.list(location, packageName, kinds, recurse);
-            final Iterable<JavaFileObject> appClasses = finder.find(packageName);
-            final List<JavaFileObject> joined = new LinkedList<>();
-            stdClasses.forEach(joined::add);
-            appClasses.forEach(joined::add);
-            return joined;
+            if (packageName.startsWith("java") || packageName.startsWith("com.sun"))
+            {
+                return standardFileManager.list(location, packageName, kinds, recurse);
+            }
+            else
+            { // app specific classes are here
+                return finder.find(packageName);
+            }
         }
         return Collections.emptyList();
+    }
 
+    public Iterable<Set<Location>> listLocationsForModules(final Location location) throws IOException
+    {
+        return invokeIfAvailable(location, "listLocationsForModules");
+    }
+
+    public String inferModuleName(final Location location) throws IOException
+    {
+        return invokeIfAvailable(location, "inferModuleName");
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T invokeIfAvailable(final Location location, final String name)
+    {
+        final Method[] methods = standardFileManager.getClass().getDeclaredMethods();
+        for (Method method : methods)
+        {
+            if (method.getName().equals(name) && method.getParameterTypes().length == 1 && method.getParameterTypes()[0] == Location.class)
+            {
+                try
+                {
+                    return (T) method.invoke(standardFileManager, location);
+                }
+                catch (IllegalAccessException | InvocationTargetException e)
+                {
+                    throw new UnsupportedOperationException("Unable to invoke method " + name);
+                }
+            }
+        }
+        throw new UnsupportedOperationException("Unable to find method " + name);
     }
 
     @Override

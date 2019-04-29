@@ -23,11 +23,13 @@ package com.ethlo.lamebda.compiler.java;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -69,7 +71,7 @@ public class JavaCompiler implements LamebdaCompiler
             throw new IllegalStateException("You need to run build with JDK or have tools.jar on the classpath");
         }
 
-        try (final StandardJavaFileManager standardFileManager = compiler.getStandardFileManager(null, null, null))
+        try (final StandardJavaFileManager standardFileManager = compiler.getStandardFileManager(null, Locale.getDefault(),StandardCharsets.UTF_8))
         {
             final JavaFileManager fileManager = new CustomClassloaderJavaFileManager(classLoader, standardFileManager);
             final List<File> sourceFiles = CompilerUtil.findSourceFiles(FunctionManagerImpl.JAVA_EXTENSION, sourcePaths.toArray(new Path[0])).stream().map(Path::toFile).collect(Collectors.toList());
