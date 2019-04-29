@@ -52,13 +52,11 @@ public class PackageInternalsFinder
 
     public List<JavaFileObject> find(String packageName) throws IOException
     {
-        String javaPackageName = packageName.replaceAll("\\.", "/");
-
-        List<JavaFileObject> result = new ArrayList<JavaFileObject>();
-
-        Enumeration<URL> urlEnumeration = classLoader.getResources(javaPackageName);
+        final String javaPackageName = packageName.replaceAll("\\.", "/");
+        final List<JavaFileObject> result = new ArrayList<>();
+        final Enumeration<URL> urlEnumeration = classLoader.getResources(javaPackageName);
         while (urlEnumeration.hasMoreElements())
-        { // one URL for each jar on the classpath that has the given package
+        {
             URL packageFolderURL = urlEnumeration.nextElement();
             result.addAll(listUnder(packageName, packageFolderURL));
         }
@@ -68,7 +66,7 @@ public class PackageInternalsFinder
 
     private Collection<JavaFileObject> listUnder(String packageName, URL packageFolderURL)
     {
-        File directory = new File(packageFolderURL.getFile());
+        final File directory = new File(packageFolderURL.getFile());
         if (directory.isDirectory())
         {
             return processDir(packageName, directory);
@@ -81,29 +79,28 @@ public class PackageInternalsFinder
 
     private List<JavaFileObject> processJar(URL packageFolderURL)
     {
-        List<JavaFileObject> result = new ArrayList<JavaFileObject>();
+        final List<JavaFileObject> result = new ArrayList<>();
         try
         {
             final String ext = packageFolderURL.toExternalForm();
             final int idx = ext.lastIndexOf('!');
-            String jarUri = ext.substring(0, idx);
+            final String jarUri = ext.substring(0, idx);
             logger.trace("Jar URI: {}", jarUri);
 
-            JarURLConnection jarConn = (JarURLConnection) packageFolderURL.openConnection();
-            String rootEntryName = jarConn.getEntryName();
-            int rootEnd = rootEntryName.length() + 1;
+            final JarURLConnection jarConn = (JarURLConnection) packageFolderURL.openConnection();
+            final String rootEntryName = jarConn.getEntryName();
+            final int rootEnd = rootEntryName.length() + 1;
 
-            Enumeration<JarEntry> entryEnum = jarConn.getJarFile().entries();
+            final Enumeration<JarEntry> entryEnum = jarConn.getJarFile().entries();
             while (entryEnum.hasMoreElements())
             {
-                JarEntry jarEntry = entryEnum.nextElement();
-                String name = jarEntry.getName();
+                final JarEntry jarEntry = entryEnum.nextElement();
+                final String name = jarEntry.getName();
                 if (name.startsWith(rootEntryName) && name.indexOf('/', rootEnd) == -1 && name.endsWith(CLASS_FILE_EXTENSION))
                 {
-                    URI uri = URI.create(jarUri + "!/" + name);
+                    final URI uri = URI.create(jarUri + "!/" + name);
                     String binaryName = name.replaceAll("/", ".");
                     binaryName = binaryName.replaceAll(CLASS_FILE_EXTENSION + "$", "");
-
                     result.add(new CustomJavaFileObject(binaryName, uri));
                 }
             }
@@ -117,14 +114,13 @@ public class PackageInternalsFinder
 
     private List<JavaFileObject> processDir(String packageName, File directory)
     {
-        final List<JavaFileObject> result = new ArrayList<JavaFileObject>();
-        File[] childFiles = directory.listFiles();
-        for (File childFile : childFiles)
+        final List<JavaFileObject> result = new ArrayList<>();
+        final File[] childFiles = directory.listFiles();
+        if (childFiles != null)
         {
-            if (childFile.isFile())
+            for (File childFile : childFiles)
             {
-                // We only want the .class files.
-                if (childFile.getName().endsWith(CLASS_FILE_EXTENSION))
+                if (childFile.isFile() && childFile.getName().endsWith(CLASS_FILE_EXTENSION))
                 {
                     String binaryName = packageName + "." + childFile.getName();
                     binaryName = binaryName.replaceAll(CLASS_FILE_EXTENSION + "$", "");
