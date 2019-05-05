@@ -125,7 +125,7 @@ public class ProjectConfiguration implements Serializable
     }
 
     /**
-     * Returns the left-most URL path component, typically after the servlet context path. For example /servlet-name/&lt;root-context-path&gt;/my-function
+     * Returns the left-most URL path component, typically after the servlet context path. For example /servlet-name/<root-context-path>/my-function
      *
      * @return the left-most URL path component
      */
