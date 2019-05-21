@@ -1,8 +1,9 @@
 package com.ethlo.lamebda;
 
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
@@ -14,13 +15,12 @@ import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,6 +153,7 @@ public class FunctionManagerImpl implements FunctionManager
         final Path archivePath = projectPath.resolve(projectPath.getFileName() + "." + JAR_EXTENSION);
         if (Files.exists(archivePath))
         {
+            logger.info("Decompressing project archive file {}", archivePath);
             decompress(projectPath, archivePath);
         }
     }
@@ -186,15 +187,15 @@ public class FunctionManagerImpl implements FunctionManager
         }
     }
 
-    private void unzipDirectory(final Path archivePath, Path targetDir) throws IOException
+    private void unzipDirectory(final Path archivePath, final Path targetDir) throws IOException
     {
-        try (final ZipFile zipFile = new ZipFile(archivePath.toString()))
+        try (final ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(archivePath.toFile()))))
         {
-            final Enumeration zipEntries = zipFile.entries();
-            while (zipEntries.hasMoreElements())
+            ZipEntry ze;
+            while ((ze = zis.getNextEntry()) != null)
             {
-                final ZipEntry ze = ((ZipEntry) zipEntries.nextElement());
                 final Path target = targetDir.resolve(ze.getName());
+
                 if (!ze.isDirectory())
                 {
                     Files.createDirectories(target.getParent());
@@ -203,10 +204,7 @@ public class FunctionManagerImpl implements FunctionManager
                     if (!exists || overwrite)
                     {
                         logger.debug("Unpacking {} to {}", ze.getName(), target);
-                        try (final InputStream in = zipFile.getInputStream(ze))
-                        {
-                            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-                        }
+                        Files.copy(zis, target, StandardCopyOption.REPLACE_EXISTING);
                     }
                     else
                     {
