@@ -93,12 +93,6 @@ public class FunctionManagerDirector
                 close(projectPath);
                 create(projectPath);
             }
-            else if (e.getChangeType() == ChangeType.DELETED && isKnownType)
-            {
-                logger.info("Reloading project due to deletion of {}", path);
-                close(projectPath);
-                create(projectPath);
-            }
         }, true, rootDirectory);
         new Thread()
         {

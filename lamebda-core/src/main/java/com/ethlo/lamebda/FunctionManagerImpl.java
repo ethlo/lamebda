@@ -188,26 +188,30 @@ public class FunctionManagerImpl implements FunctionManager
 
     private void unzipDirectory(final Path archivePath, Path targetDir) throws IOException
     {
-        final ZipFile zipFile = new ZipFile(archivePath.toString());
-        final Enumeration zipEntries = zipFile.entries();
-        while (zipEntries.hasMoreElements())
+        try (final ZipFile zipFile = new ZipFile(archivePath.toString()))
         {
-            final ZipEntry ze = ((ZipEntry) zipEntries.nextElement());
-            final Path target = targetDir.resolve(ze.getName());
-            if (!ze.isDirectory())
+            final Enumeration zipEntries = zipFile.entries();
+            while (zipEntries.hasMoreElements())
             {
-                Files.createDirectories(target.getParent());
-                final InputStream in = zipFile.getInputStream(ze);
-                final boolean overwrite = !target.getFileName().toString().endsWith("." + PROPERTIES_EXTENSION);
-                final boolean exists = Files.exists(target);
-                if (!exists || overwrite)
+                final ZipEntry ze = ((ZipEntry) zipEntries.nextElement());
+                final Path target = targetDir.resolve(ze.getName());
+                if (!ze.isDirectory())
                 {
-                    logger.debug("Unpacking {} to {}", ze.getName(), target);
-                    Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
-                }
-                else
-                {
-                    logger.info("Not overwriting {}", target);
+                    Files.createDirectories(target.getParent());
+                    final boolean overwrite = !target.getFileName().toString().endsWith("." + PROPERTIES_EXTENSION);
+                    final boolean exists = Files.exists(target);
+                    if (!exists || overwrite)
+                    {
+                        logger.debug("Unpacking {} to {}", ze.getName(), target);
+                        try (final InputStream in = zipFile.getInputStream(ze))
+                        {
+                            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    }
+                    else
+                    {
+                        logger.info("Not overwriting {}", target);
+                    }
                 }
             }
         }
