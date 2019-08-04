@@ -3,6 +3,7 @@
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](LICENSE)
 [![Build Status](https://travis-ci.org/ethlo/lamebda.svg?branch=master)](https://travis-ci.org/ethlo/lamebda)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/598913bc1fe9405c82be73d9a4f105c8)](https://www.codacy.com/app/ethlo/lamebda?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=ethlo/lamebda&amp;utm_campaign=Badge_Grade)
+[![Coverage Status](https://coveralls.io/repos/github/ethlo/lamebda/badge.svg?branch=master&kill_cache=1)](https://coveralls.io/github/ethlo/lamebda?branch=master)
 
 A simple, powerful, plugin system for adding new API endpoints or custom functionality to you Spring project. Oftentimes there are conflicting requirements from different clients utilizing a common main application. The required custom functionality needed is often easy to do with a few lines of code, but is not acceptable to add to your main code-base. With Lamebda you can load either precompiled or source files (Groovy/Java) for adding custom functionality.
 
