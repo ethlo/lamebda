@@ -34,6 +34,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.util.IoUtil;

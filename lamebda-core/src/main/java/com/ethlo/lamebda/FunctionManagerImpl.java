@@ -4,8 +4,10 @@ import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
@@ -17,7 +19,9 @@ import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -28,6 +32,10 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.PropertySource;
+import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.instrument.classloading.SimpleThrowawayClassLoader;
 import org.springframework.util.Assert;
@@ -286,20 +294,66 @@ public class FunctionManagerImpl implements FunctionManager
 
     private void setupSpringChildContext()
     {
-        final PropertyPlaceholderConfigurer propertyPlaceholderConfigurer = new PropertyPlaceholderConfigurer();
-
-        final Path configFilePath = projectConfiguration.getPath().resolve(DEFAULT_CONFIG_FILENAME);
-        if (Files.exists(configFilePath))
-        {
-            propertyPlaceholderConfigurer.setLocation(new FileSystemResource(configFilePath));
-        }
-
         this.projectCtx = new AnnotationConfigApplicationContext();
-        this.projectCtx.addBeanFactoryPostProcessor(propertyPlaceholderConfigurer);
         this.projectCtx.setParent(parentContext);
         this.projectCtx.setAllowBeanDefinitionOverriding(false);
         this.projectCtx.setClassLoader(groovyClassLoader);
         this.projectCtx.setId(projectConfiguration.getName());
+
+        final Path configFilePath = projectConfiguration.getPath().resolve(DEFAULT_CONFIG_FILENAME);
+
+        if (Files.exists(configFilePath))
+        {
+            final PropertyPlaceholderConfigurer propertyPlaceholderConfigurer = new PropertyPlaceholderConfigurer();
+            propertyPlaceholderConfigurer.setLocation(new FileSystemResource(configFilePath));
+            final PropertySource<Properties> propertySource = createPropertySource(configFilePath);
+
+            final Environment parentEnv = parentContext.getEnvironment();
+            final StandardEnvironment env = new StandardEnvironment();
+            if (parentEnv instanceof ConfigurableEnvironment)
+            {
+                env.merge((ConfigurableEnvironment) parentEnv);
+            }
+            env.getPropertySources().addFirst(propertySource);
+
+            this.projectCtx.setEnvironment(env);
+            this.projectCtx.addBeanFactoryPostProcessor(propertyPlaceholderConfigurer);
+
+            logger.debug("Setting environment: {}", env);
+            prettyPrint(propertySource.getSource());
+        }
+    }
+
+    private void prettyPrint(final Properties properties)
+    {
+        final StringBuilder sb = new StringBuilder();
+        for (Map.Entry<Object, Object> e : properties.entrySet())
+        {
+            sb.append("\n").append(e.getKey()).append("=").append(e.getValue());
+        }
+        logger.debug("Project configuration properties: {}", sb.toString());
+    }
+
+    private PropertySource<Properties> createPropertySource(final Path configFilePath)
+    {
+        final Properties properties = new Properties();
+        try (final Reader reader = Files.newBufferedReader(configFilePath, StandardCharsets.UTF_8))
+        {
+            properties.load(reader);
+        }
+        catch (IOException exc)
+        {
+            throw new UncheckedIOException(exc);
+        }
+
+        return new PropertySource<Properties>(configFilePath.toString(), properties)
+        {
+            @Override
+            public String getProperty(String key)
+            {
+                return properties.getProperty(key);
+            }
+        };
     }
 
     private void addResourceClasspath()
