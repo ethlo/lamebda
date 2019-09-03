@@ -62,6 +62,27 @@ public class JavaCompiler implements LamebdaCompiler
         logger.debug("Java source paths: {}", StringUtils.collectionToCommaDelimitedString(sourcePaths));
     }
 
+    private static List<String> buildCompilerOptions(Collection<Path> sourcePath, Path classesDirectory)
+    {
+        final Map<String, String> compilerOpts = new LinkedHashMap<>();
+
+        compilerOpts.put("d", classesDirectory.toAbsolutePath().toString());
+
+        compilerOpts.put("sourcepath", StringUtils.collectionToDelimitedString(sourcePath, File.separator));
+
+        final List<String> opts = new ArrayList<>(compilerOpts.size() * 2);
+        for (Map.Entry<String, String> compilerOption : compilerOpts.entrySet())
+        {
+            opts.add("-" + compilerOption.getKey());
+            String value = compilerOption.getValue();
+            if (!StringUtils.isEmpty(value))
+            {
+                opts.add(value);
+            }
+        }
+        return opts;
+    }
+
     @Override
     public void compile(Path classesDirectory)
     {
@@ -71,7 +92,7 @@ public class JavaCompiler implements LamebdaCompiler
             throw new IllegalStateException("You need to run build with JDK or have tools.jar on the classpath");
         }
 
-        try (final StandardJavaFileManager standardFileManager = compiler.getStandardFileManager(null, Locale.getDefault(),StandardCharsets.UTF_8))
+        try (final StandardJavaFileManager standardFileManager = compiler.getStandardFileManager(null, Locale.getDefault(), StandardCharsets.UTF_8))
         {
             final JavaFileManager fileManager = new CustomClassloaderJavaFileManager(classLoader, standardFileManager);
             final List<File> sourceFiles = CompilerUtil.findSourceFiles(FunctionManagerImpl.JAVA_EXTENSION, sourcePaths.toArray(new Path[0])).stream().map(Path::toFile).collect(Collectors.toList());
@@ -106,26 +127,5 @@ public class JavaCompiler implements LamebdaCompiler
         {
             throw new UncheckedIOException(e);
         }
-    }
-
-    private static List<String> buildCompilerOptions(Collection<Path> sourcePath, Path classesDirectory)
-    {
-        final Map<String, String> compilerOpts = new LinkedHashMap<>();
-
-        compilerOpts.put("d", classesDirectory.toAbsolutePath().toString());
-
-        compilerOpts.put("sourcepath", StringUtils.collectionToDelimitedString(sourcePath, File.separator));
-
-        final List<String> opts = new ArrayList<>(compilerOpts.size() * 2);
-        for (Map.Entry<String, String> compilerOption : compilerOpts.entrySet())
-        {
-            opts.add("-" + compilerOption.getKey());
-            String value = compilerOption.getValue();
-            if (!StringUtils.isEmpty(value))
-            {
-                opts.add(value);
-            }
-        }
-        return opts;
     }
 }

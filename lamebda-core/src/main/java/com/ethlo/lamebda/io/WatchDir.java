@@ -55,10 +55,44 @@ public class WatchDir implements AutoCloseable
     private final Consumer<FileSystemEvent> listener;
     private final boolean recursive;
 
+    public WatchDir(Consumer<FileSystemEvent> listener, boolean recursive, Path... dirs) throws IOException
+    {
+        this.watcher = FileSystems.getDefault().newWatchService();
+        this.keys = new HashMap<>();
+        this.listener = listener;
+        this.recursive = recursive;
+
+        for (Path dir : dirs)
+        {
+            if (recursive)
+            {
+                registerRecursive(dir);
+            }
+            else
+            {
+                register(dir);
+            }
+        }
+    }
+
     @SuppressWarnings("unchecked")
     static <T> WatchEvent<T> cast(WatchEvent<?> event)
     {
         return (WatchEvent<T>) event;
+    }
+
+    private static WatchEvent.Modifier getComSunNioFileSensitivityWatchEventModifierHigh()
+    {
+        try
+        {
+            final Class<?> c = Class.forName("com.sun.nio.file.SensitivityWatchEventModifier");
+            final Field f = c.getField("HIGH");
+            return (WatchEvent.Modifier) f.get(c);
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
     }
 
     private void register(Path dir) throws IOException
@@ -85,20 +119,6 @@ public class WatchDir implements AutoCloseable
         });
     }
 
-    private static WatchEvent.Modifier getComSunNioFileSensitivityWatchEventModifierHigh()
-    {
-        try
-        {
-            final Class<?> c = Class.forName("com.sun.nio.file.SensitivityWatchEventModifier");
-            final Field f = c.getField("HIGH");
-            return (WatchEvent.Modifier) f.get(c);
-        }
-        catch (Exception e)
-        {
-            return null;
-        }
-    }
-
     private WatchKey doRegisterSingle(Path dir) throws IOException
     {
         if (modifier == null)
@@ -108,26 +128,6 @@ public class WatchDir implements AutoCloseable
         else
         {
             return dir.register(watcher, new WatchEvent.Kind<?>[]{ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY}, modifier);
-        }
-    }
-
-    public WatchDir(Consumer<FileSystemEvent> listener, boolean recursive, Path... dirs) throws IOException
-    {
-        this.watcher = FileSystems.getDefault().newWatchService();
-        this.keys = new HashMap<>();
-        this.listener = listener;
-        this.recursive = recursive;
-
-        for (Path dir : dirs)
-        {
-            if (recursive)
-            {
-                registerRecursive(dir);
-            }
-            else
-            {
-                register(dir);
-            }
         }
     }
 

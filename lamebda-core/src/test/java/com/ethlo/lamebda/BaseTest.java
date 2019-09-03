@@ -43,9 +43,8 @@ public abstract class BaseTest
 {
     private final Path rootPath = Paths.get("src/test/projects");
     private final Path projectPath = rootPath.resolve("myproject");
-    protected FunctionManagerImpl functionManager;
     private final Logger logger = LoggerFactory.getLogger(getClass());
-
+    protected FunctionManagerImpl functionManager;
     @Autowired
     private ApplicationContext parentContext;
 

@@ -69,6 +69,11 @@ public class ProjectConfiguration implements Serializable
         classPath = b.getClassPath();
     }
 
+    public static ProjectConfigurationBuilder builder(String rootContextPath, Path projectPath)
+    {
+        return new ProjectConfigurationBuilder(rootContextPath, projectPath.toAbsolutePath());
+    }
+
     /**
      * @return The project level context mapping in the URL, for example <code>/gateway/<contextPath>/my-function</code>
      */
@@ -88,11 +93,6 @@ public class ProjectConfiguration implements Serializable
     public boolean enableUrlProjectContextPrefix()
     {
         return enableUrlProjectContextPrefix;
-    }
-
-    public static ProjectConfigurationBuilder builder(String rootContextPath, Path projectPath)
-    {
-        return new ProjectConfigurationBuilder(rootContextPath, projectPath.toAbsolutePath());
     }
 
     @JsonProperty("project.name")

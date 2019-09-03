@@ -27,13 +27,11 @@ class SharedService {
         "Hello world, " + name
     }
 
-    class InnerClass
-    {
+    class InnerClass {
         def foo = false
     }
 }
 
-class OtherName
-{
+class OtherName {
     def bar = true
 }

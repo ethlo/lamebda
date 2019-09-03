@@ -72,27 +72,22 @@ import groovy.lang.GroovyClassLoader;
 
 public class FunctionManagerImpl implements FunctionManager
 {
-    private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
-
     public static final String PROJECT_FILENAME = "project.properties";
     public static final String DEFAULT_CONFIG_FILENAME = "application.properties";
     public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
-
     public static final String JAR_EXTENSION = "jar";
     public static final String GROOVY_EXTENSION = "groovy";
     public static final String JAVA_EXTENSION = "java";
     public static final String PROPERTIES_EXTENSION = "properties";
-
     public static final String SPECIFICATION_DIRECTORY = "specification";
     public static final String LIB_DIRECTORY = "lib";
-
+    private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
     private final ProjectConfiguration projectConfiguration;
     private final ApplicationContext parentContext;
-    private AnnotationConfigApplicationContext projectCtx;
-
     private final GeneratorHelper generatorHelper;
-    private LinkedList<LamebdaCompiler> compilers;
     private final GroovyClassLoader groovyClassLoader = new GroovyClassLoader();
+    private AnnotationConfigApplicationContext projectCtx;
+    private LinkedList<LamebdaCompiler> compilers;
 
     public FunctionManagerImpl(ApplicationContext parentContext, ProjectConfiguration projectConfiguration)
     {

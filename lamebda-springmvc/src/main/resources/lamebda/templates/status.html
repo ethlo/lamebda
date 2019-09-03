@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
+    <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+    <meta content="" name="description">
+    <meta content="" name="author">
     <title>Project status</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" rel="stylesheet">
     <style>
         html {
             position: relative;
@@ -41,7 +41,7 @@
 
 <div class="d-flex flex-column flex-md-row align-items-center p-3 px-md-4 mb-3 header-bg border-bottom box-shadow">
     <h5 class="my-0 mr-md-auto font-weight-normal"><span id="projectName">Project status</span> <span
-            id="projectVersion" class="text-muted"></span></h5>
+            class="text-muted" id="projectVersion"></span></h5>
     <nav class="my-2 my-md-0 mr-md-3">
         <a class="p-2" href="../specification/api/doc/">API documentation</a>
         <a class="p-2" href="../specification/api/api.yaml">API specification</a>
@@ -50,7 +50,7 @@
 </div>
 
 <div class="container">
-    <table id="functiontable" class="table table-hover table-bordered table-light">
+    <table class="table table-hover table-bordered table-light" id="functiontable">
         <thead class="thead-light">
         <tr>
             <th scope="col">Name</th>
@@ -62,9 +62,9 @@
     </table>
 </div>
 <script
-        src="https://code.jquery.com/jquery-3.3.1.min.js"
+        crossorigin="anonymous"
         integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
-        crossorigin="anonymous"></script>
+        src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
 
 <script>
     function renderFunctions(functions) {
@@ -113,6 +113,7 @@
             }
         });
     });
+
 </script>
 <footer class="footer border-top">
     &nbsp;<small class="text-muted">Powered by <a href="https://github.com/ethlo/lamebda">Lamebda</a></small>

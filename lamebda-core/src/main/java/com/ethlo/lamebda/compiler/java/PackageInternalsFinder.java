@@ -41,9 +41,8 @@ import org.slf4j.LoggerFactory;
 public class PackageInternalsFinder
 {
     private static final Logger logger = LoggerFactory.getLogger(PackageInternalsFinder.class);
-
-    private final ClassLoader classLoader;
     private static final String CLASS_FILE_EXTENSION = ".class";
+    private final ClassLoader classLoader;
 
     public PackageInternalsFinder(ClassLoader classLoader)
     {

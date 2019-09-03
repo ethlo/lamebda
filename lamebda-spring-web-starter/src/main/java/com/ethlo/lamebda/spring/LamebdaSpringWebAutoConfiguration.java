@@ -53,7 +53,7 @@ public class LamebdaSpringWebAutoConfiguration
     @Autowired
     private ApplicationContext parentContext;
 
-    @Autowired(required=false)
+    @Autowired(required = false)
     private List<MethodInterceptor> methodInterceptors = new LinkedList<>();
 
     public void setRootContextPath(String rootContextPath)

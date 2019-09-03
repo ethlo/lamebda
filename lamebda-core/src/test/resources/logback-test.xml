@@ -21,17 +21,17 @@
 
 <configuration debug="true" scan="true" scanInterval="10">
 
-	<appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
-		<encoder>
-			<pattern>%d %5p [%t] [%c:%L] - %m%n%ex
-			</pattern>
-		</encoder>
-	</appender>
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d %5p [%t] [%c:%L] - %m%n%ex
+            </pattern>
+        </encoder>
+    </appender>
 
-	<logger name="org.openapitools.codegen" level="WARN" />
+    <logger name="org.openapitools.codegen" level="WARN"/>
 
-	<root level="INFO">
-		<appender-ref ref="stdout" />
-	</root>
+    <root level="INFO">
+        <appender-ref ref="stdout"/>
+    </root>
 
 </configuration>
