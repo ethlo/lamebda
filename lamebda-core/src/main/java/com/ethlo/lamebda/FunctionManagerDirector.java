@@ -174,7 +174,7 @@ public class FunctionManagerDirector
         FunctionManagerImpl fm = null;
         try
         {
-            final ProjectConfiguration cfg = ProjectConfiguration.builder(rootContext, projectPath).loadIfExists().build();
+            final ProjectConfiguration cfg = ProjectConfiguration.load(rootContext, projectPath.resolve(FunctionManagerImpl.PROJECT_FILENAME));
             fm = new FunctionManagerImpl(parentContext, cfg);
             functionManagers.put(projectPath, fm);
         }

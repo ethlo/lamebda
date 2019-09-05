@@ -273,7 +273,7 @@ public class FunctionManagerImpl implements FunctionManager
     private void findBeans()
     {
         // Scan for beans
-        final Set<String> basePackages = projectConfiguration.getBasePackages();
+        final Set<String> basePackages = projectConfiguration.getProject().getBasePackages();
         if (!basePackages.isEmpty())
         {
             logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(basePackages));
@@ -293,7 +293,7 @@ public class FunctionManagerImpl implements FunctionManager
         this.projectCtx.setParent(parentContext);
         this.projectCtx.setAllowBeanDefinitionOverriding(false);
         this.projectCtx.setClassLoader(groovyClassLoader);
-        this.projectCtx.setId(projectConfiguration.getName());
+        this.projectCtx.setId(projectConfiguration.getProject().getName());
 
         final Path configFilePath = projectConfiguration.getPath().resolve(DEFAULT_CONFIG_FILENAME);
 
