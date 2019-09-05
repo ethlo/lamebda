@@ -28,13 +28,11 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.Properties;
 import java.util.Set;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.util.Assert;
@@ -73,6 +71,35 @@ public class ProjectConfiguration implements Serializable
         this.project = new ProjectInfo();
         this.project.setName(path.getFileName().toString());
         this.rootContextPath = rootContextPath;
+    }
+
+    public static ProjectConfiguration load(@NotNull final String rootContext, @NotNull final Path projectConfigFile)
+    {
+        final Properties properties = new Properties();
+        if (Files.exists(projectConfigFile))
+        {
+            try (InputStream in = Files.newInputStream(projectConfigFile))
+            {
+                properties.load(in);
+                return load(rootContext, projectConfigFile.getParent(), properties);
+            }
+            catch (IOException exc)
+            {
+                throw new UncheckedIOException(exc);
+            }
+        }
+        return load(rootContext, projectConfigFile.getParent(), properties);
+    }
+
+    public static ProjectConfiguration load(@NotNull final String rootContextPath, @NotNull final Path projectPath, @NotNull final Properties properties)
+    {
+        final ProjectConfiguration cfg = new ProjectConfiguration(projectPath, rootContextPath);
+        ConfigurationUtil.populate(cfg, properties);
+        if (cfg.getContextPath() == null && cfg.enableUrlProjectContextPrefix)
+        {
+            cfg.setContextPath(projectPath.getFileName().toString());
+        }
+        return cfg;
     }
 
     public String getRootContextPath()
@@ -145,6 +172,12 @@ public class ProjectConfiguration implements Serializable
         return classPath;
     }
 
+    public ProjectConfiguration setClassPath(final Set<URL> classPath)
+    {
+        this.classPath = classPath;
+        return this;
+    }
+
     public String getJavaCmd()
     {
         final String osName = System.getProperty("os.name").toLowerCase();
@@ -189,12 +222,6 @@ public class ProjectConfiguration implements Serializable
         return getPath().resolve("src").resolve("main").resolve("resources");
     }
 
-    public ProjectConfiguration setClassPath(final Set<URL> classPath)
-    {
-        this.classPath = classPath;
-        return this;
-    }
-
     public DeploymentConfig getDeploymentConfig()
     {
         return deploymentConfig;
@@ -204,35 +231,6 @@ public class ProjectConfiguration implements Serializable
     {
         this.deploymentConfig = deploymentConfig;
         return this;
-    }
-
-    public static ProjectConfiguration load(@NotNull final String rootContext, @NotNull final Path projectConfigFile)
-    {
-        final Properties properties = new Properties();
-        if (Files.exists(projectConfigFile))
-        {
-            try (InputStream in = Files.newInputStream(projectConfigFile))
-            {
-                properties.load(in);
-                return load(rootContext, projectConfigFile.getParent(), properties);
-            }
-            catch (IOException exc)
-            {
-                throw new UncheckedIOException(exc);
-            }
-        }
-        return load(rootContext, projectConfigFile.getParent(), properties);
-    }
-
-    public static ProjectConfiguration load(@NotNull final String rootContextPath, @NotNull final Path projectPath, @NotNull final Properties properties)
-    {
-        final ProjectConfiguration cfg = new ProjectConfiguration(projectPath, rootContextPath);
-        ConfigurationUtil.populate(cfg, properties);
-        if (cfg.getContextPath() == null && cfg.enableUrlProjectContextPrefix)
-        {
-            cfg.setContextPath(projectPath.getFileName().toString());
-        }
-        return cfg;
     }
 
     public ProjectInfo getProject()

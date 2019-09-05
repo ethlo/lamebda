@@ -32,8 +32,8 @@ public class HttpUtil
     public static String normalize(final URL url)
     {
         return url.getProtocol() + "://" + url.getHost()
-                        + (url.getPort() != -1 ? ":" + url.getPort() : "")
-                        + url.getPath();
+                + (url.getPort() != -1 ? ":" + url.getPort() : "")
+                + url.getPath();
     }
 
     public static Resource getContent(String url, String username, String password)

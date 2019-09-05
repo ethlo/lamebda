@@ -59,7 +59,7 @@ public class ConfigurationUtil
             if (exc.getCause() instanceof UnboundConfigurationPropertiesException)
             {
                 final UnboundConfigurationPropertiesException e = (UnboundConfigurationPropertiesException) exc.getCause();
-                throw new IllegalArgumentException("Unbound project.properties entries: " + StringUtils.collectionToCommaDelimitedString(e.getUnboundProperties().stream().map(p->p.getName() + "=" + p.getValue()).collect(Collectors.toList())));
+                throw new IllegalArgumentException("Unbound project.properties entries: " + StringUtils.collectionToCommaDelimitedString(e.getUnboundProperties().stream().map(p -> p.getName() + "=" + p.getValue()).collect(Collectors.toList())));
             }
         }
     }
