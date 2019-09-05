@@ -70,6 +70,8 @@ public class ProjectConfiguration implements Serializable
     public ProjectConfiguration(final Path path, final String rootContextPath)
     {
         this.path = path.toAbsolutePath();
+        this.project = new ProjectInfo();
+        this.project.setName(path.getFileName().toString());
         this.rootContextPath = rootContextPath;
     }
 
@@ -207,15 +209,19 @@ public class ProjectConfiguration implements Serializable
     public static ProjectConfiguration load(@NotNull final String rootContext, @NotNull final Path projectConfigFile)
     {
         final Properties properties = new Properties();
-        try (InputStream in = Files.newInputStream(projectConfigFile))
+        if (Files.exists(projectConfigFile))
         {
-            properties.load(in);
-            return load(rootContext, projectConfigFile.getParent(), properties);
+            try (InputStream in = Files.newInputStream(projectConfigFile))
+            {
+                properties.load(in);
+                return load(rootContext, projectConfigFile.getParent(), properties);
+            }
+            catch (IOException exc)
+            {
+                throw new UncheckedIOException(exc);
+            }
         }
-        catch (IOException exc)
-        {
-            throw new UncheckedIOException(exc);
-        }
+        return load(rootContext, projectConfigFile.getParent(), properties);
     }
 
     public static ProjectConfiguration load(@NotNull final String rootContextPath, @NotNull final Path projectPath, @NotNull final Properties properties)

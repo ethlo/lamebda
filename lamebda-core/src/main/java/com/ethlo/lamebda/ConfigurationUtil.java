@@ -40,6 +40,11 @@ public class ConfigurationUtil
 {
     public static void populate(final ProjectConfiguration cfg, Properties properties)
     {
+        if (properties.isEmpty())
+        {
+            return;
+        }
+
         final UnboundElementsSourceFilter filter = new UnboundElementsSourceFilter();
         final BindHandler handler = new NoUnboundElementsBindHandler(new IgnoreTopLevelConverterNotFoundBindHandler(), filter);
         final Binder binder = new Binder(new MapConfigurationPropertySource(properties));

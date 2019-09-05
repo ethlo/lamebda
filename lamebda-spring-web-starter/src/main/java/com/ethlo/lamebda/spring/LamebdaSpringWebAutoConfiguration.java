@@ -21,9 +21,11 @@ package com.ethlo.lamebda.spring;
  */
 
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,12 +34,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.FunctionManagerDirector;
 import com.ethlo.lamebda.ProjectCleanupService;
 import com.ethlo.lamebda.ProjectSetupService;
+import com.ethlo.lamebda.loader.ProjectLoader;
+import com.ethlo.lamebda.loader.http.HttpRepositoryProjectLoader;
+import com.ethlo.lamebda.util.IoUtil;
 
 @Configuration
 @ConfigurationProperties("lamebda")
@@ -50,8 +57,11 @@ public class LamebdaSpringWebAutoConfiguration
     @Value("${lamebda.source.directory:/lamebda}")
     private Path rootDir;
 
+    @Value("${lamebda.source.projects:null}")
+    private Set<String> projectNames;
+
     @Autowired
-    private ApplicationContext parentContext;
+    private ConfigurableApplicationContext parentContext;
 
     @Autowired(required = false)
     private List<MethodInterceptor> methodInterceptors = new LinkedList<>();
@@ -66,6 +76,21 @@ public class LamebdaSpringWebAutoConfiguration
     @ConditionalOnProperty("lamebda.enabled")
     public FunctionManagerDirector functionManagerDirector() throws IOException
     {
+        final String configServerUrl = parentContext.getEnvironment().getProperty("spring.cloud.config.uri");
+        final String applicationName = parentContext.getEnvironment().getProperty("spring.application.name");
+
+        if (StringUtils.hasLength(configServerUrl) && StringUtils.hasLength(applicationName))
+        {
+            final ProjectLoader projectLoader = new HttpRepositoryProjectLoader(
+                    rootDir,
+                    IoUtil.stringToURL(configServerUrl),
+                    applicationName,
+                    "default",
+                    "master",
+                    projectNames
+            );
+        }
+
         return new FunctionManagerDirector(rootDir, rootContextPath, parentContext);
     }
 
