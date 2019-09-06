@@ -20,12 +20,8 @@ package com.ethlo.lamebda.loader;
  * #L%
  */
 
-import java.nio.file.Path;
-import java.util.List;
-
+@FunctionalInterface
 public interface ProjectLoader
 {
-    List<String> getProjectIds();
-
-    Path init();
+    void prepare();
 }

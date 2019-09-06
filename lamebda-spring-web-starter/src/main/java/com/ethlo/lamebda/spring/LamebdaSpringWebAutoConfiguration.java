@@ -40,7 +40,6 @@ import org.springframework.util.StringUtils;
 import com.ethlo.lamebda.FunctionManagerDirector;
 import com.ethlo.lamebda.ProjectCleanupService;
 import com.ethlo.lamebda.ProjectSetupService;
-import com.ethlo.lamebda.loader.ProjectLoader;
 import com.ethlo.lamebda.loader.http.HttpRepositoryProjectLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
@@ -74,22 +73,29 @@ public class LamebdaSpringWebAutoConfiguration
     @ConditionalOnProperty("lamebda.enabled")
     public FunctionManagerDirector functionManagerDirector() throws IOException
     {
-        final String configServerUrl = parentContext.getEnvironment().getProperty("spring.cloud.config.uri");
-        final String applicationName = parentContext.getEnvironment().getProperty("spring.application.name");
+        final String configServerUrl = getProperty("spring.cloud.config.uri");
+        final String applicationName = getProperty("spring.application.name");
+        final String profileName = getProperty("spring.profiles.active") != null ? StringUtils.commaDelimitedListToSet(getProperty("spring.profiles.active")).iterator().next() : "default";
+        final String labelName = getProperty("spring.cloud.config.label") != null ? getProperty("spring.cloud.config.label") : "master";
 
         if (StringUtils.hasLength(configServerUrl) && StringUtils.hasLength(applicationName))
         {
-            final ProjectLoader projectLoader = new HttpRepositoryProjectLoader(
+            new HttpRepositoryProjectLoader(
                     rootDir,
                     IoUtil.stringToURL(configServerUrl),
                     applicationName,
-                    "default",
-                    "master",
+                    profileName,
+                    labelName,
                     projectNames
-            );
+            ).prepare();
         }
 
         return new FunctionManagerDirector(rootDir, rootContextPath, parentContext);
+    }
+
+    private String getProperty(final String s)
+    {
+        return parentContext.getEnvironment().getProperty(s);
     }
 
     @Bean

@@ -27,6 +27,14 @@ public class DeploymentConfig
     @NotNull
     private String resourceUrl;
 
-    private String username;
-    private String password;
+    public String getResourceUrl()
+    {
+        return resourceUrl;
+    }
+
+    public DeploymentConfig setResourceUrl(final String resourceUrl)
+    {
+        this.resourceUrl = resourceUrl;
+        return this;
+    }
 }

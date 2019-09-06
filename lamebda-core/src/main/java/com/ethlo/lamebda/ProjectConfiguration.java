@@ -48,8 +48,6 @@ public class ProjectConfiguration implements Serializable
     private final Path path;
     private final String rootContextPath;
 
-    private boolean listenForChanges;
-
     private boolean enableUrlProjectContextPrefix = true;
 
     private String contextPath;

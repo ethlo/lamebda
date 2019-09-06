@@ -24,12 +24,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.io.UncheckedIOException;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -46,8 +44,25 @@ import com.ethlo.lamebda.util.IoUtil;
 public class HttpRepositoryProjectLoader implements ProjectLoader
 {
     private static final Logger logger = LoggerFactory.getLogger(HttpRepositoryProjectLoader.class);
+    private final Path rootDirectory;
+    private final URL configServerUrl;
+    private final String applicationName;
+    private final String profileName;
+    private final String label;
+    private final Set<String> projectNames;
 
     public HttpRepositoryProjectLoader(final Path rootDirectory, final URL configServerUrl, final String applicationName, final String profileName, final String label, final Set<String> projectNames)
+    {
+        this.rootDirectory = rootDirectory;
+        this.configServerUrl = configServerUrl;
+        this.applicationName = applicationName;
+        this.profileName = profileName;
+        this.label = label;
+        this.projectNames = projectNames;
+    }
+
+    @Override
+    public void prepare()
     {
         for (String projectName : projectNames)
         {
@@ -57,8 +72,8 @@ public class HttpRepositoryProjectLoader implements ProjectLoader
             {
                 final Properties properties = new Properties();
                 final String configContent = IoUtil.toString(HttpUtil.getContent(fullUrl).getInputStream(), StandardCharsets.UTF_8);
+                logger.debug("Properties content: {}", configContent);
                 properties.load(new StringReader(configContent));
-                logger.info("Properties: {}", properties);
 
                 final Path projectPath = rootDirectory.toAbsolutePath().resolve(projectName);
 
@@ -103,24 +118,5 @@ public class HttpRepositoryProjectLoader implements ProjectLoader
     private Resource getArtifact(final String artifactUrl)
     {
         return HttpUtil.getContent(artifactUrl);
-    }
-
-    @Override
-    public List<String> getProjectIds()
-    {
-        return null;
-    }
-
-    @Override
-    public Path init()
-    {
-        return null;
-    }
-
-    private void loadProjectResources(URL url) throws IOException
-    {
-        final HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        con.setRequestMethod("GET");
-        final int responseCode = con.getResponseCode();
     }
 }
