@@ -27,6 +27,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Properties;
 
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -45,6 +46,7 @@ public abstract class BaseTest
     private final Path projectPath = rootPath.resolve("myproject");
     private final Logger logger = LoggerFactory.getLogger(getClass());
     protected FunctionManagerImpl functionManager;
+
     @Autowired
     private ApplicationContext parentContext;
 
@@ -55,7 +57,11 @@ public abstract class BaseTest
         {
             deleteTarget();
             deployGenerator();
-            final ProjectConfiguration cfg = ProjectConfiguration.builder("lamebda", projectPath).addJavaSourcePath(Paths.get("target/generated-sources/java")).listenForChanges(false).basePackages("acme").build();
+            final Properties properties = new Properties();
+            properties.put("project.name", "my-test-project");
+            properties.put("java-source-paths", "target/generated-sources/java");
+            properties.put("project.base-packages", "acme");
+            final ProjectConfiguration cfg = ProjectConfiguration.load("/gateway", projectPath, properties);
             functionManager = new FunctionManagerImpl(parentContext, cfg);
         }
         catch (IOException exc)

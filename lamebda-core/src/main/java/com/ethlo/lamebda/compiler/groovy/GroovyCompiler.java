@@ -59,6 +59,7 @@ public class GroovyCompiler implements LamebdaCompiler
         final List<Path> sourceFiles = CompilerUtil.findSourceFiles(FunctionManagerImpl.GROOVY_EXTENSION, sourcePaths.toArray(new Path[0]));
         if (sourceFiles.isEmpty())
         {
+            logger.debug("No Groovy files found in {}", StringUtils.collectionToCommaDelimitedString(sourcePaths));
             return;
         }
         logger.info("Found {} groovy files", sourceFiles.size());

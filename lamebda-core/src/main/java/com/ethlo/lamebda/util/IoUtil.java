@@ -151,6 +151,18 @@ public class IoUtil
         }
     }
 
+    public static URL stringToURL(final String url)
+    {
+        try
+        {
+            return new URL(url);
+        }
+        catch (MalformedURLException e)
+        {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     public static List<String> toClassPathList(final Path jarPath)
     {
         try

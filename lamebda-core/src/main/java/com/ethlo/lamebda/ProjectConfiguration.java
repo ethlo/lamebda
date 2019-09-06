@@ -20,118 +20,172 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.LinkedHashSet;
+import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
 import org.springframework.util.Assert;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
+@Valid
 public class ProjectConfiguration implements Serializable
 {
-    private final boolean listenForChanges;
-
+    private final Path path;
     private final String rootContextPath;
 
-    private final String contextPath;
+    private boolean enableUrlProjectContextPrefix = true;
 
-    private final boolean enableUrlProjectContextPrefix;
-    private final Path path;
-    private final String name;
-    private final String version;
+    private String contextPath;
 
-    private final String apiDocGenerator;
-    private final Set<String> basePackages;
-    private final Set<Path> groovySourcePaths;
-    private final Set<Path> javaSourcePaths;
-    private final Set<URL> classPath;
+    @NotNull
+    private ProjectInfo project;
 
-    ProjectConfiguration(ProjectConfigurationBuilder b)
+    private String apiDocGenerator;
+
+    private Set<Path> groovySourcePaths = new LinkedHashSet<>();
+    private Set<Path> javaSourcePaths = new LinkedHashSet<>();
+
+    private Set<URL> classPath = new LinkedHashSet<>();
+
+    private DeploymentConfig deploymentConfig;
+
+    public ProjectConfiguration(final Path path, final String rootContextPath)
     {
-        rootContextPath = b.getRootContextPath();
-        path = b.getProjectPath();
-        contextPath = b.getProjectContextPath();
-        enableUrlProjectContextPrefix = b.isEnableUrlProjectContextPrefix();
-        name = b.getProjectName();
-        version = b.getProjectVersion();
-        apiDocGenerator = b.getApiDocGenerator();
-        listenForChanges = b.isListenForChanges();
-        basePackages = b.getBasePackages();
-        javaSourcePaths = b.getJavaSourcePaths();
-        groovySourcePaths = b.getGroovySourcePaths();
-        classPath = b.getClassPath();
+        this.path = path.toAbsolutePath();
+        this.project = new ProjectInfo();
+        this.project.setName(path.getFileName().toString());
+        this.rootContextPath = rootContextPath;
     }
 
-    public static ProjectConfigurationBuilder builder(String rootContextPath, Path projectPath)
+    public static ProjectConfiguration load(@NotNull final String rootContext, @NotNull final Path projectConfigFile)
     {
-        return new ProjectConfigurationBuilder(rootContextPath, projectPath.toAbsolutePath());
+        final Properties properties = new Properties();
+        if (Files.exists(projectConfigFile))
+        {
+            try (InputStream in = Files.newInputStream(projectConfigFile))
+            {
+                properties.load(in);
+                return load(rootContext, projectConfigFile.getParent(), properties);
+            }
+            catch (IOException exc)
+            {
+                throw new UncheckedIOException(exc);
+            }
+        }
+        return load(rootContext, projectConfigFile.getParent(), properties);
     }
 
-    /**
-     * @return The project level context mapping in the URL, for example <code>/gateway/<contextPath>/my-function</code>
-     */
-    @JsonProperty("mapping.project-context-path")
+    public static ProjectConfiguration load(@NotNull final String rootContextPath, @NotNull final Path projectPath, @NotNull final Properties properties)
+    {
+        final ProjectConfiguration cfg = new ProjectConfiguration(projectPath, rootContextPath);
+        ConfigurationUtil.populate(cfg, properties);
+        if (cfg.getContextPath() == null && cfg.enableUrlProjectContextPrefix)
+        {
+            cfg.setContextPath(projectPath.getFileName().toString());
+        }
+        return cfg;
+    }
+
+    public String getRootContextPath()
+    {
+        return rootContextPath;
+    }
+
     public String getContextPath()
     {
         return contextPath;
     }
 
-    @JsonIgnore
-    public Path getPath()
+    public ProjectConfiguration setContextPath(final String contextPath)
     {
-        return path;
+        this.contextPath = contextPath;
+        return this;
     }
 
-    @JsonProperty("mapping.use-project-context-path")
     public boolean enableUrlProjectContextPrefix()
     {
         return enableUrlProjectContextPrefix;
     }
 
-    @JsonProperty("project.name")
-    public String getName()
+    public ProjectConfiguration setEnableUrlProjectContextPrefix(final boolean enableUrlProjectContextPrefix)
     {
-        return name;
+        this.enableUrlProjectContextPrefix = enableUrlProjectContextPrefix;
+        return this;
     }
 
-    @JsonProperty("project.version")
-    public String getVersion()
+    public Path getPath()
     {
-        return version;
+        return path;
     }
 
-    @JsonProperty("specification.api.doc.generator")
     public String getApiDocGenerator()
     {
         return apiDocGenerator;
     }
 
-    @JsonProperty("system.listen-for-changes")
-    public boolean isListenForChanges()
+    public ProjectConfiguration setApiDocGenerator(final String apiDocGenerator)
     {
-        return listenForChanges;
+        this.apiDocGenerator = apiDocGenerator;
+        return this;
     }
 
-    public boolean isEnableUrlProjectContextPrefix()
+    public Set<Path> getGroovySourcePaths()
     {
-        return enableUrlProjectContextPrefix;
+        return merge(getPath().resolve("src").resolve("main").resolve("groovy"), groovySourcePaths);
     }
 
-    /**
-     * Returns the left-most URL path component, typically after the servlet context path. For example /servlet-name/<root-context-path>/my-function
-     *
-     * @return the left-most URL path component
-     */
-    public String getRootContextPath()
+    public ProjectConfiguration setGroovySourcePaths(final Set<Path> groovySourcePaths)
     {
-        return rootContextPath;
+        this.groovySourcePaths = ensureAbsolutePaths(groovySourcePaths);
+        return this;
+    }
+
+    public Set<Path> getJavaSourcePaths()
+    {
+        return merge(getPath().resolve("src").resolve("main").resolve("java"), javaSourcePaths);
+    }
+
+    public ProjectConfiguration setJavaSourcePaths(final Set<Path> javaSourcePaths)
+    {
+        this.javaSourcePaths = ensureAbsolutePaths(javaSourcePaths);
+        return this;
+    }
+
+    private Set<Path> merge(final Path extra, final Set<Path> existing)
+    {
+        existing.add(extra);
+        return existing;
+    }
+
+    private Set<Path> ensureAbsolutePaths(final Set<Path> paths)
+    {
+        return paths.stream().map(p -> p.isAbsolute() ? p : path.resolve(p).normalize()).collect(Collectors.toSet());
+    }
+
+    public Set<URL> getClassPath()
+    {
+        return classPath;
+    }
+
+    public ProjectConfiguration setClassPath(final Set<URL> classPath)
+    {
+        this.classPath = classPath;
+        return this;
     }
 
     public String getJavaCmd()
@@ -144,23 +198,13 @@ public class ProjectConfiguration implements Serializable
         return Paths.get(javaHome).resolve(execPath).toAbsolutePath().toString();
     }
 
-    @Override
-    public String toString()
-    {
-        return "ProjectConfigurationBuilder{" +
-                "rootContextPath='" + rootContextPath + '\'' +
-                ", path=" + path +
-                ", name='" + name + '\'' +
-                ", contextPath='" + contextPath + '\'' +
-                ", enableUrlProjectContextPrefix=" + enableUrlProjectContextPrefix +
-                '}';
-    }
-
     public String toPrettyString()
     {
         try
         {
-            return new ObjectMapper().writeValueAsString(this);
+            final ObjectMapper mapper = new ObjectMapper();
+            mapper.enable(SerializationFeature.INDENT_OUTPUT);
+            return mapper.writeValueAsString(this);
         }
         catch (JsonProcessingException e)
         {
@@ -170,7 +214,7 @@ public class ProjectConfiguration implements Serializable
 
     public Path getLibraryPath()
     {
-        return this.getPath().resolve(FunctionManagerImpl.LIB_DIRECTORY);
+        return path.resolve(FunctionManagerImpl.LIB_DIRECTORY);
     }
 
     public Path getSpecificationPath()
@@ -178,39 +222,35 @@ public class ProjectConfiguration implements Serializable
         return this.getPath().resolve("src").resolve("main").resolve("resources").resolve(FunctionManagerImpl.SPECIFICATION_DIRECTORY);
     }
 
-    @JsonProperty("system.base-packages")
-    public Set<String> getBasePackages()
-    {
-        return this.basePackages;
-    }
-
     public Path getTargetClassDirectory()
     {
-        return getPath().resolve("target").resolve("classes");
-    }
-
-    public Set<Path> getGroovySourcePaths()
-    {
-        return groovySourcePaths;
+        return path.resolve("target").resolve("classes");
     }
 
     public Path getMainResourcePath()
     {
-        return getPath().resolve("src").resolve("main").resolve("resources");
+        return path.resolve("src").resolve("main").resolve("resources");
     }
 
-    public Set<Path> getJavaSourcePaths()
+    public DeploymentConfig getDeploymentConfig()
     {
-        return javaSourcePaths;
+        return deploymentConfig;
     }
 
-    public Set<URL> getClassPath()
+    public ProjectConfiguration setDeploymentConfig(final DeploymentConfig deploymentConfig)
     {
-        return classPath;
+        this.deploymentConfig = deploymentConfig;
+        return this;
     }
 
-    public String staticUrlPath()
+    public ProjectInfo getProject()
     {
-        return getPath() + "/static/**";
+        return project;
+    }
+
+    public ProjectConfiguration setProject(final ProjectInfo project)
+    {
+        this.project = project;
+        return this;
     }
 }

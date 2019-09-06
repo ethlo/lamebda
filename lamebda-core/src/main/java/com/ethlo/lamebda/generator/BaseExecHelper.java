@@ -62,7 +62,7 @@ public abstract class BaseExecHelper
         try
         {
             final String[] fullCmd = combine(new String[]{javaCmd, "-cp", StringUtils.collectionToDelimitedString(classPath, File.pathSeparator), "org.openapitools.codegen.OpenAPIGenerator"}, cmd);
-            logger.debug("Running {}", StringUtils.arrayToDelimitedString(fullCmd, " "));
+            logger.info("Running {}", StringUtils.arrayToDelimitedString(fullCmd, " "));
             process = new ProcessBuilder(fullCmd)
                     .inheritIO()
                     .directory(dir.toFile())
