@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.util.LinkedHashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -147,24 +148,35 @@ public class ProjectConfiguration implements Serializable
 
     public Set<Path> getGroovySourcePaths()
     {
-        return groovySourcePaths;
+        return merge(getPath().resolve("src").resolve("main").resolve("groovy"), groovySourcePaths);
     }
 
     public ProjectConfiguration setGroovySourcePaths(final Set<Path> groovySourcePaths)
     {
-        this.groovySourcePaths = groovySourcePaths;
+        this.groovySourcePaths = ensureAbsolutePaths(groovySourcePaths);
         return this;
     }
 
     public Set<Path> getJavaSourcePaths()
     {
-        return javaSourcePaths;
+        return merge(getPath().resolve("src").resolve("main").resolve("java"), javaSourcePaths);
     }
 
     public ProjectConfiguration setJavaSourcePaths(final Set<Path> javaSourcePaths)
     {
-        this.javaSourcePaths = javaSourcePaths;
+        this.javaSourcePaths = ensureAbsolutePaths(javaSourcePaths);
         return this;
+    }
+
+    private Set<Path> merge(final Path extra, final Set<Path> existing)
+    {
+        existing.add(extra);
+        return existing;
+    }
+
+    private Set<Path> ensureAbsolutePaths(final Set<Path> paths)
+    {
+        return paths.stream().map(p -> p.isAbsolute() ? p : path.resolve(p).normalize()).collect(Collectors.toSet());
     }
 
     public Set<URL> getClassPath()
@@ -204,7 +216,7 @@ public class ProjectConfiguration implements Serializable
 
     public Path getLibraryPath()
     {
-        return this.getPath().resolve(FunctionManagerImpl.LIB_DIRECTORY);
+        return path.resolve(FunctionManagerImpl.LIB_DIRECTORY);
     }
 
     public Path getSpecificationPath()
@@ -214,12 +226,12 @@ public class ProjectConfiguration implements Serializable
 
     public Path getTargetClassDirectory()
     {
-        return getPath().resolve("target").resolve("classes");
+        return path.resolve("target").resolve("classes");
     }
 
     public Path getMainResourcePath()
     {
-        return getPath().resolve("src").resolve("main").resolve("resources");
+        return path.resolve("src").resolve("main").resolve("resources");
     }
 
     public DeploymentConfig getDeploymentConfig()

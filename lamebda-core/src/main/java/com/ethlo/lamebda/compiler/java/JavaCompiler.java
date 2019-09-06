@@ -98,6 +98,7 @@ public class JavaCompiler implements LamebdaCompiler
             final List<File> sourceFiles = CompilerUtil.findSourceFiles(FunctionManagerImpl.JAVA_EXTENSION, sourcePaths.toArray(new Path[0])).stream().map(Path::toFile).collect(Collectors.toList());
             if (sourceFiles.isEmpty())
             {
+                logger.debug("No Java files found in {}", StringUtils.collectionToCommaDelimitedString(sourcePaths));
                 return;
             }
             logger.info("Found {} java files", sourceFiles.size());
