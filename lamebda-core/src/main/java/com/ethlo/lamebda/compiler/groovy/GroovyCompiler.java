@@ -22,7 +22,6 @@ package com.ethlo.lamebda.compiler.groovy;
 
 import java.io.FileNotFoundException;
 import java.io.UncheckedIOException;
-import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
@@ -74,14 +73,6 @@ public class GroovyCompiler implements LamebdaCompiler
         ccfg.setTargetDirectory(classesDirectory.toFile());
         compileUnit.setConfiguration(ccfg);
         compileUnit.compile();
-        try
-        {
-            classLoader.addURL(classesDirectory.toAbsolutePath().toUri().toURL());
-        }
-        catch (MalformedURLException e)
-        {
-            throw new UncheckedIOException(e);
-        }
+        classLoader.addURL(IoUtil.toURL(classesDirectory.toAbsolutePath()));
     }
-
 }

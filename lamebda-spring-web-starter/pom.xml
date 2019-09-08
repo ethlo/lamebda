@@ -35,7 +35,6 @@
             <artifactId>lamebda-springmvc</artifactId>
             <version>0.9.4-SNAPSHOT</version>
         </dependency>
-
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
