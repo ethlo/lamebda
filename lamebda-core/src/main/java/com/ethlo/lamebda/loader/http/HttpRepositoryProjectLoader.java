@@ -44,6 +44,7 @@ import com.ethlo.lamebda.util.IoUtil;
 public class HttpRepositoryProjectLoader implements ProjectLoader
 {
     private static final Logger logger = LoggerFactory.getLogger(HttpRepositoryProjectLoader.class);
+    public static final String DEPLOYMENT_ARTIFACT_URL = "deployment.artifact-url";
     private final Path rootDirectory;
     private final URL configServerUrl;
     private final String applicationName;
@@ -76,11 +77,10 @@ public class HttpRepositoryProjectLoader implements ProjectLoader
                 properties.load(new StringReader(configContent));
 
                 final Path projectPath = rootDirectory.toAbsolutePath().resolve(projectName);
+                Files.createDirectories(projectPath);
 
+                installArtifactFromUrl(projectName, projectPath, properties);
                 installConfigFromUrl(fullUrl, configContent, projectPath);
-
-                final String artifactUrl = properties.getProperty("deployment.artifact-url");
-                installArtifactFromUrl(projectName, projectPath, artifactUrl);
             }
             catch (IOException e)
             {
@@ -96,8 +96,9 @@ public class HttpRepositoryProjectLoader implements ProjectLoader
         logger.info("Installed configuration from {} into {}", fullUrl, localConfigPath);
     }
 
-    private void installArtifactFromUrl(final String projectName, final Path projectPath, final String artifactUrl) throws IOException
+    private void installArtifactFromUrl(final String projectName, final Path projectPath, final Properties properties) throws IOException
     {
+        final String artifactUrl = properties.getProperty(DEPLOYMENT_ARTIFACT_URL);
         if (artifactUrl != null)
         {
             final Resource artifact = getArtifact(artifactUrl);
@@ -112,6 +113,10 @@ public class HttpRepositoryProjectLoader implements ProjectLoader
             }
 
             logger.info("Installed artifact from {} into {}", artifact.getDescription(), localArtifactPath);
+        }
+        else
+        {
+            logger.info("No '" + DEPLOYMENT_ARTIFACT_URL + "' property defined in config file. Skipping new deployment.");
         }
     }
 
