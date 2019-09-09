@@ -21,34 +21,37 @@ package com.ethlo.lamebda;
  */
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.util.Assert;
 
+import com.ethlo.lamebda.dao.LocalProjectDao;
+import com.ethlo.lamebda.dao.LocalProjectDaoImpl;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
+import com.ethlo.lamebda.loader.http.HttpArtifactLoader;
 
-public class FunctionManagerDirector
+public class ProjectManager
 {
-    private static final Logger logger = LoggerFactory.getLogger(FunctionManagerDirector.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProjectManager.class);
 
     private final Path rootDirectory;
     private final String rootContext;
     private final ApplicationContext parentContext;
 
-    private final Map<Path, FunctionManager> functionManagers = new ConcurrentHashMap<>();
+    private final Map<Path, Project> projects = new ConcurrentHashMap<>();
+    private final HttpArtifactLoader artifactLoader;
+    private final LocalProjectDao localProjectDao;
+
     private WatchDir watchDir;
 
-    public FunctionManagerDirector(final Path rootDirectory, String rootContext, ApplicationContext parentContext) throws IOException
+    public ProjectManager(final Path rootDirectory, String rootContext, ApplicationContext parentContext) throws IOException
     {
         Assert.notNull(rootDirectory, "rootDirectory cannot be null");
         Assert.notNull(rootDirectory, "rootContext cannot be null");
@@ -63,6 +66,9 @@ public class FunctionManagerDirector
         this.rootDirectory = rootDirectory;
         this.rootContext = rootContext;
         this.parentContext = parentContext;
+
+        this.localProjectDao = new LocalProjectDaoImpl(rootDirectory);
+        this.artifactLoader = new HttpArtifactLoader();
 
         initializeAll();
     }
@@ -85,13 +91,13 @@ public class FunctionManagerDirector
             else if (e.getChangeType() == ChangeType.DELETED && isProjectPath)
             {
                 logger.info("Closing project due to deletion of project directory: {}", e.getPath());
-                close(projectPath);
+                closeProject(projectPath);
             }
             else if (e.getChangeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath))
             {
                 logger.info("Reloading project due to modification of {}", path);
-                close(projectPath);
-                create(projectPath);
+                closeProject(projectPath);
+                loadProject(projectPath);
             }
         }, true, rootDirectory);
         new Thread()
@@ -125,42 +131,15 @@ public class FunctionManagerDirector
     {
         setupDirectoryWatcher();
 
-        final List<Path> directories;
-        try
+        for (Path projectPath : localProjectDao.getLocalProjectDirectories())
         {
-            directories = Files.list(rootDirectory)
-                    .filter(this::isValidProjectDir)
-                    .collect(Collectors.toList());
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
-
-        for (Path projectPath : directories)
-        {
-            close(projectPath);
-            create(projectPath);
+            loadProject(projectPath);
         }
     }
 
-    private boolean isValidProjectDir(final Path p)
+    private void closeProject(final Path projectPath)
     {
-        try
-        {
-            final boolean validDirectory = !Files.isHidden(p) && Files.isDirectory(p) && p.getParent().equals(rootDirectory);
-            final boolean validCompressedFile = !Files.isHidden(p) && Files.isRegularFile(p) && p.getParent().equals(rootDirectory) && (p.toString().endsWith(".zip") || p.toString().endsWith(".jar"));
-            return validDirectory || validCompressedFile;
-        }
-        catch (IOException exc)
-        {
-            throw new UncheckedIOException(exc);
-        }
-    }
-
-    private void close(final Path projectPath)
-    {
-        final FunctionManager existing = this.functionManagers.remove(projectPath);
+        final Project existing = this.projects.remove(projectPath);
         if (existing != null)
         {
             logger.info("Closing {}", projectPath);
@@ -168,23 +147,25 @@ public class FunctionManagerDirector
         }
     }
 
-    private void create(final Path projectPath)
+    private void loadProject(final Path projectPath)
     {
         logger.info("Loading {}", projectPath);
-        FunctionManagerImpl fm = null;
+        Project project = null;
         try
         {
-            final ProjectConfiguration cfg = ProjectConfiguration.load(rootContext, projectPath.resolve(FunctionManagerImpl.PROJECT_FILENAME));
-            fm = new FunctionManagerImpl(parentContext, cfg);
-            functionManagers.put(projectPath, fm);
+            artifactLoader.prepareArtifact(projectPath);
+
+            final ProjectConfiguration cfg = ProjectConfiguration.load(rootContext, projectPath.resolve(ProjectImpl.PROJECT_FILENAME));
+            project = new ProjectImpl(parentContext, cfg);
+            projects.put(projectPath, project);
         }
         catch (Exception exc)
         {
             try
             {
-                if (fm != null)
+                if (project != null)
                 {
-                    fm.close();
+                    project.close();
                 }
             }
             catch (Exception e)
@@ -198,14 +179,14 @@ public class FunctionManagerDirector
 
     private boolean isKnownType(final String filename)
     {
-        return filename.endsWith(FunctionManagerImpl.GROOVY_EXTENSION)
-                || filename.endsWith(FunctionManagerImpl.JAVA_EXTENSION)
-                || filename.endsWith(FunctionManagerImpl.PROPERTIES_EXTENSION)
-                || filename.equals(FunctionManagerImpl.API_SPECIFICATION_YAML_FILENAME);
+        return filename.endsWith(ProjectImpl.GROOVY_EXTENSION)
+                || filename.endsWith(ProjectImpl.JAVA_EXTENSION)
+                || filename.endsWith(ProjectImpl.PROPERTIES_EXTENSION)
+                || filename.equals(ProjectImpl.API_SPECIFICATION_YAML_FILENAME);
     }
 
-    public Map<Path, FunctionManager> getFunctionManagers()
+    public Map<Path, Project> getProjects()
     {
-        return this.functionManagers;
+        return this.projects;
     }
 }

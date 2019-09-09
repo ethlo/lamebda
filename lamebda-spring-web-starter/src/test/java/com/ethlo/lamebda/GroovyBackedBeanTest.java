@@ -40,14 +40,14 @@ import com.ethlo.lamebda.spring.LamebdaSpringWebAutoConfiguration;
 public class GroovyBackedBeanTest
 {
     @Autowired
-    private FunctionManagerDirector functionManagerDirector;
+    private ProjectManager functionManagerDirector;
 
     @Test
     public void init()
     {
         final Path projectPath = Paths.get("src/test/projects/myproject");
-        final Map<Path, FunctionManager> managers = functionManagerDirector.getFunctionManagers();
-        final FunctionManagerImpl fm = (FunctionManagerImpl) managers.get(projectPath);
+        final Map<Path, Project> managers = functionManagerDirector.getProjects();
+        final ProjectImpl fm = (ProjectImpl) managers.get(projectPath);
         assertThat(fm).isNotNull();
     }
 }

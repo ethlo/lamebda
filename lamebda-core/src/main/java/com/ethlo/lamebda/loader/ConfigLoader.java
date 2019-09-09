@@ -21,7 +21,7 @@ package com.ethlo.lamebda.loader;
  */
 
 @FunctionalInterface
-public interface ProjectLoader
+public interface ConfigLoader
 {
-    void prepare();
+    void prepareConfig();
 }

@@ -44,7 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.FunctionManagerImpl;
+import com.ethlo.lamebda.ProjectImpl;
 import com.ethlo.lamebda.compiler.CompilerUtil;
 import com.ethlo.lamebda.compiler.LamebdaCompiler;
 
@@ -95,7 +95,7 @@ public class JavaCompiler implements LamebdaCompiler
         try (final StandardJavaFileManager standardFileManager = compiler.getStandardFileManager(null, Locale.getDefault(), StandardCharsets.UTF_8))
         {
             final JavaFileManager fileManager = new CustomClassloaderJavaFileManager(classLoader, standardFileManager);
-            final List<File> sourceFiles = CompilerUtil.findSourceFiles(FunctionManagerImpl.JAVA_EXTENSION, sourcePaths.toArray(new Path[0])).stream().map(Path::toFile).collect(Collectors.toList());
+            final List<File> sourceFiles = CompilerUtil.findSourceFiles(ProjectImpl.JAVA_EXTENSION, sourcePaths.toArray(new Path[0])).stream().map(Path::toFile).collect(Collectors.toList());
             if (sourceFiles.isEmpty())
             {
                 logger.debug("No Java files found in {}", StringUtils.collectionToCommaDelimitedString(sourcePaths));

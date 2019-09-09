@@ -214,12 +214,12 @@ public class ProjectConfiguration implements Serializable
 
     public Path getLibraryPath()
     {
-        return path.resolve(FunctionManagerImpl.LIB_DIRECTORY);
+        return path.resolve(ProjectImpl.LIB_DIRECTORY);
     }
 
     public Path getSpecificationPath()
     {
-        return this.getPath().resolve("src").resolve("main").resolve("resources").resolve(FunctionManagerImpl.SPECIFICATION_DIRECTORY);
+        return this.getPath().resolve("src").resolve("main").resolve("resources").resolve(ProjectImpl.SPECIFICATION_DIRECTORY);
     }
 
     public Path getTargetClassDirectory()

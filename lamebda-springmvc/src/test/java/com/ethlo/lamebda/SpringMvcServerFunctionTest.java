@@ -65,8 +65,8 @@ public class SpringMvcServerFunctionTest
     @Before
     public void before() throws IOException
     {
-        final FunctionManagerDirector fmd = new FunctionManagerDirector(basepath, "lamebda", applicationContext);
-        final FunctionManager fm = fmd.getFunctionManagers().values().iterator().next();
+        final ProjectManager fmd = new ProjectManager(basepath, "lamebda", applicationContext);
+        final Project fm = fmd.getProjects().values().iterator().next();
         new ProjectSetupService(applicationContext, methodInterceptors).onApplicationEvent(new ProjectLoadedEvent(fm.getProjectConfiguration(), fm.getProjectContext()));
     }
 

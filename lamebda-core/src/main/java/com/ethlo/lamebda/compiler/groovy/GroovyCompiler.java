@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.FunctionManagerImpl;
+import com.ethlo.lamebda.ProjectImpl;
 import com.ethlo.lamebda.compiler.CompilerUtil;
 import com.ethlo.lamebda.compiler.LamebdaCompiler;
 import com.ethlo.lamebda.util.IoUtil;
@@ -55,7 +55,7 @@ public class GroovyCompiler implements LamebdaCompiler
     public void compile(Path classesDirectory)
     {
         final CompilationUnit compileUnit = new CompilationUnit(classLoader);
-        final List<Path> sourceFiles = CompilerUtil.findSourceFiles(FunctionManagerImpl.GROOVY_EXTENSION, sourcePaths.toArray(new Path[0]));
+        final List<Path> sourceFiles = CompilerUtil.findSourceFiles(ProjectImpl.GROOVY_EXTENSION, sourcePaths.toArray(new Path[0]));
         if (sourceFiles.isEmpty())
         {
             logger.debug("No Groovy files found in {}", StringUtils.collectionToCommaDelimitedString(sourcePaths));

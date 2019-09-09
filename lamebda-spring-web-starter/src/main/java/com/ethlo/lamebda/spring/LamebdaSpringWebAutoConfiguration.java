@@ -37,10 +37,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.FunctionManagerDirector;
+import com.ethlo.lamebda.ProjectManager;
 import com.ethlo.lamebda.ProjectCleanupService;
 import com.ethlo.lamebda.ProjectSetupService;
-import com.ethlo.lamebda.loader.http.HttpRepositoryProjectLoader;
+import com.ethlo.lamebda.loader.http.HttpCloudConfigLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
 @Configuration
@@ -71,7 +71,7 @@ public class LamebdaSpringWebAutoConfiguration
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty("lamebda.enabled")
-    public FunctionManagerDirector functionManagerDirector() throws IOException
+    public ProjectManager functionManagerDirector() throws IOException
     {
         final String configServerUrl = getProperty("spring.cloud.config.uri");
         final String applicationName = getProperty("spring.application.name");
@@ -80,17 +80,17 @@ public class LamebdaSpringWebAutoConfiguration
 
         if (StringUtils.hasLength(configServerUrl) && StringUtils.hasLength(applicationName))
         {
-            new HttpRepositoryProjectLoader(
+            new HttpCloudConfigLoader(
                     rootDir,
                     IoUtil.stringToURL(configServerUrl),
                     applicationName,
                     profileName,
                     labelName,
                     projectNames
-            ).prepare();
+            ).prepareConfig();
         }
 
-        return new FunctionManagerDirector(rootDir, rootContextPath, parentContext);
+        return new ProjectManager(rootDir, rootContextPath, parentContext);
     }
 
     private String getProperty(final String s)

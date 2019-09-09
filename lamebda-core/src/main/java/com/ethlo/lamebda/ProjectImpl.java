@@ -70,7 +70,7 @@ import groovy.lang.GroovyClassLoader;
  * #L%
  */
 
-public class FunctionManagerImpl implements FunctionManager
+public class ProjectImpl implements Project
 {
     public static final String PROJECT_FILENAME = "project.properties";
     public static final String DEFAULT_CONFIG_FILENAME = "application.properties";
@@ -81,7 +81,7 @@ public class FunctionManagerImpl implements FunctionManager
     public static final String PROPERTIES_EXTENSION = "properties";
     public static final String SPECIFICATION_DIRECTORY = "specification";
     public static final String LIB_DIRECTORY = "lib";
-    private static final Logger logger = LoggerFactory.getLogger(FunctionManagerImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ProjectImpl.class);
     private final ProjectConfiguration projectConfiguration;
     private final ApplicationContext parentContext;
     private final GeneratorHelper generatorHelper;
@@ -89,7 +89,7 @@ public class FunctionManagerImpl implements FunctionManager
     private AnnotationConfigApplicationContext projectCtx;
     private LinkedList<LamebdaCompiler> compilers;
 
-    public FunctionManagerImpl(ApplicationContext parentContext, ProjectConfiguration projectConfiguration)
+    public ProjectImpl(ApplicationContext parentContext, ProjectConfiguration projectConfiguration)
     {
         Assert.notNull(parentContext, "parentContext cannot be null");
         Assert.notNull(projectConfiguration, "projectConfiguration cannot be null");

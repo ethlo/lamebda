@@ -41,7 +41,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.ethlo.lamebda.FunctionManagerImpl;
+import com.ethlo.lamebda.ProjectImpl;
 
 public class IoUtil
 {
@@ -169,7 +169,7 @@ public class IoUtil
         {
             return Files
                     .list(jarPath)
-                    .filter(p -> p.getFileName().toString().endsWith("." + FunctionManagerImpl.JAR_EXTENSION))
+                    .filter(p -> p.getFileName().toString().endsWith("." + ProjectImpl.JAR_EXTENSION))
                     .map(Path::toString)
                     .collect(Collectors.toList());
         }
