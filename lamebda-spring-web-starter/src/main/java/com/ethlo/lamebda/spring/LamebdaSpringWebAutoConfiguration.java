@@ -21,41 +21,32 @@ package com.ethlo.lamebda.spring;
  */
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.ProjectManager;
 import com.ethlo.lamebda.ProjectCleanupService;
+import com.ethlo.lamebda.ProjectManager;
 import com.ethlo.lamebda.ProjectSetupService;
 import com.ethlo.lamebda.loader.http.HttpCloudConfigLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
 @Configuration
-@ConfigurationProperties("lamebda")
+@EnableConfigurationProperties(LamebdaRootConfiguration.class)
 @ConditionalOnProperty(prefix = "lamebda", name = "enabled")
 public class LamebdaSpringWebAutoConfiguration
 {
-    @Value("${lamebda.request-path:/lamebda}")
-    private String rootContextPath;
-
-    @Value("${lamebda.source.directory:/lamebda}")
-    private Path rootDir;
-
-    @Value("${lamebda.source.projects:null}")
-    private Set<String> projectNames;
+    @Autowired
+    private LamebdaRootConfiguration lamebdaRootConfiguration;
 
     @Autowired
     private ConfigurableApplicationContext parentContext;
@@ -63,15 +54,17 @@ public class LamebdaSpringWebAutoConfiguration
     @Autowired(required = false)
     private List<MethodInterceptor> methodInterceptors = new LinkedList<>();
 
-    public void setRootContextPath(String rootContextPath)
-    {
-        this.rootContextPath = rootContextPath;
-    }
-
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnProperty("lamebda.enabled")
-    public ProjectManager functionManagerDirector() throws IOException
+    public ProjectManager projectManager() throws IOException
+    {
+        deploy();
+
+        return new ProjectManager(lamebdaRootConfiguration.getRootDirectory(), lamebdaRootConfiguration.getRequestPath(), parentContext);
+    }
+
+    private void deploy()
     {
         final String configServerUrl = getProperty("spring.cloud.config.uri");
         final String applicationName = getProperty("spring.application.name");
@@ -81,16 +74,14 @@ public class LamebdaSpringWebAutoConfiguration
         if (StringUtils.hasLength(configServerUrl) && StringUtils.hasLength(applicationName))
         {
             new HttpCloudConfigLoader(
-                    rootDir,
+                    lamebdaRootConfiguration.getRootDirectory(),
                     IoUtil.stringToURL(configServerUrl),
                     applicationName,
                     profileName,
                     labelName,
-                    projectNames
+                    lamebdaRootConfiguration.getProjectNames()
             ).prepareConfig();
         }
-
-        return new ProjectManager(rootDir, rootContextPath, parentContext);
     }
 
     private String getProperty(final String s)
