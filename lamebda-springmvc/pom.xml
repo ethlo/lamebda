@@ -5,7 +5,7 @@
     <parent>
         <artifactId>lamebda</artifactId>
         <groupId>com.ethlo.lamebda</groupId>
-        <version>0.9.4-SNAPSHOT</version>
+        <version>0.9.4</version>
     </parent>
     <dependencies>
         <dependency>
@@ -15,7 +15,7 @@
         <dependency>
             <groupId>com.ethlo.lamebda</groupId>
             <artifactId>lamebda-core</artifactId>
-            <version>0.9.4-SNAPSHOT</version>
+            <version>0.9.4</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
