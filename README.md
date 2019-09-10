@@ -82,4 +82,4 @@ Your function should be available under `/gateway/test/my/123`
 
 ### Built in functions
 
-* /<servlet>/gateway/test/status/ - Simple status page showing loaded controllers
+* /&lt;servlet&gt;/gateway/test/status/ - Simple status page showing loaded controllers
