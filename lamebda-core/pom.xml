@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.ethlo.lamebda</groupId>
         <artifactId>lamebda</artifactId>
-        <version>0.9.4</version>
+        <version>0.9.5-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -80,8 +80,8 @@
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
         <groovy.version>3.0.0-beta-3</groovy.version>
     </properties>
 </project>

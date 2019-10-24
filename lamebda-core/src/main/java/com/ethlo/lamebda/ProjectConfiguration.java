@@ -60,7 +60,7 @@ public class ProjectConfiguration implements Serializable
     private Set<Path> groovySourcePaths = new LinkedHashSet<>();
     private Set<Path> javaSourcePaths = new LinkedHashSet<>();
 
-    private Set<URL> classPath = new LinkedHashSet<>();
+    private Set<URL> classpath = new LinkedHashSet<>();
 
     private DeploymentConfig deploymentConfig;
 
@@ -177,14 +177,24 @@ public class ProjectConfiguration implements Serializable
         return paths.stream().map(p -> p.isAbsolute() ? p : path.resolve(p).normalize()).collect(Collectors.toSet());
     }
 
-    public Set<URL> getClassPath()
+    public Set<URL> getClasspath()
     {
-        return classPath;
+        return classpath;
     }
 
+    public ProjectConfiguration setClasspath(final Set<URL> classPath)
+    {
+        this.classpath = classPath;
+        return this;
+    }
+
+    /**
+     * Use setClasspath instead
+     */
+    @Deprecated
     public ProjectConfiguration setClassPath(final Set<URL> classPath)
     {
-        this.classPath = classPath;
+        this.classpath = classPath;
         return this;
     }
 
