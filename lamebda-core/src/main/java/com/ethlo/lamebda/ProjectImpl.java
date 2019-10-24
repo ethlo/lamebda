@@ -166,7 +166,7 @@ public class ProjectImpl implements Project
                 }
                 catch (IOException ex)
                 {
-                    logger.warn("Could not delete temp directory " + workDir + ": " + ex.getMessage());
+                    logger.debug("Could not delete temp directory " + workDir + ": " + ex.getMessage());
                 }
             }));
 
