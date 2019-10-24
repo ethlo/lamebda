@@ -39,6 +39,7 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.instrument.classloading.SimpleThrowawayClassLoader;
 import org.springframework.util.Assert;
+import org.springframework.util.FileSystemUtils;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.compiler.LamebdaCompiler;
@@ -86,6 +87,7 @@ public class ProjectImpl implements Project
     private final ApplicationContext parentContext;
     private final GeneratorHelper generatorHelper;
     private final GroovyClassLoader groovyClassLoader = new GroovyClassLoader();
+    private final Path workDir;
     private AnnotationConfigApplicationContext projectCtx;
     private LinkedList<LamebdaCompiler> compilers;
 
@@ -103,6 +105,8 @@ public class ProjectImpl implements Project
             throw new UncheckedIOException(new FileNotFoundException("Cannot use " + projectPath.toAbsolutePath() + " as project directory as it does not exist"));
         }
 
+        this.workDir = setupWorkDir(projectPath);
+
         logger.debug("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
 
         try
@@ -114,16 +118,19 @@ public class ProjectImpl implements Project
             throw new UncheckedIOException("Unable to create target class directory: " + projectConfiguration.getTargetClassDirectory(), e);
         }
 
-        for (URL cpUrl : projectConfiguration.getClassPath())
+        for (URL cpUrl : projectConfiguration.getClasspath())
         {
             groovyClassLoader.addURL(cpUrl);
         }
 
-        decompressIfApplicable(projectPath);
+        final Optional<Path> decompressedDir = decompressIfApplicable(projectPath);
+        decompressedDir.ifPresent(workDir ->
+        {
+            logger.info("Using work directory {}", workDir);
+            addLibraries(workDir);
+        });
 
         setupCompilers();
-
-        addLibraries();
 
         final Path apiPath = projectConfiguration.getSpecificationPath().resolve(API_SPECIFICATION_YAML_FILENAME);
         final Path jarDir = projectConfiguration.getPath().resolve(".generator");
@@ -144,28 +151,26 @@ public class ProjectImpl implements Project
         initialize();
     }
 
-    private void setupCompilers()
+    private Path setupWorkDir(final Path projectPath)
     {
-        this.compilers = new LinkedList<>();
-        compilers.add(new JavaCompiler(new SimpleThrowawayClassLoader(groovyClassLoader), projectConfiguration.getJavaSourcePaths()));
-        compilers.add(new GroovyCompiler(groovyClassLoader, projectConfiguration.getGroovySourcePaths()));
-    }
-
-    private void decompressIfApplicable(final Path projectPath)
-    {
-        final Path archivePath = projectPath.resolve(projectPath.getFileName() + "." + JAR_EXTENSION);
-        if (Files.exists(archivePath))
-        {
-            logger.info("Decompressing project archive file {}", archivePath);
-            decompress(projectPath, archivePath);
-        }
-    }
-
-    private void decompress(final Path projectPath, final Path archivePath)
-    {
+        final Path workDir = projectPath.resolve("workdir");
         try
         {
-            unzipDirectory(archivePath, projectPath);
+            Files.createDirectories(workDir);
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() ->
+            {
+                try
+                {
+                    FileSystemUtils.deleteRecursively(workDir);
+                }
+                catch (IOException ex)
+                {
+                    logger.warn("Could not delete temp directory " + workDir + ": " + ex.getMessage());
+                }
+            }));
+
+            return workDir;
         }
         catch (IOException e)
         {
@@ -173,12 +178,44 @@ public class ProjectImpl implements Project
         }
     }
 
-    private void addLibraries()
+    private void setupCompilers()
     {
-        final Path libPath = projectConfiguration.getLibraryPath();
+        this.compilers = new LinkedList<>();
+        compilers.add(new JavaCompiler(new SimpleThrowawayClassLoader(groovyClassLoader), projectConfiguration.getJavaSourcePaths()));
+        compilers.add(new GroovyCompiler(groovyClassLoader, projectConfiguration.getGroovySourcePaths()));
+    }
+
+    private Optional<Path> decompressIfApplicable(final Path projectPath)
+    {
+        final Path archivePath = projectPath.resolve(projectPath.getFileName() + "." + JAR_EXTENSION);
+        if (Files.exists(archivePath))
+        {
+            logger.info("Decompressing project archive file {}", archivePath);
+            return Optional.of(decompress(projectPath, archivePath));
+        }
+        return Optional.empty();
+    }
+
+    private Path decompress(final Path projectPath, final Path archivePath)
+    {
+        try
+        {
+            final Path target = Files.createTempDirectory(workDir, "");
+            unzipDirectory(archivePath, projectPath, target);
+            return target;
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private void addLibraries(Path path)
+    {
+        final Path libPath = path.resolve(ProjectImpl.LIB_DIRECTORY);
         if (Files.isDirectory(libPath))
         {
-            getLibUrls().forEach(url ->
+            getLibUrls(libPath).forEach(url ->
             {
                 groovyClassLoader.addClasspath(url);
                 logger.debug("Adding library classpath {}", url);
@@ -190,41 +227,49 @@ public class ProjectImpl implements Project
         }
     }
 
-    private void unzipDirectory(final Path archivePath, final Path targetDir) throws IOException
+    private void unzipDirectory(final Path archivePath, final Path projectPath, final Path tmpWorkDir) throws IOException
     {
         try (final ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(archivePath.toFile()))))
         {
             ZipEntry ze;
             while ((ze = zis.getNextEntry()) != null)
             {
-                final Path target = targetDir.resolve(ze.getName());
+                final boolean isConfig = ze.getName().endsWith("." + PROPERTIES_EXTENSION);
 
                 if (!ze.isDirectory())
                 {
-                    Files.createDirectories(target.getParent());
-                    final boolean overwrite = !target.getFileName().toString().endsWith("." + PROPERTIES_EXTENSION);
-                    final boolean exists = Files.exists(target);
-                    if (!exists || overwrite)
+                    if (isConfig)
                     {
-                        logger.debug("Unpacking {} to {}", ze.getName(), target);
-                        Files.copy(zis, target, StandardCopyOption.REPLACE_EXISTING);
+                        final Path inProjectDirTarget = projectPath.resolve(ze.getName());
+                        if (!Files.exists(inProjectDirTarget))
+                        {
+                            logger.debug("Unpacking {} to {}", ze.getName(), inProjectDirTarget);
+                            Files.copy(zis, inProjectDirTarget, StandardCopyOption.REPLACE_EXISTING);
+                        }
+                        else
+                        {
+                            logger.info("Not overwriting {}", inProjectDirTarget);
+                        }
                     }
                     else
                     {
-                        logger.info("Not overwriting {}", target);
+                        final Path inTempTarget = tmpWorkDir.resolve(ze.getName());
+                        Files.createDirectories(inTempTarget.getParent());
+                        logger.debug("Unpacking {} to {}", ze.getName(), inTempTarget);
+                        Files.copy(zis, inTempTarget, StandardCopyOption.REPLACE_EXISTING);
                     }
                 }
             }
         }
     }
 
-    private List<String> getLibUrls()
+    private List<String> getLibUrls(Path path)
     {
-        if (!Files.exists(projectConfiguration.getLibraryPath(), LinkOption.NOFOLLOW_LINKS))
+        if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS))
         {
             return Collections.emptyList();
         }
-        return IoUtil.toClassPathList(projectConfiguration.getLibraryPath());
+        return IoUtil.toClassPathList(path);
     }
 
 

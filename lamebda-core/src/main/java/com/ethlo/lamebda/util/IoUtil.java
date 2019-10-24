@@ -40,6 +40,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.ethlo.lamebda.ProjectImpl;
 
@@ -165,13 +166,11 @@ public class IoUtil
 
     public static List<String> toClassPathList(final Path jarPath)
     {
-        try
+        try (final Stream<Path> fs = Files.list(jarPath))
         {
-            return Files
-                    .list(jarPath)
-                    .filter(p -> p.getFileName().toString().endsWith("." + ProjectImpl.JAR_EXTENSION))
-                    .map(Path::toString)
-                    .collect(Collectors.toList());
+            return fs.filter(p -> p.getFileName().toString().endsWith("." + ProjectImpl.JAR_EXTENSION))
+            .map(Path::toString)
+            .collect(Collectors.toList());
         }
         catch (IOException e)
         {
