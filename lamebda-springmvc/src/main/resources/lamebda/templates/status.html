@@ -106,9 +106,9 @@
             success: function (data) {
                 var cfg = data.project.configuration;
                 console.log('Project cfg', cfg);
-                document.title = cfg['project.name'];
+                document.title = cfg['project']['name'];
                 $('#projectName').html(document.title);
-                $('#projectVersion').html(cfg['project.version']);
+                $('#projectVersion').html(cfg['project']['version']);
                 renderFunctions(data.functions);
             }
         });

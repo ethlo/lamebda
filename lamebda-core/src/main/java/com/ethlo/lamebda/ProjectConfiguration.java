@@ -29,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,6 +39,7 @@ import javax.validation.constraints.NotNull;
 
 import org.springframework.util.Assert;
 
+import com.ethlo.lamebda.util.IoUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -93,6 +95,13 @@ public class ProjectConfiguration implements Serializable
     public static ProjectConfiguration load(@NotNull final String rootContextPath, @NotNull final Path projectPath, @NotNull final Properties properties)
     {
         final ProjectConfiguration cfg = new ProjectConfiguration(projectPath, rootContextPath);
+
+        final Optional<String> optVersion = IoUtil.toString(projectPath.resolve("version"));
+        optVersion.ifPresent(versionStr->
+        {
+            cfg.getProject().setVersion(versionStr);
+        });
+
         ConfigurationUtil.populate(cfg, properties);
         if (cfg.getContextPath() == null && cfg.enableUrlProjectContextPrefix)
         {

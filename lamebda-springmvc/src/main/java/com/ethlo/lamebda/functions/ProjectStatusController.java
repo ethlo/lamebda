@@ -63,6 +63,7 @@ public class ProjectStatusController
         final Map<String, Object> projectInfo = new LinkedHashMap<>();
         projectInfo.put("name", projectConfiguration.getProject().getName());
         projectInfo.put("configuration", projectConfiguration);
+        projectInfo.put("version", projectConfiguration.getProject().getVersion());
         res.put("project", projectInfo);
         res.put("functions", mappings);
         return res;
