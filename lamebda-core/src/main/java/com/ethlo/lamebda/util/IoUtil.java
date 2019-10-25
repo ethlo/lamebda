@@ -24,6 +24,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -34,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -198,6 +200,35 @@ public class IoUtil
         catch (IOException e)
         {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    public static Optional<String> getExtension(final String path)
+    {
+        final Path p = Paths.get(path).getFileName();
+        final String filename = p.getFileName().toString();
+        int lastIndex = filename.lastIndexOf('.');
+        if (lastIndex == -1)
+        {
+            return Optional.empty();
+        }
+        return Optional.of(filename.substring(lastIndex + 1));
+    }
+
+    public static void copy(final InputStream src, final OutputStream target)
+    {
+        try
+        {
+            byte[] buf = new byte[10_240];
+            int len;
+            while ((len = src.read(buf)) > 0)
+            {
+                target.write(buf, 0, len);
+            }
+        }
+        catch (IOException exc)
+        {
+            throw new UncheckedIOException(exc);
         }
     }
 }

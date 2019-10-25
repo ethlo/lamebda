@@ -45,6 +45,8 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import com.ethlo.lamebda.functions.DocumentationController;
 import com.ethlo.lamebda.functions.ProjectStatusController;
+import com.ethlo.lamebda.functions.StaticController;
+import com.ethlo.lamebda.functions.SwaggerUiController;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.spring.OpenRequestMappingHandlerMapping;
@@ -121,6 +123,12 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
 
         final ProjectStatusController psf = new ProjectStatusController(projectCfg);
         register(handlerMapping, psf, projectCfg);
+
+        final StaticController staticController = new StaticController();
+        register(handlerMapping, staticController, projectCfg);
+
+        final SwaggerUiController swaggerUiController = new SwaggerUiController();
+        register(handlerMapping, swaggerUiController, projectCfg);
 
         final DocumentationController documentationController = new DocumentationController(event.getProjectContext().getClassLoader());
         register(handlerMapping, documentationController, projectCfg);
