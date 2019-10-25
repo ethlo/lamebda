@@ -33,12 +33,12 @@ public class GeneratorHelper extends BaseExecHelper
         super(javaCmd, jarDirectory);
     }
 
-    public void generate(Path dir, String... args) throws IOException
+    public void generate(Path baseDir, String... args) throws IOException
     {
-        final int exitCode = doExec(dir, args);
+        final int exitCode = doExec(baseDir, args);
         if (exitCode != 0)
         {
-            throw new UncheckedIOException("Work directory:" + dir + " Command: " + StringUtils.arrayToDelimitedString(args, " "), new IOException("Generator returned exit code " + exitCode));
+            throw new UncheckedIOException("Work directory:" + baseDir + " Command: " + StringUtils.arrayToDelimitedString(args, " "), new IOException("Generator returned exit code " + exitCode));
         }
     }
 }

@@ -52,7 +52,7 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
     @Override
     public void onApplicationEvent(final ProjectClosingEvent event)
     {
-        final ProjectConfiguration projectConfiguration = event.getProjectContext().getBean(ProjectConfiguration.class);
+        final ProjectConfiguration projectConfiguration = event.getProjectConfiguration();
         final RequestMappingHandlerMapping mappingHandler = event.getProjectContext().getBean(RequestMappingHandlerMapping.class);
         final Map<RequestMappingInfo, HandlerMethod> handlerMethods = mappingHandler.getHandlerMethods();
         final String prefix = projectConfiguration.getRootContextPath() + "/" + projectConfiguration.getContextPath();

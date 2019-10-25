@@ -21,42 +21,38 @@ package com.ethlo.lamebda;
  */
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.Serializable;
+import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.LinkedHashSet;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.util.IoUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
-@Valid
-public class ProjectConfiguration implements Serializable
+public class ProjectConfiguration
 {
     private final Path path;
     private final String rootContextPath;
-
-    private boolean enableUrlProjectContextPrefix = true;
-
-    private String contextPath;
-
+    private final Path workDir;
     @NotNull
-    private ProjectInfo project;
-
+    private final ProjectInfo project;
+    private boolean enableUrlProjectContextPrefix = true;
+    private String contextPath;
     private String apiDocGenerator;
 
     private Set<Path> groovySourcePaths = new LinkedHashSet<>();
@@ -66,48 +62,44 @@ public class ProjectConfiguration implements Serializable
 
     private DeploymentConfig deploymentConfig;
 
-    public ProjectConfiguration(final Path path, final String rootContextPath)
+    public ProjectConfiguration(final Path workDir, final BootstrapConfiguration bootstrapConfiguration, Properties properties)
     {
-        this.path = path.toAbsolutePath();
+        this.rootContextPath = bootstrapConfiguration.getRootContextPath();
+        this.path = bootstrapConfiguration.getPath();
+        this.workDir = workDir;
+
+        final String id = bootstrapConfiguration.getPath().getFileName().toString();
+
         this.project = new ProjectInfo();
-        this.project.setName(path.getFileName().toString());
-        this.rootContextPath = rootContextPath;
+        this.project.setName(properties.getProperty("project.name") != null ? properties.getProperty("project.name") : id);
+        this.project.setBasePackages(properties.getProperty("project.base-packages") != null ? StringUtils.commaDelimitedListToSet(properties.getProperty("project.base-packages")) : Collections.emptySet());
+        this.setContextPath(properties.getProperty("project.context-path") != null ? properties.getProperty("project.context-path") : id);
     }
 
-    public static ProjectConfiguration load(@NotNull final String rootContext, @NotNull final Path projectConfigFile)
+    public static ProjectConfiguration load(final BootstrapConfiguration bootstrapConfiguration, final Path workDir)
     {
-        final Properties properties = new Properties();
-        if (Files.exists(projectConfigFile))
+        final Path path = bootstrapConfiguration.getPath();
+        final Path[] paths = Stream.of(path.resolve(ProjectImpl.PROJECT_FILENAME), workDir.resolve(ProjectImpl.PROJECT_FILENAME)).filter(p -> Files.exists(p)).toArray(Path[]::new);
+        final Properties properties = merge(bootstrapConfiguration.getEnvProperties(), paths);
+        return new ProjectConfiguration(workDir, bootstrapConfiguration, properties);
+    }
+
+    private static Properties merge(final Properties result, final Path... paths)
+    {
+        for (Path path : paths)
         {
-            try (InputStream in = Files.newInputStream(projectConfigFile))
+            try (final Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8))
             {
-                properties.load(in);
-                return load(rootContext, projectConfigFile.getParent(), properties);
+                final Properties properties = new Properties();
+                properties.load(reader);
+                result.putAll(properties);
             }
             catch (IOException exc)
             {
                 throw new UncheckedIOException(exc);
             }
         }
-        return load(rootContext, projectConfigFile.getParent(), properties);
-    }
-
-    public static ProjectConfiguration load(@NotNull final String rootContextPath, @NotNull final Path projectPath, @NotNull final Properties properties)
-    {
-        final ProjectConfiguration cfg = new ProjectConfiguration(projectPath, rootContextPath);
-
-        final Optional<String> optVersion = IoUtil.toString(projectPath.resolve("version"));
-        optVersion.ifPresent(versionStr->
-        {
-            cfg.getProject().setVersion(versionStr);
-        });
-
-        ConfigurationUtil.populate(cfg, properties);
-        if (cfg.getContextPath() == null && cfg.enableUrlProjectContextPrefix)
-        {
-            cfg.setContextPath(projectPath.getFileName().toString());
-        }
-        return cfg;
+        return result;
     }
 
     public String getRootContextPath()
@@ -267,9 +259,13 @@ public class ProjectConfiguration implements Serializable
         return project;
     }
 
-    public ProjectConfiguration setProject(final ProjectInfo project)
+    public Path getWorkDirectory()
     {
-        this.project = project;
-        return this;
+        return workDir;
+    }
+
+    public void addJavaSourcePath(final Path path)
+    {
+        javaSourcePaths.add(path);
     }
 }

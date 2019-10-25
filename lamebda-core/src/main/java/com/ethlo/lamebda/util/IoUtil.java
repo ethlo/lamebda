@@ -42,6 +42,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.springframework.util.FileSystemUtils;
+
 import com.ethlo.lamebda.ProjectImpl;
 
 public class IoUtil
@@ -121,22 +123,7 @@ public class IoUtil
         {
             return;
         }
-        Files.walkFileTree(directory, new SimpleFileVisitor<Path>()
-        {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException
-            {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException
-            {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
+        FileSystemUtils.deleteRecursively(directory);
     }
 
     public static URL toURL(final String path)
@@ -169,8 +156,8 @@ public class IoUtil
         try (final Stream<Path> fs = Files.list(jarPath))
         {
             return fs.filter(p -> p.getFileName().toString().endsWith("." + ProjectImpl.JAR_EXTENSION))
-            .map(Path::toString)
-            .collect(Collectors.toList());
+                    .map(Path::toString)
+                    .collect(Collectors.toList());
         }
         catch (IOException e)
         {
@@ -200,5 +187,17 @@ public class IoUtil
             return Optional.of(new String(bytes, StandardCharsets.UTF_8));
         }
         return Optional.empty();
+    }
+
+    public static boolean isEmptyDir(final Path dir)
+    {
+        try (final Stream<Path> fs = Files.list(dir.getParent()))
+        {
+            return !fs.findFirst().isPresent();
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
     }
 }

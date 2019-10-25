@@ -38,7 +38,7 @@ import com.ethlo.lamebda.util.ConstraintValidator;
 
 public class ConfigurationUtil
 {
-    public static void populate(final ProjectConfiguration cfg, Properties properties)
+    public static void populate(final BootstrapConfiguration cfg, Properties properties)
     {
         if (properties.isEmpty())
         {
@@ -48,10 +48,10 @@ public class ConfigurationUtil
         final UnboundElementsSourceFilter filter = new UnboundElementsSourceFilter();
         final BindHandler handler = new NoUnboundElementsBindHandler(new IgnoreTopLevelConverterNotFoundBindHandler(), filter);
         final Binder binder = new Binder(new MapConfigurationPropertySource(properties));
-        final Bindable<ProjectConfiguration> target = Bindable.ofInstance(cfg);
+        final Bindable<BootstrapConfiguration> target = Bindable.ofInstance(cfg);
         try
         {
-            final ProjectConfiguration projectConfiguration = binder.bind("", target, handler).get();
+            final BootstrapConfiguration projectConfiguration = binder.bind("", target, handler).get();
             ConstraintValidator.assertValid(projectConfiguration);
         }
         catch (BindException exc)

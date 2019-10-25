@@ -29,7 +29,7 @@ public class CompilationSmokeTest extends BaseTest
     @Test
     public void testCompile()
     {
-        assertThat(super.functionManager).isNotNull();
-        super.functionManager.close();
+        assertThat(super.project).isNotNull();
+        super.project.close();
     }
 }

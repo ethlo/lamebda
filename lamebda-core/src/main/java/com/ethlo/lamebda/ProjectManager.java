@@ -21,6 +21,7 @@ package com.ethlo.lamebda;
  */
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -30,17 +31,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.util.Assert;
+import org.springframework.util.FileSystemUtils;
 
 import com.ethlo.lamebda.dao.LocalProjectDao;
 import com.ethlo.lamebda.dao.LocalProjectDaoImpl;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
 import com.ethlo.lamebda.loader.http.HttpArtifactLoader;
+import com.ethlo.lamebda.util.IoUtil;
 
 public class ProjectManager
 {
+    public static final String WORKDIR_DIRECTORY_NAME = "workdir";
     private static final Logger logger = LoggerFactory.getLogger(ProjectManager.class);
-
     private final Path rootDirectory;
     private final String rootContext;
     private final ApplicationContext parentContext;
@@ -73,6 +76,38 @@ public class ProjectManager
         initializeAll();
     }
 
+    public static Path setupWorkDir(final Path projectPath)
+    {
+        final Path parentWorkDir = projectPath.resolve(WORKDIR_DIRECTORY_NAME);
+        try
+        {
+            Files.createDirectories(parentWorkDir);
+            final Path workDir = Files.createTempDirectory(parentWorkDir, null);
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() ->
+            {
+                try
+                {
+                    FileSystemUtils.deleteRecursively(workDir);
+                    if (IoUtil.isEmptyDir(workDir.getParent()))
+                    {
+                        IoUtil.deleteDirectory(workDir.getParent());
+                    }
+                }
+                catch (IOException ex)
+                {
+                    logger.debug("Could not delete temp directory " + workDir + ": " + ex.getMessage());
+                }
+            }));
+
+            return workDir;
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     private void setupDirectoryWatcher() throws IOException
     {
         // Register directory watcher to discover new project directories created in root directory
@@ -80,11 +115,11 @@ public class ProjectManager
         {
             final Path path = e.getPath();
             final Path projectPath = getProjectPath(path);
-            final boolean isTargetPath = path.toAbsolutePath().startsWith(projectPath.resolve("target").toAbsolutePath());
+            final boolean isWorkDirPath = path.toAbsolutePath().startsWith(projectPath.resolve(WORKDIR_DIRECTORY_NAME).toAbsolutePath());
             final boolean isProjectPath = projectPath.equals(path);
             final boolean isKnownType = isKnownType(path.getFileName().toString());
 
-            if (isTargetPath)
+            if (isWorkDirPath)
             {
                 logger.debug("Skipping target file: {}", path);
             }
@@ -155,8 +190,9 @@ public class ProjectManager
         {
             artifactLoader.prepareArtifact(projectPath);
 
-            final ProjectConfiguration cfg = ProjectConfiguration.load(rootContext, projectPath.resolve(ProjectImpl.PROJECT_FILENAME));
-            project = new ProjectImpl(parentContext, cfg);
+            final BootstrapConfiguration cfg = new BootstrapConfiguration(rootContext, projectPath, System.getProperties());
+
+            project = new ProjectImpl(parentContext, cfg, setupWorkDir(projectPath));
             projects.put(projectPath, project);
         }
         catch (Exception exc)

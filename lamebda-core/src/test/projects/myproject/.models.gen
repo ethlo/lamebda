@@ -1,1 +1,1 @@
-generate -isrc/main/resources/specification/oas.yaml -gjaxrs-spec -otarget/generated-sources/java -DsourceFolder=/ -Dmodels -DmodelPackage=spec -DuseSwaggerAnnotations -DuseBeanValidation
+generate -isrc/main/resources/specification/oas.yaml -gjaxrs-spec -o${workdir}/target/generated-sources/java -DsourceFolder=/ -Dmodels -DmodelPackage=spec -DuseSwaggerAnnotations -DuseBeanValidation

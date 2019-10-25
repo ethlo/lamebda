@@ -1,9 +1,11 @@
 package com.ethlo.lamebda;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.net.URL;
@@ -20,9 +22,11 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -37,9 +41,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.instrument.classloading.SimpleThrowawayClassLoader;
-import org.springframework.util.Assert;
-import org.springframework.util.FileSystemUtils;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.compiler.LamebdaCompiler;
@@ -83,57 +86,51 @@ public class ProjectImpl implements Project
     public static final String SPECIFICATION_DIRECTORY = "specification";
     public static final String LIB_DIRECTORY = "lib";
     private static final Logger logger = LoggerFactory.getLogger(ProjectImpl.class);
-    private final ProjectConfiguration projectConfiguration;
+    private final BootstrapConfiguration bootstrapConfiguration;
     private final ApplicationContext parentContext;
     private final GeneratorHelper generatorHelper;
     private final GroovyClassLoader groovyClassLoader = new GroovyClassLoader();
     private final Path workDir;
+    private final Path projectPath;
+    private final Path classesDir;
+    private final ProjectConfiguration projectConfiguration;
     private AnnotationConfigApplicationContext projectCtx;
     private LinkedList<LamebdaCompiler> compilers;
 
-    public ProjectImpl(ApplicationContext parentContext, ProjectConfiguration projectConfiguration)
+    public ProjectImpl(ApplicationContext parentContext, BootstrapConfiguration bootstrapConfiguration, final Path workDirectory)
     {
-        Assert.notNull(parentContext, "parentContext cannot be null");
-        Assert.notNull(projectConfiguration, "projectConfiguration cannot be null");
+        this.bootstrapConfiguration = Objects.requireNonNull(bootstrapConfiguration);
+        this.parentContext = Objects.requireNonNull(parentContext);
+        this.projectPath = bootstrapConfiguration.getPath();
+        this.workDir = Objects.requireNonNull(workDirectory).toAbsolutePath();
+        this.classesDir = createDirectory(workDir.resolve("target").resolve("classes"));
 
-        this.projectConfiguration = projectConfiguration;
-        this.parentContext = parentContext;
-
-        final Path projectPath = projectConfiguration.getPath();
+        final Path projectPath = bootstrapConfiguration.getPath();
         if (!Files.exists(projectPath))
         {
             throw new UncheckedIOException(new FileNotFoundException("Cannot use " + projectPath.toAbsolutePath() + " as project directory as it does not exist"));
         }
 
-        this.workDir = setupWorkDir(projectPath);
+        decompressIfApplicable();
+        logger.info("Using work directory {}", workDir);
+        addLibraries(workDir);
 
+        this.projectConfiguration = ProjectConfiguration.load(bootstrapConfiguration, workDir);
+
+        readVersionFile(projectPath);
+        readVersionFile(workDir);
         logger.debug("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
 
-        try
-        {
-            Files.createDirectories(projectConfiguration.getTargetClassDirectory());
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException("Unable to create target class directory: " + projectConfiguration.getTargetClassDirectory(), e);
-        }
-
+        // Add manually added class-path entries
         for (URL cpUrl : projectConfiguration.getClasspath())
         {
             groovyClassLoader.addURL(cpUrl);
         }
 
-        final Optional<Path> decompressedDir = decompressIfApplicable(projectPath);
-        decompressedDir.ifPresent(workDir ->
-        {
-            logger.info("Using work directory {}", workDir);
-            addLibraries(workDir);
-        });
-
         setupCompilers();
 
         final Path apiPath = projectConfiguration.getSpecificationPath().resolve(API_SPECIFICATION_YAML_FILENAME);
-        final Path jarDir = projectConfiguration.getPath().resolve(".generator");
+        final Path jarDir = bootstrapConfiguration.getPath().resolve(".generator");
         if (Files.exists(jarDir))
         {
             this.generatorHelper = new GeneratorHelper(projectConfiguration.getJavaCmd(), jarDir);
@@ -151,31 +148,26 @@ public class ProjectImpl implements Project
         initialize();
     }
 
-    private Path setupWorkDir(final Path projectPath)
+    private Path createDirectory(final Path path)
     {
-        final Path workDir = projectPath.resolve("workdir");
         try
         {
-            Files.createDirectories(workDir);
-
-            Runtime.getRuntime().addShutdownHook(new Thread(() ->
-            {
-                try
-                {
-                    FileSystemUtils.deleteRecursively(workDir);
-                }
-                catch (IOException ex)
-                {
-                    logger.debug("Could not delete temp directory " + workDir + ": " + ex.getMessage());
-                }
-            }));
-
-            return workDir;
+            Files.createDirectories(path);
+            return path;
         }
         catch (IOException e)
         {
-            throw new UncheckedIOException(e);
+            throw new UncheckedIOException("Unable to create directory: " + path, e);
         }
+    }
+
+    private void readVersionFile(final Path path)
+    {
+        final Optional<String> optVersion = IoUtil.toString(path.resolve("version"));
+        optVersion.ifPresent(versionStr ->
+        {
+            projectConfiguration.getProject().setVersion(versionStr);
+        });
     }
 
     private void setupCompilers()
@@ -185,28 +177,20 @@ public class ProjectImpl implements Project
         compilers.add(new GroovyCompiler(groovyClassLoader, projectConfiguration.getGroovySourcePaths()));
     }
 
-    private Optional<Path> decompressIfApplicable(final Path projectPath)
+    private void decompressIfApplicable()
     {
         final Path archivePath = projectPath.resolve(projectPath.getFileName() + "." + JAR_EXTENSION);
         if (Files.exists(archivePath))
         {
             logger.info("Decompressing project archive file {}", archivePath);
-            return Optional.of(decompress(projectPath, archivePath));
-        }
-        return Optional.empty();
-    }
-
-    private Path decompress(final Path projectPath, final Path archivePath)
-    {
-        try
-        {
-            final Path target = Files.createTempDirectory(workDir, "");
-            unzipDirectory(archivePath, projectPath, target);
-            return target;
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
+            try
+            {
+                unzipDirectory(archivePath, workDir);
+            }
+            catch (IOException e)
+            {
+                throw new UncheckedIOException(e);
+            }
         }
     }
 
@@ -227,40 +211,27 @@ public class ProjectImpl implements Project
         }
     }
 
-    private void unzipDirectory(final Path archivePath, final Path projectPath, final Path tmpWorkDir) throws IOException
+    private void unzipDirectory(final Path archivePath, final Path targetDir) throws IOException
     {
         try (final ZipInputStream zis = new ZipInputStream(new BufferedInputStream(new FileInputStream(archivePath.toFile()))))
         {
             ZipEntry ze;
             while ((ze = zis.getNextEntry()) != null)
             {
-                final boolean isConfig = ze.getName().endsWith("." + PROPERTIES_EXTENSION);
-
                 if (!ze.isDirectory())
                 {
-                    if (isConfig)
-                    {
-                        final Path inProjectDirTarget = projectPath.resolve(ze.getName());
-                        if (!Files.exists(inProjectDirTarget))
-                        {
-                            logger.debug("Unpacking {} to {}", ze.getName(), inProjectDirTarget);
-                            Files.copy(zis, inProjectDirTarget, StandardCopyOption.REPLACE_EXISTING);
-                        }
-                        else
-                        {
-                            logger.info("Not overwriting {}", inProjectDirTarget);
-                        }
-                    }
-                    else
-                    {
-                        final Path inTempTarget = tmpWorkDir.resolve(ze.getName());
-                        Files.createDirectories(inTempTarget.getParent());
-                        logger.debug("Unpacking {} to {}", ze.getName(), inTempTarget);
-                        Files.copy(zis, inTempTarget, StandardCopyOption.REPLACE_EXISTING);
-                    }
+                    doWrite(targetDir, zis, ze);
                 }
             }
         }
+    }
+
+    private void doWrite(final Path tmpWorkDir, final ZipInputStream zis, final ZipEntry ze) throws IOException
+    {
+        final Path inTempTarget = tmpWorkDir.resolve(ze.getName());
+        Files.createDirectories(inTempTarget.getParent());
+        logger.debug("Unpacking {} to {}", ze.getName(), inTempTarget);
+        Files.copy(zis, inTempTarget, StandardCopyOption.REPLACE_EXISTING);
     }
 
     private List<String> getLibUrls(Path path)
@@ -281,7 +252,7 @@ public class ProjectImpl implements Project
         }
     }
 
-    private void generateHumanReadableApiDoc(final ProjectConfiguration projectConfiguration) throws IOException
+    private void generateHumanReadableApiDoc() throws IOException
     {
         if (generatorHelper != null)
         {
@@ -294,7 +265,8 @@ public class ProjectImpl implements Project
         final Optional<String> genFile = IoUtil.toString(projectConfiguration.getPath().resolve(generationCommandFile));
         if (genFile.isPresent())
         {
-            final String[] args = genFile.get().split(" ");
+            final String contents = genFile.get().replaceAll("\\$\\{workdir}", projectConfiguration.getWorkDirectory().toString());
+            final String[] args = contents.split(" ");
             generatorHelper.generate(projectConfiguration.getPath(), args);
         }
         else
@@ -340,13 +312,13 @@ public class ProjectImpl implements Project
         this.projectCtx.setClassLoader(groovyClassLoader);
         this.projectCtx.setId(projectConfiguration.getProject().getName());
 
-        final Path configFilePath = projectConfiguration.getPath().resolve(DEFAULT_CONFIG_FILENAME);
+        final Resource[] configResources = getConfigResources();
 
-        if (Files.exists(configFilePath))
+        if (configResources.length > 0)
         {
             final PropertyPlaceholderConfigurer propertyPlaceholderConfigurer = new PropertyPlaceholderConfigurer();
-            propertyPlaceholderConfigurer.setLocation(new FileSystemResource(configFilePath));
-            final PropertySource<Properties> propertySource = createPropertySource(configFilePath);
+            propertyPlaceholderConfigurer.setLocations(configResources);
+            final PropertySource<Properties> propertySource = createPropertySource(configResources);
 
             final Environment parentEnv = parentContext.getEnvironment();
             final StandardEnvironment env = new StandardEnvironment();
@@ -364,6 +336,11 @@ public class ProjectImpl implements Project
         }
     }
 
+    private Resource[] getConfigResources()
+    {
+        return Stream.of(new FileSystemResource(workDir.resolve(DEFAULT_CONFIG_FILENAME)), new FileSystemResource(projectPath.resolve(DEFAULT_CONFIG_FILENAME))).filter(FileSystemResource::exists).toArray(Resource[]::new);
+    }
+
     private void prettyPrint(final Properties properties)
     {
         final StringBuilder sb = new StringBuilder();
@@ -374,24 +351,30 @@ public class ProjectImpl implements Project
         logger.debug("Project configuration properties: {}", sb.toString());
     }
 
-    private PropertySource<Properties> createPropertySource(final Path configFilePath)
+    private PropertySource<Properties> createPropertySource(final Resource[] configFilePath)
     {
-        final Properties properties = new Properties();
-        try (final Reader reader = Files.newBufferedReader(configFilePath, StandardCharsets.UTF_8))
+        final Properties result = new Properties();
+
+        for (Resource resource : configFilePath)
         {
-            properties.load(reader);
-        }
-        catch (IOException exc)
-        {
-            throw new UncheckedIOException(exc);
+            try (final Reader reader = new BufferedReader(new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)))
+            {
+                final Properties properties = new Properties();
+                properties.load(reader);
+                result.putAll(properties);
+            }
+            catch (IOException exc)
+            {
+                throw new UncheckedIOException(exc);
+            }
         }
 
-        return new PropertySource<Properties>(configFilePath.toString(), properties)
+        return new PropertySource<Properties>(StringUtils.arrayToCommaDelimitedString(configFilePath), result)
         {
             @Override
             public String getProperty(String key)
             {
-                return properties.getProperty(key);
+                return result.getProperty(key);
             }
         };
     }
@@ -402,7 +385,7 @@ public class ProjectImpl implements Project
         logger.debug("Adding main resources to classpath: {}", mainResourcesUrl);
         groovyClassLoader.addURL(mainResourcesUrl);
 
-        final URL targetResourcesUrl = IoUtil.toURL(projectConfiguration.getTargetClassDirectory());
+        final URL targetResourcesUrl = IoUtil.toURL(classesDir);
         logger.debug("Adding main classes to classpath: {}", targetResourcesUrl);
         groovyClassLoader.addURL(targetResourcesUrl);
     }
@@ -410,12 +393,11 @@ public class ProjectImpl implements Project
     private void createProjectConfigBean()
     {
         final ConfigurableListableBeanFactory bf = projectCtx.getBeanFactory();
-        bf.registerSingleton("projectConfiguration", projectConfiguration);
+        bf.registerSingleton("projectConfiguration", bootstrapConfiguration);
     }
 
     private void compileSources()
     {
-        final Path classesDir = projectConfiguration.getTargetClassDirectory();
         for (LamebdaCompiler compiler : compilers)
         {
             compiler.compile(classesDir);
@@ -425,13 +407,12 @@ public class ProjectImpl implements Project
     private void apiSpecProcessing()
     {
         final Path apiPath = projectConfiguration.getSpecificationPath().resolve(API_SPECIFICATION_YAML_FILENAME);
-        final Path targetPath = projectConfiguration.getPath().resolve("target");
 
         if (Files.exists(apiPath))
         {
             try
             {
-                final Path marker = targetPath.resolve(".api_lastgenerated");
+                final Path marker = classesDir.resolve(".api_lastgenerated");
                 final OffsetDateTime specModified = lastModified(apiPath);
                 final OffsetDateTime modelModified = lastModified(marker);
 
@@ -439,10 +420,10 @@ public class ProjectImpl implements Project
                 {
                     generateModels();
 
-                    generateHumanReadableApiDoc(projectConfiguration);
+                    generateHumanReadableApiDoc();
                 }
 
-                setLastModified(targetPath, marker, specModified);
+                setLastModified(classesDir, marker, specModified);
             }
             catch (IOException exc)
             {
@@ -450,9 +431,10 @@ public class ProjectImpl implements Project
             }
         }
 
-        final Path modelPath = projectConfiguration.getPath().resolve("target").resolve("generated-sources").resolve("models").toAbsolutePath();
+        final Path modelPath = projectConfiguration.getWorkDirectory().resolve("target").resolve("generated-sources").resolve("java").toAbsolutePath();
         if (Files.exists(modelPath))
         {
+            projectConfiguration.addJavaSourcePath(modelPath);
             groovyClassLoader.addClasspath(modelPath.toAbsolutePath().toString());
             logger.debug("Added model classpath {}", modelPath);
         }

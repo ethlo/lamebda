@@ -65,9 +65,9 @@ public class SpringMvcServerFunctionTest
     @Before
     public void before() throws IOException
     {
-        final ProjectManager fmd = new ProjectManager(basepath, "lamebda", applicationContext);
-        final Project fm = fmd.getProjects().values().iterator().next();
-        new ProjectSetupService(applicationContext, methodInterceptors).onApplicationEvent(new ProjectLoadedEvent(fm.getProjectConfiguration(), fm.getProjectContext()));
+        final ProjectManager projectManager = new ProjectManager(basepath, "lamebda", applicationContext);
+        final Project project = projectManager.getProjects().values().iterator().next();
+        new ProjectSetupService(applicationContext, methodInterceptors).onApplicationEvent(new ProjectLoadedEvent(project.getProjectConfiguration(), project.getProjectContext()));
     }
 
     @Test

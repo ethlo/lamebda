@@ -1,4 +1,4 @@
-package com.ethlo.lamebda.dao;
+package com.ethlo.lamebda;
 
 /*-
  * #%L
@@ -20,10 +20,6 @@ package com.ethlo.lamebda.dao;
  * #L%
  */
 
-import java.nio.file.Path;
-import java.util.List;
-
-public interface LocalProjectDao
+public class UrlMappingConfiguration
 {
-    List<Path> getLocalProjectDirectories();
 }

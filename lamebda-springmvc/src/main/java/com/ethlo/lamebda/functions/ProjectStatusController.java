@@ -41,12 +41,12 @@ import com.ethlo.lamebda.ProjectConfiguration;
 @RequestMapping(value = "/status", produces = "application/json")
 public class ProjectStatusController
 {
-    private final ProjectConfiguration projectConfiguration;
+    private final ProjectConfiguration launchConfiguration;
     private final MultiValueMap<String, com.ethlo.lamebda.mapping.RequestMapping> mappings = new LinkedMultiValueMap<>();
 
-    public ProjectStatusController(ProjectConfiguration projectConfiguration)
+    public ProjectStatusController(ProjectConfiguration launchConfiguration)
     {
-        this.projectConfiguration = projectConfiguration;
+        this.launchConfiguration = launchConfiguration;
     }
 
     @GetMapping("/")
@@ -61,9 +61,9 @@ public class ProjectStatusController
     {
         final Map<String, Object> res = new LinkedHashMap<>();
         final Map<String, Object> projectInfo = new LinkedHashMap<>();
-        projectInfo.put("name", projectConfiguration.getProject().getName());
-        projectInfo.put("configuration", projectConfiguration);
-        projectInfo.put("version", projectConfiguration.getProject().getVersion());
+        projectInfo.put("name", launchConfiguration.getProject().getName());
+        projectInfo.put("configuration", launchConfiguration);
+        projectInfo.put("version", launchConfiguration.getProject().getVersion());
         res.put("project", projectInfo);
         res.put("functions", mappings);
         return res;

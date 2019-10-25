@@ -38,9 +38,8 @@ import com.ethlo.lamebda.util.IoUtil;
 
 public class HttpCloudConfigLoader implements ConfigLoader
 {
-    private static final Logger logger = LoggerFactory.getLogger(HttpCloudConfigLoader.class);
     public static final String DEPLOYMENT_ARTIFACT_URL = "deployment.artifact-url";
-
+    private static final Logger logger = LoggerFactory.getLogger(HttpCloudConfigLoader.class);
     private final Path rootDirectory;
     private final URL configServerUrl;
     private final String applicationName;

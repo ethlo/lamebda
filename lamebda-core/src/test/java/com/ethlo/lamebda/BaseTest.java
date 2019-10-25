@@ -45,7 +45,7 @@ public abstract class BaseTest
     private final Path rootPath = Paths.get("src/test/projects");
     private final Path projectPath = rootPath.resolve("myproject");
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    protected ProjectImpl functionManager;
+    protected ProjectImpl project;
 
     @Autowired
     private ApplicationContext parentContext;
@@ -59,10 +59,10 @@ public abstract class BaseTest
             deployGenerator();
             final Properties properties = new Properties();
             properties.put("project.name", "my-test-project");
-            properties.put("java-source-paths", "target/generated-sources/java");
+            properties.put("project.source.java", "target/generated-sources/java");
             properties.put("project.base-packages", "acme");
-            final ProjectConfiguration cfg = ProjectConfiguration.load("/gateway", projectPath, properties);
-            functionManager = new ProjectImpl(parentContext, cfg);
+            final BootstrapConfiguration cfg = new BootstrapConfiguration("/gateway", projectPath, properties);
+            project = new ProjectImpl(parentContext, cfg, ProjectManager.setupWorkDir(projectPath));
         }
         catch (IOException exc)
         {
