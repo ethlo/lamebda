@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -36,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ethlo.lamebda.ProjectConfiguration;
+import com.ethlo.lamebda.util.IoUtil;
 
 @RestController
 @RequestMapping(value = "/status", produces = "application/json")
@@ -64,6 +66,13 @@ public class ProjectStatusController
         projectInfo.put("name", launchConfiguration.getProject().getName());
         projectInfo.put("configuration", launchConfiguration);
         projectInfo.put("version", launchConfiguration.getProject().getVersion());
+
+        final Optional<String> optVersion = IoUtil.toString("lamebda-version.info");
+        optVersion.ifPresent(versionStr ->
+        {
+            res.put("version", versionStr);
+        });
+
         res.put("project", projectInfo);
         res.put("functions", mappings);
         return res;

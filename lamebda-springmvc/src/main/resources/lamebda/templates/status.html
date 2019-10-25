@@ -110,6 +110,7 @@
                 document.title = cfg['project']['name'];
                 $('#projectName').html(document.title);
                 $('#projectVersion').html(cfg['project']['version']);
+                $('#lamebdaVersion').html(data['version']);
                 renderFunctions(data.functions);
             }
         });
@@ -120,7 +121,7 @@
 
 </script>
 <footer class="footer border-top">
-    &nbsp;<small class="text-muted">Powered by <a href="https://github.com/ethlo/lamebda">Lamebda</a></small>
+    &nbsp;<small class="text-muted">Powered by <a href="https://github.com/ethlo/lamebda">Lamebda <span id="lamebdaVersion"></span></a></small>
 </footer>
 </body>
 </html>
