@@ -60,7 +60,8 @@ public class FileSystemEvent
         return Objects.hash(path, changeType);
     }
 
-    @Override public String toString()
+    @Override
+    public String toString()
     {
         return "FileSystemEvent{" +
                 "path=" + path +

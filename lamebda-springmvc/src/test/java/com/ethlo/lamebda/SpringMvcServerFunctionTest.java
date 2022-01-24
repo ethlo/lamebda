@@ -33,20 +33,20 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.aopalliance.intercept.MethodInterceptor;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = TestCfg.class)
 @AutoConfigureMockMvc
 public class SpringMvcServerFunctionTest
@@ -62,7 +62,7 @@ public class SpringMvcServerFunctionTest
     @Autowired(required = false)
     private List<MethodInterceptor> methodInterceptors = new LinkedList<>();
 
-    @Before
+    @BeforeEach
     public void before() throws IOException
     {
         final ProjectManager projectManager = new ProjectManager(basepath, "lamebda", applicationContext);
@@ -74,7 +74,7 @@ public class SpringMvcServerFunctionTest
     public void shouldCallController() throws Exception
     {
         this.mockMvc.
-                perform(post("/lamebda/myproject/test/123").content("{\"payload\": 999}").contentType(MediaType.APPLICATION_JSON_UTF8))
+                perform(post("/lamebda/myproject/test/123").content("{\"payload\": 999}").contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("{\"id\":\"123\"}")));

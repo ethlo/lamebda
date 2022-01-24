@@ -21,14 +21,11 @@ package com.ethlo.lamebda.util;
  */
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -126,19 +123,6 @@ public class IoUtil
             return;
         }
         FileSystemUtils.deleteRecursively(directory);
-    }
-
-    public static URL toURL(final String path)
-    {
-        try
-        {
-            final URI newURI = new URI(path);
-            return newURI.toURL();
-        }
-        catch (URISyntaxException | IllegalArgumentException | MalformedURLException e)
-        {
-            return toURL(new File(path).toPath());
-        }
     }
 
     public static URL stringToURL(final String url)

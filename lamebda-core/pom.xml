@@ -5,9 +5,25 @@
     <parent>
         <groupId>com.ethlo.lamebda</groupId>
         <artifactId>lamebda</artifactId>
-        <version>0.9.6</version>
+        <version>0.9.7-SNAPSHOT</version>
     </parent>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <groovy.version>3.0.9</groovy.version>
+    </properties>
     <dependencies>
+        <dependency>
+            <groupId>com.ethlo.qjc</groupId>
+            <artifactId>qjc-groovy</artifactId>
+            <version>0.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ethlo.qjc</groupId>
+            <artifactId>qjc-java</artifactId>
+            <version>0.2.0</version>
+        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
@@ -29,11 +45,13 @@
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy</artifactId>
             <version>${groovy.version}</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-json</artifactId>
             <version>${groovy.version}</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -91,10 +109,4 @@
             </resource>
         </resources>
     </build>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <groovy.version>3.0.0-beta-3</groovy.version>
-    </properties>
 </project>

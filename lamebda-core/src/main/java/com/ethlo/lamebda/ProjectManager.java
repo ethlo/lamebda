@@ -37,7 +37,6 @@ import com.ethlo.lamebda.dao.LocalProjectDao;
 import com.ethlo.lamebda.dao.LocalProjectDaoImpl;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
-import com.ethlo.lamebda.loader.http.HttpArtifactLoader;
 import com.ethlo.lamebda.util.IoUtil;
 
 public class ProjectManager
@@ -49,7 +48,6 @@ public class ProjectManager
     private final ApplicationContext parentContext;
 
     private final Map<Path, Project> projects = new ConcurrentHashMap<>();
-    private final HttpArtifactLoader artifactLoader;
     private final LocalProjectDao localProjectDao;
 
     private WatchDir watchDir;
@@ -71,7 +69,6 @@ public class ProjectManager
         this.parentContext = parentContext;
 
         this.localProjectDao = new LocalProjectDaoImpl(rootDirectory);
-        this.artifactLoader = new HttpArtifactLoader();
 
         initializeAll();
     }
@@ -188,10 +185,7 @@ public class ProjectManager
         Project project = null;
         try
         {
-            artifactLoader.prepareArtifact(projectPath);
-
             final BootstrapConfiguration cfg = new BootstrapConfiguration(rootContext, projectPath, System.getProperties());
-
             project = new ProjectImpl(parentContext, cfg, setupWorkDir(projectPath));
             projects.put(projectPath, project);
         }

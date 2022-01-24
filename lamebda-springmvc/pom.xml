@@ -2,10 +2,12 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>lamebda-springmvc</artifactId>
     <parent>
         <artifactId>lamebda</artifactId>
         <groupId>com.ethlo.lamebda</groupId>
-        <version>0.9.6</version>
+        <version>0.9.7-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -15,7 +17,7 @@
         <dependency>
             <groupId>com.ethlo.lamebda</groupId>
             <artifactId>lamebda-core</artifactId>
-            <version>0.9.6</version>
+            <version>0.9.7-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -33,6 +35,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.8.1</version>
+            <scope>test</scope>
+        </dependency>        <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
             <scope>test</scope>
@@ -57,6 +64,4 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
     </dependencies>
-    <modelVersion>4.0.0</modelVersion>
-    <artifactId>lamebda-springmvc</artifactId>
 </project>

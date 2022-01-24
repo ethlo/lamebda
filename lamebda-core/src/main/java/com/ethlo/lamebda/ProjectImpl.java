@@ -19,7 +19,6 @@ import java.nio.file.attribute.FileTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,12 +29,14 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import javax.validation.constraints.NotNull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
@@ -45,13 +46,12 @@ import org.springframework.core.io.Resource;
 import org.springframework.instrument.classloading.SimpleThrowawayClassLoader;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.compiler.LamebdaCompiler;
-import com.ethlo.lamebda.compiler.groovy.GroovyCompiler;
-import com.ethlo.lamebda.compiler.java.JavaCompiler;
 import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.util.IoUtil;
+import com.ethlo.qjc.groovy.GroovyCompiler;
+import com.ethlo.qjc.java.JavaCompiler;
 import groovy.lang.GroovyClassLoader;
 
 /*-
@@ -95,7 +95,8 @@ public class ProjectImpl implements Project
     private final Path classesDir;
     private final ProjectConfiguration projectConfiguration;
     private AnnotationConfigApplicationContext projectCtx;
-    private LinkedList<LamebdaCompiler> compilers;
+    private JavaCompiler javaCompiler;
+    private GroovyCompiler groovyCompiler;
 
     public ProjectImpl(ApplicationContext parentContext, BootstrapConfiguration bootstrapConfiguration, final Path workDirectory)
     {
@@ -164,22 +165,19 @@ public class ProjectImpl implements Project
     private void readVersionFile(final Path path)
     {
         final Optional<String> optVersion = IoUtil.toString(path.resolve("version"));
-        optVersion.ifPresent(versionStr ->
-        {
-            projectConfiguration.getProject().setVersion(versionStr);
-        });
+        optVersion.ifPresent(versionStr -> projectConfiguration.getProject().setVersion(versionStr));
     }
 
     private void setupCompilers()
     {
-        this.compilers = new LinkedList<>();
-        compilers.add(new JavaCompiler(new SimpleThrowawayClassLoader(groovyClassLoader), projectConfiguration.getJavaSourcePaths()));
-        compilers.add(new GroovyCompiler(groovyClassLoader, projectConfiguration.getGroovySourcePaths()));
+        javaCompiler = new JavaCompiler(new SimpleThrowawayClassLoader(groovyClassLoader));
+        groovyCompiler = new GroovyCompiler(groovyClassLoader);
     }
 
     private void decompressIfApplicable()
     {
         final Path archivePath = projectPath.resolve(projectPath.getFileName() + "." + JAR_EXTENSION);
+        logger.info("Looking for project archive file at {}", archivePath);
         if (Files.exists(archivePath))
         {
             logger.info("Decompressing project archive file {}", archivePath);
@@ -191,6 +189,10 @@ public class ProjectImpl implements Project
             {
                 throw new UncheckedIOException(e);
             }
+        }
+        else
+        {
+            logger.info("No project archive file found at {}", archivePath);
         }
     }
 
@@ -316,7 +318,7 @@ public class ProjectImpl implements Project
 
         if (configResources.length > 0)
         {
-            final PropertyPlaceholderConfigurer propertyPlaceholderConfigurer = new PropertyPlaceholderConfigurer();
+            final PropertySourcesPlaceholderConfigurer propertyPlaceholderConfigurer = new PropertySourcesPlaceholderConfigurer();
             propertyPlaceholderConfigurer.setLocations(configResources);
             final PropertySource<Properties> propertySource = createPropertySource(configResources);
 
@@ -372,7 +374,7 @@ public class ProjectImpl implements Project
         return new PropertySource<Properties>(StringUtils.arrayToCommaDelimitedString(configFilePath), result)
         {
             @Override
-            public String getProperty(String key)
+            public String getProperty(@NotNull String key)
             {
                 return result.getProperty(key);
             }
@@ -398,10 +400,8 @@ public class ProjectImpl implements Project
 
     private void compileSources()
     {
-        for (LamebdaCompiler compiler : compilers)
-        {
-            compiler.compile(classesDir);
-        }
+        javaCompiler.compile(projectConfiguration.getJavaSourcePaths(), projectConfiguration.getTargetClassDirectory());
+        groovyCompiler.compile(projectConfiguration.getGroovySourcePaths(), projectConfiguration.getTargetClassDirectory());
     }
 
     private void apiSpecProcessing()
