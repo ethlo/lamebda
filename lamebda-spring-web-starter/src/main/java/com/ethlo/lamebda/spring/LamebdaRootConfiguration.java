@@ -21,7 +21,6 @@ package com.ethlo.lamebda.spring;
  */
 
 import java.nio.file.Path;
-import java.util.Set;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -52,11 +51,6 @@ public class LamebdaRootConfiguration
     @NotNull
     private Path rootDirectory;
 
-    /**
-     * Defines which projects are attempted to be loaded from configuration resource server. Only needed when there are no project directories already created on the server
-     */
-    private Set<String> projectNames;
-
     public String getRequestPath()
     {
         return requestPath;
@@ -76,17 +70,6 @@ public class LamebdaRootConfiguration
     public LamebdaRootConfiguration setRootDirectory(final Path rootDirectory)
     {
         this.rootDirectory = rootDirectory;
-        return this;
-    }
-
-    public Set<String> getProjectNames()
-    {
-        return projectNames;
-    }
-
-    public LamebdaRootConfiguration setProjectNames(final Set<String> projectNames)
-    {
-        this.projectNames = projectNames;
         return this;
     }
 

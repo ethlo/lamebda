@@ -79,7 +79,7 @@ public class ProjectConfiguration
     public static ProjectConfiguration load(final BootstrapConfiguration bootstrapConfiguration, final Path workDir)
     {
         final Path path = bootstrapConfiguration.getPath();
-        final Path[] paths = Stream.of(path.resolve(ProjectImpl.PROJECT_FILENAME), workDir.resolve(ProjectImpl.PROJECT_FILENAME)).filter(p -> Files.exists(p)).toArray(Path[]::new);
+        final Path[] paths = Stream.of(path.resolve(ProjectImpl.PROJECT_FILENAME), workDir.resolve(ProjectImpl.PROJECT_FILENAME)).filter(Files::exists).toArray(Path[]::new);
         final Properties properties = merge(bootstrapConfiguration.getEnvProperties(), paths);
         return new ProjectConfiguration(workDir, bootstrapConfiguration, properties);
     }
