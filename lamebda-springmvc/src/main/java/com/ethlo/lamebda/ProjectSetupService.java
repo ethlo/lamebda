@@ -24,8 +24,11 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import com.ethlo.lamebda.functions.DocumentationController;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.slf4j.Logger;
@@ -43,7 +46,6 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import com.ethlo.lamebda.functions.DocumentationController;
 import com.ethlo.lamebda.functions.ProjectStatusController;
 import com.ethlo.lamebda.functions.StaticController;
 import com.ethlo.lamebda.functions.SwaggerUiController;
@@ -127,8 +129,26 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         final StaticController staticController = new StaticController();
         register(handlerMapping, staticController, projectCfg);
 
-        final SwaggerUiController swaggerUiController = new SwaggerUiController();
-        register(handlerMapping, swaggerUiController, projectCfg);
+        // Determine the root classpath for the swagger UI
+        final String swaggerUiClasspath = projectCtx.getEnvironment().getProperty("lamebda.swagger-ui-path");
+        if (swaggerUiClasspath != null)
+        {
+            final ClassLoader classLoader = Objects.requireNonNull(Objects.requireNonNull(projectCtx.getParent()).getClassLoader());
+            final boolean exists = classLoader.getResourceAsStream("META-INF/resources/webjars/swagger-ui-dist/4.5.2/index.html") != null;
+            if (exists)
+            {
+                final SwaggerUiController swaggerUiController = new SwaggerUiController(swaggerUiClasspath);
+                register(handlerMapping, swaggerUiController, projectCfg);
+            }
+            else
+            {
+                logger.warn("Swagger UI  was not found at configured path: {}", swaggerUiClasspath);
+            }
+        }
+        else
+        {
+            logger.info("No path configured for 'lamebda.swagger-ui-path'");
+        }
 
         final DocumentationController documentationController = new DocumentationController(event.getProjectContext().getClassLoader());
         register(handlerMapping, documentationController, projectCfg);

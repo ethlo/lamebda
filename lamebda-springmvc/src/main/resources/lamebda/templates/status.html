@@ -3,8 +3,6 @@
 <head>
     <meta charset="utf-8">
     <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
-    <meta content="" name="description">
-    <meta content="" name="author">
     <title>Project status</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -43,10 +41,8 @@
     <h5 class="my-0 mr-md-auto font-weight-normal"><span id="projectName">Project status</span> <span
             class="text-muted" id="projectVersion"></span></h5>
     <nav class="my-2 my-md-0 mr-md-3">
-        <a class="p-2" href="../specification/api/doc/">Documentation</a>
-        <a class="p-2" href="../ui/index.html?url=../specification/api/api.yaml">Interactive documentation</a>
-        <a class="p-2" href="../specification/api/api.yaml">API specification</a>
-        <a class="p-2" href="./">Status</a>
+        <a class="p-2" href="./status/api">Interactive documentation</a>
+        <a class="p-2" href="./specification/api/api.yaml">API specification</a>
     </nav>
 </div>
 
@@ -93,17 +89,17 @@
                 requestMappingMarkup += '</ul>';
             }
             var markup = '' +
-                '<tr>' +
-                '<td>' + beanName + '</td>' +
-                '<td>' + requestMappingMarkup + '</td>' +
-                '</tr>';
+                    '<tr>' +
+                    '<td>' + beanName + '</td>' +
+                    '<td>' + requestMappingMarkup + '</td>' +
+                    '</tr>';
             $("#functiontable").append(markup);
         }
     }
 
     $(document).ready(function () {
         $.ajax({
-            url: window.location + 'status.json',
+            url: window.location.toString().replace(/\/+$/, '') + '/status.json',
             success: function (data) {
                 var cfg = data.project.configuration;
                 console.log('Project cfg', cfg);
@@ -117,11 +113,10 @@
     });
 
 
-
-
 </script>
 <footer class="footer border-top">
-    &nbsp;<small class="text-muted">Powered by <a href="https://github.com/ethlo/lamebda">Lamebda <span id="lamebdaVersion"></span></a></small>
+    &nbsp;<small class="text-muted">Powered by <a href="https://github.com/ethlo/lamebda">Lamebda <span
+        id="lamebdaVersion"></span></a></small>
 </footer>
 </body>
 </html>

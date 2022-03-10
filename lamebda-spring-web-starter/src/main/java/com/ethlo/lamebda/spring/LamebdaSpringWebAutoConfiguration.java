@@ -21,8 +21,11 @@ package com.ethlo.lamebda.spring;
  */
 
 import java.io.IOException;
-import java.util.LinkedList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+
+import com.ethlo.lamebda.functions.DeploymentStatusController;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,12 +45,16 @@ import com.ethlo.lamebda.ProjectSetupService;
 @ConditionalOnProperty(prefix = "lamebda", name = "enabled")
 public class LamebdaSpringWebAutoConfiguration
 {
-    @Autowired(required = false)
-    private final List<MethodInterceptor> methodInterceptors = new LinkedList<>();
-    @Autowired
-    private LamebdaRootConfiguration lamebdaRootConfiguration;
-    @Autowired
-    private ConfigurableApplicationContext parentContext;
+    private final List<MethodInterceptor> methodInterceptors;
+    private final LamebdaRootConfiguration lamebdaRootConfiguration;
+    private final ConfigurableApplicationContext parentContext;
+
+    public LamebdaSpringWebAutoConfiguration(@Autowired(required = false) List<MethodInterceptor> methodInterceptors, LamebdaRootConfiguration lamebdaRootConfiguration, ConfigurableApplicationContext parentContext)
+    {
+        this.methodInterceptors = Optional.ofNullable(methodInterceptors).orElse(Collections.emptyList());
+        this.lamebdaRootConfiguration = lamebdaRootConfiguration;
+        this.parentContext = parentContext;
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -57,9 +64,11 @@ public class LamebdaSpringWebAutoConfiguration
         return new ProjectManager(lamebdaRootConfiguration.getRootDirectory(), lamebdaRootConfiguration.getRequestPath(), parentContext);
     }
 
-    private String getProperty(final String s)
+    @Bean
+    @ConditionalOnProperty(value = "lamebda.index-path")
+    public DeploymentStatusController deploymentStatusController(final ProjectManager projectManager)
     {
-        return parentContext.getEnvironment().getProperty(s);
+        return new DeploymentStatusController(projectManager);
     }
 
     @Bean

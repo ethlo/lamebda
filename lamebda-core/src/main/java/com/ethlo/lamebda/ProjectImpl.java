@@ -350,7 +350,7 @@ public class ProjectImpl implements Project
         {
             sb.append("\n").append(e.getKey()).append("=").append(e.getValue());
         }
-        logger.debug("Project configuration properties: {}", sb.toString());
+        logger.debug("Project configuration properties: {}", sb);
     }
 
     private PropertySource<Properties> createPropertySource(final Resource[] configFilePath)
@@ -371,7 +371,7 @@ public class ProjectImpl implements Project
             }
         }
 
-        return new PropertySource<Properties>(StringUtils.arrayToCommaDelimitedString(configFilePath), result)
+        return new PropertySource<>(StringUtils.arrayToCommaDelimitedString(configFilePath), result)
         {
             @Override
             public String getProperty(@NotNull String key)

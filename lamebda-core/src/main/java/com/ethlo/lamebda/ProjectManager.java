@@ -57,7 +57,7 @@ public class ProjectManager
         Assert.notNull(rootDirectory, "rootDirectory cannot be null");
         Assert.notNull(rootDirectory, "rootContext cannot be null");
 
-        logger.info("Initializing Lamebda");
+        logger.info("Initializing Lamebda with root directory {}", rootDirectory);
 
         if (!Files.isDirectory(rootDirectory))
         {
@@ -69,6 +69,8 @@ public class ProjectManager
         this.parentContext = parentContext;
 
         this.localProjectDao = new LocalProjectDaoImpl(rootDirectory);
+
+        logger.info("Parent application context ID: {}", parentContext.getId());
 
         initializeAll();
     }

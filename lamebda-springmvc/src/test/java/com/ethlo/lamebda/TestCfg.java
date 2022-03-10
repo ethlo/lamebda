@@ -20,12 +20,52 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.aopalliance.intercept.MethodInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+
+import com.ethlo.lamebda.functions.DeploymentStatusController;
 
 @Configuration
 @EnableWebMvc
 public class TestCfg
 {
+    @Autowired(required = false)
+    private List<MethodInterceptor> methodInterceptors = new LinkedList<>();
 
+    @Bean
+    public ProjectManager projectManager(ApplicationContext applicationContext) throws IOException
+    {
+        final Path basePath = Paths.get("src/test/projects");
+        return new ProjectManager(basePath, "lamebda", applicationContext);
+    }
+
+    @Bean
+    public DeploymentStatusController deploymentStatusController(final ProjectManager projectManager)
+    {
+        return new DeploymentStatusController(projectManager);
+    }
+
+    @Bean
+    public ProjectSetupService projectSetupService(final ApplicationContext parentContext)
+    {
+        return new ProjectSetupService(parentContext, methodInterceptors);
+    }
+
+    @Bean
+    public ProjectCleanupService projectCleanupService()
+    {
+        return new ProjectCleanupService();
+    }
 }

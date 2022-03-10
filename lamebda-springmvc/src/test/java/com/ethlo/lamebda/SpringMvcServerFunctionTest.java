@@ -21,54 +21,29 @@ package com.ethlo.lamebda;
  */
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.LinkedList;
-import java.util.List;
-
-import org.aopalliance.intercept.MethodInterceptor;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
-
-import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = TestCfg.class)
 @AutoConfigureMockMvc
 public class SpringMvcServerFunctionTest
 {
-    private final Path basepath = Paths.get("src/test/projects");
-
-    @Autowired
-    private ApplicationContext applicationContext;
-
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired(required = false)
-    private List<MethodInterceptor> methodInterceptors = new LinkedList<>();
-
-    @BeforeEach
-    public void before() throws IOException
-    {
-        final ProjectManager projectManager = new ProjectManager(basepath, "lamebda", applicationContext);
-        final Project project = projectManager.getProjects().values().iterator().next();
-        new ProjectSetupService(applicationContext, methodInterceptors).onApplicationEvent(new ProjectLoadedEvent(project.getProjectConfiguration(), project.getProjectContext()));
-    }
 
     @Test
     public void shouldCallController() throws Exception
@@ -79,4 +54,16 @@ public class SpringMvcServerFunctionTest
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("{\"id\":\"123\"}")));
     }
+
+    @Disabled("Not found in context")
+    @Test
+    public void shouldCallDeploymentsController() throws Exception
+    {
+        this.mockMvc.
+                perform(get("/lamebda/status"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("{\"id\":\"123\"}")));
+    }
+
 }

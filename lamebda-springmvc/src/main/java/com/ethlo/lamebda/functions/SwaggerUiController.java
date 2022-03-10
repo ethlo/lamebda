@@ -28,14 +28,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("ui")
+@RequestMapping("swagger-ui")
 public class SwaggerUiController extends BaseResourceController
 {
+    private final String basePath;
+
+    public SwaggerUiController(final String basePath)
+    {
+        this.basePath = basePath;
+    }
+
     @Override
     protected Optional<Resource> findResource(final String finalPath)
     {
-        final String basePath = "META-INF/resources/webjars/swagger-ui-dist/3.24.0/";
-        final String classpath = basePath + finalPath;
+        final String classpath = basePath + "/" + finalPath;
         return Optional.of(new ClassPathResource(classpath, getClass().getClassLoader()));
     }
 }

@@ -51,11 +51,20 @@ public class ProjectStatusController
         this.launchConfiguration = launchConfiguration;
     }
 
-    @GetMapping("/")
+    @GetMapping("")
     public void getPage(HttpServletResponse response) throws IOException
     {
         response.setContentType("text/html");
+        response.setStatus(HttpServletResponse.SC_OK);
         StreamUtils.copy(new ClassPathResource("/lamebda/templates/status.html").getInputStream(), response.getOutputStream());
+    }
+
+    @GetMapping("/api")
+    public void getSwaggerUI(HttpServletResponse response) throws IOException
+    {
+        response.setContentType("text/html");
+        response.setStatus(HttpServletResponse.SC_OK);
+        StreamUtils.copy(new ClassPathResource("/lamebda/templates/swagger-ui.html").getInputStream(), response.getOutputStream());
     }
 
     @GetMapping("status.json")

@@ -21,6 +21,7 @@ package com.ethlo.lamebda.spring;
  */
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -39,6 +40,8 @@ public class LamebdaRootConfiguration
      * The root request path in the URL
      */
     private String requestPath = "/lamebda";
+
+    private String indexPath = "/status";
 
     /**
      * Turn Lamebda on/off
@@ -69,7 +72,14 @@ public class LamebdaRootConfiguration
 
     public LamebdaRootConfiguration setRootDirectory(final Path rootDirectory)
     {
-        this.rootDirectory = rootDirectory;
+        if (rootDirectory.startsWith("~/"))
+        {
+            this.rootDirectory = Paths.get(rootDirectory.toString().replaceFirst("^~", System.getProperty("user.home")));
+        }
+        else
+        {
+            this.rootDirectory = rootDirectory;
+        }
         return this;
     }
 
@@ -82,5 +92,19 @@ public class LamebdaRootConfiguration
     {
         this.enabled = enabled;
         return this;
+    }
+
+    public String getIndexPath()
+    {
+        return indexPath;
+    }
+
+    /**
+     * The URL path the index for deployed modules are listed
+     * @param indexPath The URL path
+     */
+    public void setIndexPath(final String indexPath)
+    {
+        this.indexPath = indexPath;
     }
 }
