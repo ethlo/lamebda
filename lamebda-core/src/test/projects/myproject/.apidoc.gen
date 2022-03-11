@@ -1,1 +1,0 @@
-generate -isrc/main/resources/specification/oas.yaml -ghtml -o${workdir}/target/classes/api-doc

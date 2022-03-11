@@ -22,7 +22,7 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CompilationSmokeTest extends BaseTest
 {

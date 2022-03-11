@@ -10,14 +10,10 @@ import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.FileTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +24,6 @@ import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
-
-import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,9 +38,9 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.instrument.classloading.SimpleThrowawayClassLoader;
+import org.springframework.lang.NonNull;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.generator.GeneratorHelper;
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.util.IoUtil;
@@ -88,7 +82,6 @@ public class ProjectImpl implements Project
     private static final Logger logger = LoggerFactory.getLogger(ProjectImpl.class);
     private final BootstrapConfiguration bootstrapConfiguration;
     private final ApplicationContext parentContext;
-    private final GeneratorHelper generatorHelper;
     private final GroovyClassLoader groovyClassLoader = new GroovyClassLoader();
     private final Path workDir;
     private final Path projectPath;
@@ -129,23 +122,6 @@ public class ProjectImpl implements Project
         }
 
         setupCompilers();
-
-        final Path apiPath = projectConfiguration.getSpecificationPath().resolve(API_SPECIFICATION_YAML_FILENAME);
-        final Path jarDir = bootstrapConfiguration.getPath().resolve(".generator");
-        if (Files.exists(jarDir))
-        {
-            this.generatorHelper = new GeneratorHelper(projectConfiguration.getJavaCmd(), jarDir);
-        }
-        else if (Files.exists(apiPath))
-        {
-            logger.info("Found specification file in {}, but there are no generator libraries in {}. Skipping.", apiPath, jarDir);
-            generatorHelper = null;
-        }
-        else
-        {
-            generatorHelper = null;
-        }
-
         initialize();
     }
 
@@ -245,43 +221,10 @@ public class ProjectImpl implements Project
         return IoUtil.toClassPathList(path);
     }
 
-
-    private void generateModels() throws IOException
-    {
-        if (generatorHelper != null)
-        {
-            runRegen(projectConfiguration, ".models.gen");
-        }
-    }
-
-    private void generateHumanReadableApiDoc() throws IOException
-    {
-        if (generatorHelper != null)
-        {
-            runRegen(projectConfiguration, ".apidoc.gen");
-        }
-    }
-
-    private void runRegen(final ProjectConfiguration projectConfiguration, final String generationCommandFile) throws IOException
-    {
-        final Optional<String> genFile = IoUtil.toString(projectConfiguration.getPath().resolve(generationCommandFile));
-        if (genFile.isPresent())
-        {
-            final String contents = genFile.get().replaceAll("\\$\\{workdir}", projectConfiguration.getWorkDirectory().toString());
-            final String[] args = contents.split(" ");
-            generatorHelper.generate(projectConfiguration.getPath(), args);
-        }
-        else
-        {
-            logger.info("No " + generationCommandFile + " file found on classpath. Generation skipped");
-        }
-    }
-
     private void initialize()
     {
         setupSpringChildContext();
         addResourceClasspath();
-        apiSpecProcessing();
         createProjectConfigBean();
         compileSources();
         findBeans();
@@ -371,10 +314,10 @@ public class ProjectImpl implements Project
             }
         }
 
-        return new PropertySource<>(StringUtils.arrayToCommaDelimitedString(configFilePath), result)
+        return new PropertySource<Properties>(StringUtils.arrayToCommaDelimitedString(configFilePath), result)
         {
             @Override
-            public String getProperty(@NotNull String key)
+            public String getProperty(@NonNull String key)
             {
                 return result.getProperty(key);
             }
@@ -402,69 +345,6 @@ public class ProjectImpl implements Project
     {
         javaCompiler.compile(projectConfiguration.getJavaSourcePaths(), projectConfiguration.getTargetClassDirectory());
         groovyCompiler.compile(projectConfiguration.getGroovySourcePaths(), projectConfiguration.getTargetClassDirectory());
-    }
-
-    private void apiSpecProcessing()
-    {
-        final Path apiPath = projectConfiguration.getSpecificationPath().resolve(API_SPECIFICATION_YAML_FILENAME);
-
-        if (Files.exists(apiPath))
-        {
-            try
-            {
-                final Path marker = classesDir.resolve(".api_lastgenerated");
-                final OffsetDateTime specModified = lastModified(apiPath);
-                final OffsetDateTime modelModified = lastModified(marker);
-
-                if (specModified.isAfter(modelModified))
-                {
-                    generateModels();
-
-                    generateHumanReadableApiDoc();
-                }
-
-                setLastModified(classesDir, marker, specModified);
-            }
-            catch (IOException exc)
-            {
-                throw new UncheckedIOException(exc);
-            }
-        }
-
-        final Path modelPath = projectConfiguration.getWorkDirectory().resolve("target").resolve("generated-sources").resolve("java").toAbsolutePath();
-        if (Files.exists(modelPath))
-        {
-            projectConfiguration.addJavaSourcePath(modelPath);
-            groovyClassLoader.addClasspath(modelPath.toAbsolutePath().toString());
-            logger.debug("Added model classpath {}", modelPath);
-        }
-    }
-
-    private void setLastModified(final Path targetPath, final Path marker, final OffsetDateTime specModified) throws IOException
-    {
-        if (Files.exists(targetPath))
-        {
-            try
-            {
-                Files.createFile(marker);
-
-            }
-            catch (FileAlreadyExistsException exc)
-            {
-                // Ignore
-            }
-
-            Files.setLastModifiedTime(marker, FileTime.from(specModified.toInstant()));
-        }
-    }
-
-    private OffsetDateTime lastModified(final Path path) throws IOException
-    {
-        if (Files.exists(path))
-        {
-            return OffsetDateTime.ofInstant(Files.getLastModifiedTime(path).toInstant(), ZoneOffset.UTC);
-        }
-        return OffsetDateTime.MIN;
     }
 
     @Override

@@ -21,53 +21,39 @@ package com.ethlo.lamebda;
  */
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
-import org.junit.Before;
-import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.ethlo.lamebda.util.IoUtil;
 
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 public abstract class BaseTest
 {
     private final Path rootPath = Paths.get("src/test/projects");
     private final Path projectPath = rootPath.resolve("myproject");
-    private final Logger logger = LoggerFactory.getLogger(getClass());
     protected ProjectImpl project;
 
     @Autowired
     private ApplicationContext parentContext;
 
-    @Before
+    @BeforeEach
     public void setup()
     {
-        try
-        {
-            deleteTarget();
-            deployGenerator();
-            final Properties properties = new Properties();
-            properties.put("project.name", "my-test-project");
-            properties.put("project.source.java", "target/generated-sources/java");
-            properties.put("project.base-packages", "acme");
-            final BootstrapConfiguration cfg = new BootstrapConfiguration("/gateway", projectPath, properties);
-            project = new ProjectImpl(parentContext, cfg, ProjectManager.setupWorkDir(projectPath));
-        }
-        catch (IOException exc)
-        {
-            throw new UncheckedIOException(exc);
-        }
+        deleteTarget();
+        final Properties properties = new Properties();
+        properties.put("project.name", "my-test-project");
+        properties.put("project.source.java", "target/generated-sources/java");
+        properties.put("project.base-packages", "acme");
+        final BootstrapConfiguration cfg = new BootstrapConfiguration("/gateway", projectPath, properties);
+        project = new ProjectImpl(parentContext, cfg, ProjectManager.setupWorkDir(projectPath));
     }
 
     private void deleteTarget()
@@ -79,29 +65,6 @@ public abstract class BaseTest
         catch (IOException e)
         {
             throw new UncheckedIOException(e);
-        }
-    }
-
-    private void deployGenerator() throws IOException
-    {
-        final Path targetDir = projectPath.resolve(".generator");
-        final Path dlCachePath = targetDir.getParent().getParent().resolve("lamebda-dl-tmp");
-        download("http://central.maven.org/maven2/org/openapitools/openapi-generator-cli/3.3.4/openapi-generator-cli-3.3.4.jar", dlCachePath);
-        IoUtil.copyFolder(dlCachePath, targetDir);
-    }
-
-    private void download(String url, Path dir) throws IOException
-    {
-        Files.createDirectories(dir);
-        final String filename = Paths.get(url).getFileName().toString();
-        final Path target = dir.resolve(filename);
-        if (!Files.exists(target))
-        {
-            logger.info("Downloading {} to {}", url, target);
-            try (InputStream in = new URL(url).openStream())
-            {
-                Files.copy(in, target);
-            }
         }
     }
 }

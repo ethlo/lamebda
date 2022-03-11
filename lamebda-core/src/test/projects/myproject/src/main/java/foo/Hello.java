@@ -21,27 +21,17 @@ package foo;
  */
 //import org.springframework.stereotype.Service;
 
-import spec.Pet;
-
-//@Service
 public class Hello
 {
     private String name;
-    private Pet pet;
 
-    public Hello(String name, Pet pet)
+    public Hello(String name)
     {
         this.name = name;
-        this.pet = pet;
     }
 
     public String getName()
     {
         return name;
-    }
-
-    public Pet getPet()
-    {
-        return pet;
     }
 }

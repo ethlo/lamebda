@@ -29,13 +29,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -77,33 +73,6 @@ public class IoUtil
         return new String(toByteArray(in), charset);
     }
 
-    public static void copyFolder(Path src, Path dest) throws IOException
-    {
-        Files.createDirectories(dest);
-        Files.walkFileTree(src, new SimpleFileVisitor<Path>()
-        {
-            @Override
-            public FileVisitResult preVisitDirectory(final Path path, final BasicFileAttributes basicFileAttributes) throws IOException
-            {
-                Files.createDirectories(path.normalize());
-                return super.preVisitDirectory(path, basicFileAttributes);
-            }
-
-            @Override
-            public FileVisitResult visitFile(final Path path, final BasicFileAttributes basicFileAttributes) throws IOException
-            {
-                Path rel = src.relativize(path);
-                final Path target = dest.resolve(rel);
-                if (!Files.exists(target.getParent()))
-                {
-                    Files.createDirectories(target.getParent());
-                }
-                Files.copy(path, target, StandardCopyOption.REPLACE_EXISTING);
-                return super.visitFile(path, basicFileAttributes);
-            }
-        });
-    }
-
     public static URL toURL(final Path path)
     {
         try
@@ -123,18 +92,6 @@ public class IoUtil
             return;
         }
         FileSystemUtils.deleteRecursively(directory);
-    }
-
-    public static URL stringToURL(final String url)
-    {
-        try
-        {
-            return new URL(url);
-        }
-        catch (MalformedURLException e)
-        {
-            throw new UncheckedIOException(e);
-        }
     }
 
     public static List<String> toClassPathList(final Path jarPath)

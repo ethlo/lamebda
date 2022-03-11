@@ -19,7 +19,6 @@
  */
 import mypackage.*
 import other.Other
-import spec.Pet
 
 class Correct {
 
@@ -32,7 +31,7 @@ class Correct {
         Other.Nested p = new Other.Nested()
 
         // From generated model
-        def pet = new Pet()
+        //def pet = new Pet()
     }
 
     def get() {
