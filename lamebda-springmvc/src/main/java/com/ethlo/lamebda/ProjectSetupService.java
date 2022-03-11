@@ -22,13 +22,14 @@ package com.ethlo.lamebda;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
-
-import com.ethlo.lamebda.functions.DocumentationController;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.slf4j.Logger;
@@ -43,12 +44,10 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.stereotype.Controller;
 import org.springframework.util.MimeType;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.web.servlet.mvc.condition.PatternsRequestCondition;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
-import com.ethlo.lamebda.functions.ProjectStatusController;
-import com.ethlo.lamebda.functions.StaticController;
-import com.ethlo.lamebda.functions.SwaggerUiController;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.mapping.RequestMapping;
 import com.ethlo.lamebda.spring.OpenRequestMappingHandlerMapping;
@@ -104,7 +103,7 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
 
         mappingToUse = mappingToUse.combine(mapping);
         final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method -> HttpMethod.parse(method.name())).collect(Collectors.toSet());
-        final Set<String> patterns = mappingToUse.getPatternsCondition().getPatterns();
+        final Set<String> patterns = Optional.ofNullable(mappingToUse.getPatternsCondition()).map(PatternsRequestCondition::getPatterns).orElse(Collections.emptySet());
         final Set<String> consumes = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
         final Set<String> produces = mappingToUse.getProducesCondition().getProducibleMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
 
@@ -120,48 +119,17 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
     {
         final AnnotationConfigApplicationContext projectCtx = event.getProjectContext();
         final ProjectConfiguration projectCfg = event.getProjectConfiguration();
-
         final RequestMappingHandlerMapping handlerMapping = projectCtx.getBean(RequestMappingHandlerMapping.class);
 
-        final ProjectStatusController psf = new ProjectStatusController(projectCfg);
-        register(handlerMapping, psf, projectCfg);
-
-        final StaticController staticController = new StaticController();
-        register(handlerMapping, staticController, projectCfg);
-
-        // Determine the root classpath for the swagger UI
-        final String swaggerUiClasspath = projectCtx.getEnvironment().getProperty("lamebda.swagger-ui-path");
-        if (swaggerUiClasspath != null)
-        {
-            final ClassLoader classLoader = Objects.requireNonNull(Objects.requireNonNull(projectCtx.getParent()).getClassLoader());
-            final boolean exists = classLoader.getResourceAsStream("META-INF/resources/webjars/swagger-ui-dist/4.5.2/index.html") != null;
-            if (exists)
-            {
-                final SwaggerUiController swaggerUiController = new SwaggerUiController(swaggerUiClasspath);
-                register(handlerMapping, swaggerUiController, projectCfg);
-            }
-            else
-            {
-                logger.warn("Swagger UI  was not found at configured path: {}", swaggerUiClasspath);
-            }
-        }
-        else
-        {
-            logger.info("No path configured for 'lamebda.swagger-ui-path'");
-        }
-
-        final DocumentationController documentationController = new DocumentationController(event.getProjectContext().getClassLoader());
-        register(handlerMapping, documentationController, projectCfg);
-
         // Register controller beans
+        final SortedSet<RequestMapping> allMappings = new TreeSet<>();
         projectCtx.getBeansWithAnnotation(Controller.class).forEach((beanName, controller) ->
         {
             final List<RequestMapping> mappings = register(handlerMapping, controller, projectCfg);
-            if (!mappings.isEmpty())
-            {
-                psf.add(beanName, mappings);
-            }
+            allMappings.addAll(mappings);
         });
+
+        event.getProjectContext().registerBean("_all_mappings", Set.class, () -> allMappings);
     }
 
     private Object createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors, Object controller)

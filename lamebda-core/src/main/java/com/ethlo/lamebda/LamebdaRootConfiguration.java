@@ -1,4 +1,4 @@
-package com.ethlo.lamebda.spring;
+package com.ethlo.lamebda;
 
 /*-
  * #%L
@@ -28,6 +28,7 @@ import javax.validation.constraints.NotNull;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
 @Valid
@@ -39,9 +40,11 @@ public class LamebdaRootConfiguration
     /**
      * The root request path in the URL
      */
-    private String requestPath = "/lamebda";
+    private String requestPath = "lamebda";
 
-    private String indexPath = "/status";
+    private String indexPath = "";
+
+    private String swaggerUiPath;
 
     /**
      * Turn Lamebda on/off
@@ -61,7 +64,7 @@ public class LamebdaRootConfiguration
 
     public LamebdaRootConfiguration setRequestPath(final String requestPath)
     {
-        this.requestPath = requestPath;
+        this.requestPath = StringUtils.trimTrailingCharacter(StringUtils.trimLeadingCharacter(requestPath, '/'), '/');
         return this;
     }
 
@@ -101,10 +104,21 @@ public class LamebdaRootConfiguration
 
     /**
      * The URL path the index for deployed modules are listed
+     *
      * @param indexPath The URL path
      */
     public void setIndexPath(final String indexPath)
     {
         this.indexPath = indexPath;
+    }
+
+    public String getSwaggerUiPath()
+    {
+        return swaggerUiPath;
+    }
+
+    public void setSwaggerUiPath(final String swaggerUiPath)
+    {
+        this.swaggerUiPath = swaggerUiPath;
     }
 }

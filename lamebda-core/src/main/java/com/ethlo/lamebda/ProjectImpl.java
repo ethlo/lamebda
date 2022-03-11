@@ -1,29 +1,11 @@
 package com.ethlo.lamebda;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.UncheckedIOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
+import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
+import com.ethlo.lamebda.util.IoUtil;
+import com.ethlo.qjc.groovy.GroovyCompiler;
+import com.ethlo.qjc.java.JavaCompiler;
+import groovy.lang.GroovyClassLoader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,12 +23,17 @@ import org.springframework.instrument.classloading.SimpleThrowawayClassLoader;
 import org.springframework.lang.NonNull;
 import org.springframework.util.StringUtils;
 
-import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
-import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
-import com.ethlo.lamebda.util.IoUtil;
-import com.ethlo.qjc.groovy.GroovyCompiler;
-import com.ethlo.qjc.java.JavaCompiler;
-import groovy.lang.GroovyClassLoader;
+import java.io.*;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
+import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /*-
  * #%L
@@ -141,7 +128,7 @@ public class ProjectImpl implements Project
     private void readVersionFile(final Path path)
     {
         final Optional<String> optVersion = IoUtil.toString(path.resolve("version"));
-        optVersion.ifPresent(versionStr -> projectConfiguration.getProject().setVersion(versionStr));
+        optVersion.ifPresent(versionStr -> projectConfiguration.getProject().setVersion(versionStr.replaceAll("^[\r\n]+|[\r\n]+$", "")));
     }
 
     private void setupCompilers()

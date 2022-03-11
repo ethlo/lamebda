@@ -30,7 +30,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.util.Assert;
 import org.springframework.util.FileSystemUtils;
 
 import com.ethlo.lamebda.dao.LocalProjectDao;
@@ -44,19 +43,19 @@ public class ProjectManager
     public static final String WORKDIR_DIRECTORY_NAME = "workdir";
     private static final Logger logger = LoggerFactory.getLogger(ProjectManager.class);
     private final Path rootDirectory;
-    private final String rootContext;
     private final ApplicationContext parentContext;
 
     private final Map<Path, Project> projects = new ConcurrentHashMap<>();
     private final LocalProjectDao localProjectDao;
+    private final LamebdaRootConfiguration rootConfiguration;
 
     private WatchDir watchDir;
 
-    public ProjectManager(final Path rootDirectory, String rootContext, ApplicationContext parentContext) throws IOException
+    public ProjectManager(final LamebdaRootConfiguration rootConfiguration, ApplicationContext parentContext) throws IOException
     {
-        Assert.notNull(rootDirectory, "rootDirectory cannot be null");
-        Assert.notNull(rootDirectory, "rootContext cannot be null");
+        this.rootConfiguration = rootConfiguration;
 
+        this.rootDirectory = rootConfiguration.getRootDirectory();
         logger.info("Initializing Lamebda with root directory {}", rootDirectory);
 
         if (!Files.isDirectory(rootDirectory))
@@ -64,8 +63,6 @@ public class ProjectManager
             throw new IOException("Specified root directory is not a directory: " + rootDirectory);
         }
 
-        this.rootDirectory = rootDirectory;
-        this.rootContext = rootContext;
         this.parentContext = parentContext;
 
         this.localProjectDao = new LocalProjectDaoImpl(rootDirectory);
@@ -187,7 +184,7 @@ public class ProjectManager
         Project project = null;
         try
         {
-            final BootstrapConfiguration cfg = new BootstrapConfiguration(rootContext, projectPath, System.getProperties());
+            final BootstrapConfiguration cfg = new BootstrapConfiguration(rootConfiguration.getRequestPath(), projectPath, System.getProperties());
             project = new ProjectImpl(parentContext, cfg, setupWorkDir(projectPath));
             projects.put(projectPath, project);
         }
@@ -220,5 +217,10 @@ public class ProjectManager
     public Map<Path, Project> getProjects()
     {
         return this.projects;
+    }
+
+    public LamebdaRootConfiguration getRootConfiguration()
+    {
+        return rootConfiguration;
     }
 }

@@ -29,13 +29,11 @@ import java.util.List;
 import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
-import com.ethlo.lamebda.functions.DeploymentStatusController;
+import com.ethlo.lamebda.functions.ProjectInfoController;
 
 @Configuration
 @EnableWebMvc
@@ -48,13 +46,13 @@ public class TestCfg
     public ProjectManager projectManager(ApplicationContext applicationContext) throws IOException
     {
         final Path basePath = Paths.get("src/test/projects");
-        return new ProjectManager(basePath, "lamebda", applicationContext);
+        return new ProjectManager(new LamebdaRootConfiguration().setRootDirectory(basePath).setRequestPath("lamebda"), applicationContext);
     }
 
     @Bean
-    public DeploymentStatusController deploymentStatusController(final ProjectManager projectManager)
+    public ProjectInfoController deploymentStatusController(final ProjectManager projectManager)
     {
-        return new DeploymentStatusController(projectManager);
+        return new ProjectInfoController(projectManager);
     }
 
     @Bean

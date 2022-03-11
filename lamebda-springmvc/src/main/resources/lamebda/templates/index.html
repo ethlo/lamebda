@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>ethlo lamebda</title>
+    <style>
+
+        html, body {
+            width: 100%;
+            font-family: verdana, arial, helvetica, sans-serif;
+        }
+
+        .rtable {
+            display: inline-block;
+            vertical-align: top;
+            width: 100%;
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        .rtable th {
+            font-size: 12px;
+            text-align: left;
+            text-transform: uppercase;
+            background: #f2f2f2;
+        }
+
+        .rtable th,
+        .rtable td {
+            padding: 6px 12px;
+            border: 1px solid #d9d7ce;
+            color: #555;
+            font-size:12px;
+        }
+
+        #content {
+            padding: 25px;
+            background: white;
+        }
+
+        body {
+            padding: 0;
+            margin: 0;
+        }
+
+        h1, h2, h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 25px;
+            line-height: 30px;
+        }
+
+        h2 {
+            font-size: 20px;
+            line-height: 25px;
+        }
+
+        h3 {
+            font-size: 16px;
+            line-height: 20px;
+        }
+
+        a {
+            color: #1d97bf;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div id="content">
+    <h1>ethlo lamebda</h1>
+    <p><a href="https://github.com/ethlo/lamebda">Version: {{lamebda_version}}</a></p>
+    <table class="rtable">
+        <thead>
+        <tr>
+            <th>Project</th>
+            <th>Version</th>
+            <th>UI</th>
+            <th>API specification</th>
+            <th>URLs</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for project in projects %}
+        <tr>
+            <td>{{project.name}}</td>
+            <td>{{project.version}}</td>
+            <td><a href="{{lamebda_root_context}}/{{project['context_path']}}/swagger-ui">Swagger UI</a></td>
+            <td><a href="{{lamebda_root_context}}/{{project['context_path']}}/api.yaml">api.yaml</a></td>
+            <td rowspan="{{project.request_mappings|length}}">
+                {% for rm in project.request_mappings %}
+                {{rm.methods}} {{rm.patterns}}
+                {% endfor %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

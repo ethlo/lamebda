@@ -25,8 +25,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import com.ethlo.lamebda.functions.DeploymentStatusController;
-
 import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -36,9 +34,11 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.ethlo.lamebda.LamebdaRootConfiguration;
 import com.ethlo.lamebda.ProjectCleanupService;
 import com.ethlo.lamebda.ProjectManager;
 import com.ethlo.lamebda.ProjectSetupService;
+import com.ethlo.lamebda.functions.ProjectInfoController;
 
 @Configuration
 @EnableConfigurationProperties(LamebdaRootConfiguration.class)
@@ -61,14 +61,13 @@ public class LamebdaSpringWebAutoConfiguration
     @ConditionalOnProperty("lamebda.enabled")
     public ProjectManager projectManager() throws IOException
     {
-        return new ProjectManager(lamebdaRootConfiguration.getRootDirectory(), lamebdaRootConfiguration.getRequestPath(), parentContext);
+        return new ProjectManager(lamebdaRootConfiguration, parentContext);
     }
 
     @Bean
-    @ConditionalOnProperty(value = "lamebda.index-path")
-    public DeploymentStatusController deploymentStatusController(final ProjectManager projectManager)
+    public ProjectInfoController projectInfoController(final ProjectManager projectManager)
     {
-        return new DeploymentStatusController(projectManager);
+        return new ProjectInfoController(projectManager);
     }
 
     @Bean

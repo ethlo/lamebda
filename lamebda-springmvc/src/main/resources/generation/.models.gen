@@ -1,1 +1,0 @@
-generate -isrc/main/resources/specification/oas.yaml -g spring -otarget/generated-sources/models -c openapi-generator.json
