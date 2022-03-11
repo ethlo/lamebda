@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import com.ethlo.lamebda.functions.ProjectInfoController;
@@ -50,9 +51,9 @@ public class TestCfg
     }
 
     @Bean
-    public ProjectInfoController deploymentStatusController(final ProjectManager projectManager)
+    public ProjectInfoController deploymentStatusController(final ResourceLoader resourceLoader, final ProjectManager projectManager)
     {
-        return new ProjectInfoController(projectManager);
+        return new ProjectInfoController(resourceLoader, projectManager);
     }
 
     @Bean

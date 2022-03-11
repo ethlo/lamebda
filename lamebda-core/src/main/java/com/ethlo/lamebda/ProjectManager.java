@@ -56,7 +56,8 @@ public class ProjectManager
         this.rootConfiguration = rootConfiguration;
 
         this.rootDirectory = rootConfiguration.getRootDirectory();
-        logger.info("Initializing Lamebda with root directory {}", rootDirectory);
+        logger.info("Initializing Lamebda with root directory '{}'", rootDirectory.toAbsolutePath());
+        logger.debug("Root configuration: {}", rootConfiguration);
 
         if (!Files.isDirectory(rootDirectory))
         {

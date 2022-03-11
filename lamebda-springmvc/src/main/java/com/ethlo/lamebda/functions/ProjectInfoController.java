@@ -37,6 +37,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -57,6 +58,7 @@ import com.ethlo.lamebda.util.IoUtil;
 @RequestMapping(value = "${lamebda.request-path}", produces = "application/json")
 public class ProjectInfoController
 {
+    private final ResourceLoader resourceLoader;
     private final ProjectManager projectManager;
     private final PebbleRenderer pebbleRenderer = new PebbleRenderer(true);
 
@@ -69,16 +71,16 @@ public class ProjectInfoController
         put("png", "image/png");
     }};
 
-    public ProjectInfoController(final ProjectManager projectManager)
+    public ProjectInfoController(final ResourceLoader resourceLoader, final ProjectManager projectManager)
     {
+        this.resourceLoader = resourceLoader;
         this.projectManager = projectManager;
     }
 
     @GetMapping(produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> getHtml(final Locale locale, final HttpServletRequest request)
     {
-        final String src = "lamebda/templates/index.html";
-        final String template = IoUtil.toString(src).orElse("No template");
+        final String template = getUiResource("index.html");
         return ResponseEntity.ok(pebbleRenderer.render(getJson(request), template, locale));
     }
 
@@ -150,11 +152,24 @@ public class ProjectInfoController
         {
             final Map<String, Object> data = new LinkedHashMap<>();
             data.put("project", getProjectInfo(project));
-            final String src = "lamebda/templates/swagger-ui.html";
-            final String template = IoUtil.toString(src).orElse("No template");
-            final String html = pebbleRenderer.render(data, template, locale);
+            final String ui = getUiResource("swagger-ui.html");
+            final String html = pebbleRenderer.render(data, ui, locale);
             return ResponseEntity.ok(html);
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private String getUiResource(String path)
+    {
+        final Resource resource = resourceLoader.getResource(projectManager.getRootConfiguration().getUiBasePath() + "/" + path);
+        try
+        {
+            return IoUtil.toString(resource.getInputStream(), StandardCharsets.UTF_8);
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
+
     }
 
     @GetMapping(value = "/swagger-ui-resources/**")

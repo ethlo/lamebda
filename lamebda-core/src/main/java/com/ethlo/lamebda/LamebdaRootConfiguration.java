@@ -42,6 +42,8 @@ public class LamebdaRootConfiguration
      */
     private String requestPath = "lamebda";
 
+    private String uiBasePath = "classpath:lamebda/templates";
+
     private String indexPath = "";
 
     private String swaggerUiPath;
@@ -120,5 +122,27 @@ public class LamebdaRootConfiguration
     public void setSwaggerUiPath(final String swaggerUiPath)
     {
         this.swaggerUiPath = swaggerUiPath;
+    }
+
+
+    public String getUiBasePath()
+    {
+        return uiBasePath;
+    }
+
+    public void setUiBasePath(final String uiBasePath)
+    {
+        this.uiBasePath = uiBasePath;
+    }
+
+    @Override
+    public String toString()
+    {
+        return
+                "request-path: " + requestPath + '\n' +
+                        "ui-base-path: " + uiBasePath + '\n' +
+                        "index-path: " + indexPath + '\n' +
+                        "swagger-ui-path: " + swaggerUiPath + '\n' +
+                        "root-directory: " + rootDirectory;
     }
 }

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda</artifactId>
-    <version>0.9.7</version>
+    <version>0.9.8-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Lamebda</name>
     <description>Simple HTTP handler supporting dynamic loading of HTTP handler functions</description>
@@ -120,7 +120,7 @@
             <plugin>
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.8</version>
+                <version>1.6.12</version>
                 <extensions>true</extensions>
                 <configuration>
                     <serverId>sonatype-nexus-staging</serverId>
@@ -142,7 +142,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <useAgent>false</useAgent>
+                    <executable>gpg</executable>
                 </configuration>
             </plugin>
             <plugin>

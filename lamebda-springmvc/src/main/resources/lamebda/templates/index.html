@@ -30,6 +30,7 @@
             border: 1px solid #d9d7ce;
             color: #555;
             font-size:14px;
+            vertical-align:top;
         }
 
         #content {
@@ -70,6 +71,13 @@
         a:hover {
             text-decoration: underline;
         }
+
+        ul.no-bullets {
+            list-style-type: none; /* Remove bullets */
+            padding: 0; /* Remove padding */
+            margin: 0; /* Remove margins */
+        }
+
     </style>
 </head>
 <body>
@@ -93,10 +101,12 @@
             <td>{{project.version}}</td>
             <td><a href="{{lamebda_root_context}}/{{project['context_path']}}/swagger-ui">Swagger UI</a></td>
             <td><a href="{{lamebda_root_context}}/{{project['context_path']}}/api.yaml">api.yaml</a></td>
-            <td rowspan="{{project.request_mappings|length}}">
+            <td>
+                <ul class="no-bullets">
                 {% for rm in project.request_mappings %}
-                {{rm.methods}} {{rm.patterns}}
+                <li>{{rm.methods}} {{rm.patterns}}</li>
                 {% endfor %}
+                </ul>
             </td>
         </tr>
         {% endfor %}
