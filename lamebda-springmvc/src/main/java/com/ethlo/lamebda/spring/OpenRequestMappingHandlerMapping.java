@@ -21,20 +21,39 @@ package com.ethlo.lamebda.spring;
  */
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
+import org.springframework.core.env.PropertyResolver;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 public class OpenRequestMappingHandlerMapping extends RequestMappingHandlerMapping
 {
-    public RequestMappingInfo getMappingForMethod(final Method method, final Object handler)
+    public RequestMappingInfo getMappingForMethod(final PropertyResolver propertyResolver, final Method method, final Object handler)
     {
         Class<?> objClz = handler.getClass();
         if (org.springframework.aop.support.AopUtils.isAopProxy(handler))
         {
-
             objClz = org.springframework.aop.support.AopUtils.getTargetClass(handler);
         }
-        return super.getMappingForMethod(method, objClz);
+
+        final RequestMappingInfo mapping = super.getMappingForMethod(method, objClz);
+        if (mapping != null)
+        {
+            final String[] paths = mapping.getPatternValues()
+                    .stream()
+                    .map(propertyResolver::resolveRequiredPlaceholders)
+                    .map(OpenRequestMappingHandlerMapping::normalizeSlashes)
+                    .toArray(String[]::new);
+
+            return mapping.mutate().paths(paths).build();
+        }
+        return null;
+    }
+
+    public static String normalizeSlashes(final String path)
+    {
+        return Arrays.stream(path.split("/")).filter(s -> !"".equals(s)).collect(Collectors.joining("/"));
     }
 }

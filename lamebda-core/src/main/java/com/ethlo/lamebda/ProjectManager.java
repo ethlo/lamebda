@@ -20,6 +20,7 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -68,7 +69,7 @@ public class ProjectManager
 
         this.localProjectDao = new LocalProjectDaoImpl(rootDirectory);
 
-        logger.info("Parent application context ID: {}", parentContext.getId());
+        logger.debug("Parent application context ID: {}", parentContext.getId());
 
         initializeAll();
     }
@@ -91,9 +92,13 @@ public class ProjectManager
                         IoUtil.deleteDirectory(workDir.getParent());
                     }
                 }
-                catch (IOException ex)
+                catch (FileNotFoundException exc)
                 {
-                    logger.debug("Could not delete temp directory " + workDir + ": " + ex.getMessage());
+                    logger.debug("Could not delete temp directory " + workDir + ": " + exc.getMessage());
+                }
+                catch (IOException exc)
+                {
+                    logger.warn("Could not delete temp directory " + workDir + ": " + exc.getMessage());
                 }
             }));
 
@@ -114,6 +119,7 @@ public class ProjectManager
             final Path projectPath = getProjectPath(path);
             final boolean isWorkDirPath = path.toAbsolutePath().startsWith(projectPath.resolve(WORKDIR_DIRECTORY_NAME).toAbsolutePath());
             final boolean isProjectPath = projectPath.equals(path);
+            final boolean isProjectJar = projectPath.resolve(projectPath.getFileName().toString() + ".jar").equals(path);
             final boolean isKnownType = isKnownType(path.getFileName().toString());
 
             if (isWorkDirPath)
@@ -125,7 +131,7 @@ public class ProjectManager
                 logger.info("Closing project due to deletion of project directory: {}", e.getPath());
                 closeProject(projectPath);
             }
-            else if (e.getChangeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath))
+            else if (e.getChangeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath || isProjectJar))
             {
                 logger.info("Reloading project due to modification of {}", path);
                 closeProject(projectPath);
@@ -211,8 +217,7 @@ public class ProjectManager
     {
         return filename.endsWith(ProjectImpl.GROOVY_EXTENSION)
                 || filename.endsWith(ProjectImpl.JAVA_EXTENSION)
-                || filename.endsWith(ProjectImpl.PROPERTIES_EXTENSION)
-                || filename.equals(ProjectImpl.API_SPECIFICATION_YAML_FILENAME);
+                || filename.endsWith(ProjectImpl.PROPERTIES_EXTENSION);
     }
 
     public Map<Path, Project> getProjects()

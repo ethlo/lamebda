@@ -106,6 +106,7 @@ public class ProjectInfoController
         projectInfo.put("name", pc.getProject().getName());
         projectInfo.put("context_path", pc.getContextPath());
         projectInfo.put("version", pc.getProject().getVersion());
+        projectInfo.put("has_openapi_spec", getApiResource(project).exists());
         projectInfo.put("request_mappings", project.getProjectContext().getBean("_all_mappings"));
         return projectInfo;
     }
@@ -117,7 +118,7 @@ public class ProjectInfoController
 
         return optProject.map(project ->
                 {
-                    final Resource resource = project.getProjectContext().getResource("/specification/oas.yaml");
+                    final Resource resource = getApiResource(project);
                     if (resource.exists())
                     {
                         try
@@ -133,6 +134,11 @@ public class ProjectInfoController
                     return null;
                 })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    private Resource getApiResource(final Project project)
+    {
+        return project.getProjectContext().getResource("/specification/oas.yaml");
     }
 
     private Optional<Project> getProject(String projectAlias)

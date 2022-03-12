@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/springmvc")
+@RequestMapping("\${custom-base-path:/}springmvc")
 class Correct {
 
     @Autowired

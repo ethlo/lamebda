@@ -99,8 +99,20 @@
         <tr>
             <td>{{project.name}}</td>
             <td>{{project.version}}</td>
-            <td><a href="{{lamebda_root_context}}/{{project['context_path']}}/swagger-ui">Swagger UI</a></td>
-            <td><a href="{{lamebda_root_context}}/{{project['context_path']}}/api.yaml">api.yaml</a></td>
+            <td>
+                {% if project.has_openapi_spec %}
+                    <a href="{{lamebda_root_context}}/{{project['context_path']}}/swagger-ui">Swagger UI</a>
+                {% else%}
+                    Not available
+                {% endif %}
+            </td>
+            <td>
+                {% if project.has_openapi_spec %}
+                <a href="{{lamebda_root_context}}/{{project['context_path']}}/api.yaml">API specification</a>
+                {% else%}
+                Not available
+                {% endif %}
+            </td>
             <td>
                 <ul class="no-bullets">
                 {% for rm in project.request_mappings %}

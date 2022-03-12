@@ -41,6 +41,7 @@ import org.springframework.aop.target.SingletonTargetSource;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.env.PropertyResolver;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.MimeType;
 import org.springframework.util.ReflectionUtils;
@@ -66,14 +67,14 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         this.methodInterceptors = methodInterceptors;
     }
 
-    private List<RequestMapping> register(RequestMappingHandlerMapping handlerMapping, Object controller, ProjectConfiguration projectConfiguration)
+    private List<RequestMapping> register(PropertyResolver propertyResolver, RequestMappingHandlerMapping handlerMapping, Object controller, ProjectConfiguration projectConfiguration)
     {
         final Object wrappedController = wrapController(controller);
 
         final List<RequestMapping> result = new LinkedList<>();
         Arrays.asList(ReflectionUtils.getUniqueDeclaredMethods(controller.getClass())).forEach(method ->
         {
-            final RequestMappingInfo mapping = openRequestMappingHandlerMapping.getMappingForMethod(method, controller);
+            final RequestMappingInfo mapping = openRequestMappingHandlerMapping.getMappingForMethod(propertyResolver, method, controller);
             if (mapping != null)
             {
                 final RequestMapping res = doRegister(handlerMapping, wrappedController, method, mapping, projectConfiguration);
@@ -125,7 +126,7 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         final SortedSet<RequestMapping> allMappings = new TreeSet<>();
         projectCtx.getBeansWithAnnotation(Controller.class).forEach((beanName, controller) ->
         {
-            final List<RequestMapping> mappings = register(handlerMapping, controller, projectCfg);
+            final List<RequestMapping> mappings = register(projectCtx.getEnvironment(), handlerMapping, controller, projectCfg);
             allMappings.addAll(mappings);
         });
 
