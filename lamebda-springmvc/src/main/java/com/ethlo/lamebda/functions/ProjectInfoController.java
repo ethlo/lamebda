@@ -25,10 +25,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -100,6 +102,14 @@ public class ProjectInfoController
                 .stream()
                 .map(this::getProjectInfo)
                 .collect(Collectors.toList()));
+        final List<String> down = projectManager.getProjectAliases();
+        down.removeAll(projectManager.getProjects()
+                .keySet()
+                .stream()
+                .map(Path::getFileName)
+                .map(Path::toString)
+                .collect(Collectors.toList()));
+        res.put("projects_down", down);
         return res;
     }
 
@@ -107,13 +117,28 @@ public class ProjectInfoController
     {
         final Map<String, Object> projectInfo = new LinkedHashMap<>();
         final ProjectConfiguration pc = project.getProjectConfiguration();
-        projectInfo.put("name", pc.getProject().getName());
+        projectInfo.put("name", pc.getProjectInfo().getName());
         projectInfo.put("last_loaded", OffsetDateTime.ofInstant(Instant.ofEpochMilli(project.getProjectContext().getStartupDate()), ZoneId.systemDefault()));
         projectInfo.put("context_path", pc.getContextPath());
-        projectInfo.put("version", pc.getProject().getVersion());
+        projectInfo.put("version", pc.getProjectInfo().getVersion());
         projectInfo.put("has_openapi_spec", getApiResource(project).exists());
         projectInfo.put("request_mappings", project.getProjectContext().getBean("_all_mappings"));
         return projectInfo;
+    }
+
+    @GetMapping(value = "{project}/health", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> getHealth(@PathVariable("project") final String projectAlias)
+    {
+        final Map<String, Object> res = new LinkedHashMap<>();
+        res.put("alias", projectAlias);
+        final List<String> all = projectManager.getProjectAliases();
+        if (all.contains(projectAlias))
+        {
+            final Optional<Project> optProject = getProject(projectAlias);
+            res.put("status", optProject.isPresent() ? "UP" : "DOWN");
+            return ResponseEntity.ok(res);
+        }
+        return ResponseEntity.notFound().build();
     }
 
     @GetMapping(value = "{project}/api.yaml", produces = "text/yaml")

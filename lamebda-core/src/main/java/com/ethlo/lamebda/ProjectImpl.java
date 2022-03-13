@@ -128,7 +128,7 @@ public class ProjectImpl implements Project
     private void readVersionFile(final Path path)
     {
         final Optional<String> optVersion = IoUtil.toString(path.resolve("version"));
-        optVersion.ifPresent(versionStr -> projectConfiguration.getProject().setVersion(versionStr.replaceAll("^[\r\n]+|[\r\n]+$", "")));
+        optVersion.ifPresent(versionStr -> projectConfiguration.getProjectInfo().setVersion(versionStr.replaceAll("^[\r\n]+|[\r\n]+$", "")));
     }
 
     private void setupCompilers()
@@ -222,7 +222,7 @@ public class ProjectImpl implements Project
     private void findBeans()
     {
         // Scan for beans
-        final Set<String> basePackages = projectConfiguration.getProject().getBasePackages();
+        final Set<String> basePackages = projectConfiguration.getProjectInfo().getBasePackages();
         if (!basePackages.isEmpty())
         {
             logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(basePackages));
@@ -242,7 +242,7 @@ public class ProjectImpl implements Project
         this.projectCtx.setParent(parentContext);
         this.projectCtx.setAllowBeanDefinitionOverriding(false);
         this.projectCtx.setClassLoader(groovyClassLoader);
-        this.projectCtx.setId(projectConfiguration.getProject().getName());
+        this.projectCtx.setId(projectConfiguration.getProjectInfo().getName());
 
         final Resource[] configResources = getConfigResources();
 

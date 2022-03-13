@@ -28,8 +28,10 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -236,5 +238,13 @@ public class ProjectManager
     public OffsetDateTime getStartupTime()
     {
         return OffsetDateTime.ofInstant(Instant.ofEpochMilli(parentContext.getStartupDate()), ZoneId.systemDefault());
+    }
+
+    public List<String> getProjectAliases()
+    {
+        return localProjectDao.getLocalProjectDirectories()
+                .stream()
+                .map(path -> path.getFileName().toString())
+                .collect(Collectors.toList());
     }
 }

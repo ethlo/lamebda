@@ -35,9 +35,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.validation.constraints.NotNull;
-
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -48,32 +45,35 @@ public class ProjectConfiguration
 {
     private final Path path;
     private final String rootContextPath;
-    private final Path workDir;
-    @NotNull
-    private final ProjectInfo project;
+
+    private final ProjectInfo projectInfo;
     private boolean enableUrlProjectContextPrefix = true;
     private String contextPath;
-    private String apiDocGenerator;
 
     private Set<Path> groovySourcePaths = new LinkedHashSet<>();
     private Set<Path> javaSourcePaths = new LinkedHashSet<>();
 
-    private Set<URL> classpath = new LinkedHashSet<>();
+    private final Set<URL> classpath = new LinkedHashSet<>();
 
-    private DeploymentConfig deploymentConfig;
-
-    public ProjectConfiguration(final Path workDir, final BootstrapConfiguration bootstrapConfiguration, Properties properties)
+    public ProjectConfiguration(final BootstrapConfiguration bootstrapConfiguration, Properties properties)
     {
         this.rootContextPath = bootstrapConfiguration.getRootContextPath();
         this.path = bootstrapConfiguration.getPath();
-        this.workDir = workDir;
 
         final String id = bootstrapConfiguration.getPath().getFileName().toString();
+        this.projectInfo = new ProjectInfo();
+        this.projectInfo.setName(properties.getProperty("project.name") != null ? properties.getProperty("project.name") : id);
+        this.projectInfo.setBasePackages(getCsvSet("project.base-packages", properties));
 
-        this.project = new ProjectInfo();
-        this.project.setName(properties.getProperty("project.name") != null ? properties.getProperty("project.name") : id);
-        this.project.setBasePackages(properties.getProperty("project.base-packages") != null ? StringUtils.commaDelimitedListToSet(properties.getProperty("project.base-packages")) : Collections.emptySet());
         this.setContextPath(properties.getProperty("project.context-path") != null ? properties.getProperty("project.context-path") : id);
+        this.setJavaSourcePaths(merge(getPath().resolve("src").resolve("main").resolve("java"), getCsvSet("project.java.sources", properties).stream().map(Paths::get).collect(Collectors.toSet())));
+        this.setGroovySourcePaths(merge(getPath().resolve("src").resolve("main").resolve("groovy"), getCsvSet("project.groovy.sources", properties).stream().map(Paths::get).collect(Collectors.toSet())));
+        this.setEnableUrlProjectContextPrefix(Boolean.parseBoolean(properties.getProperty("project.url-prefix-enabled", "true")));
+    }
+
+    private Set<String> getCsvSet(final String setting, final Properties properties)
+    {
+        return properties.getProperty(setting) != null ? StringUtils.commaDelimitedListToSet(properties.getProperty(setting)) : Collections.emptySet();
     }
 
     public static ProjectConfiguration load(final BootstrapConfiguration bootstrapConfiguration, final Path workDir)
@@ -81,7 +81,7 @@ public class ProjectConfiguration
         final Path path = bootstrapConfiguration.getPath();
         final Path[] paths = Stream.of(path.resolve(ProjectImpl.PROJECT_FILENAME), workDir.resolve(ProjectImpl.PROJECT_FILENAME)).filter(Files::exists).toArray(Path[]::new);
         final Properties properties = merge(bootstrapConfiguration.getEnvProperties(), paths);
-        return new ProjectConfiguration(workDir, bootstrapConfiguration, properties);
+        return new ProjectConfiguration(bootstrapConfiguration, properties);
     }
 
     private static Properties merge(final Properties result, final Path... paths)
@@ -112,10 +112,9 @@ public class ProjectConfiguration
         return contextPath;
     }
 
-    public ProjectConfiguration setContextPath(final String contextPath)
+    public void setContextPath(final String contextPath)
     {
         this.contextPath = contextPath;
-        return this;
     }
 
     public boolean enableUrlProjectContextPrefix()
@@ -123,10 +122,9 @@ public class ProjectConfiguration
         return enableUrlProjectContextPrefix;
     }
 
-    public ProjectConfiguration setEnableUrlProjectContextPrefix(final boolean enableUrlProjectContextPrefix)
+    public void setEnableUrlProjectContextPrefix(final boolean enableUrlProjectContextPrefix)
     {
         this.enableUrlProjectContextPrefix = enableUrlProjectContextPrefix;
-        return this;
     }
 
     public Path getPath()
@@ -134,37 +132,24 @@ public class ProjectConfiguration
         return path;
     }
 
-    public String getApiDocGenerator()
-    {
-        return apiDocGenerator;
-    }
-
-    public ProjectConfiguration setApiDocGenerator(final String apiDocGenerator)
-    {
-        this.apiDocGenerator = apiDocGenerator;
-        return this;
-    }
-
     public Set<Path> getGroovySourcePaths()
     {
-        return merge(getPath().resolve("src").resolve("main").resolve("groovy"), groovySourcePaths);
+        return groovySourcePaths;
     }
 
-    public ProjectConfiguration setGroovySourcePaths(final Set<Path> groovySourcePaths)
+    public void setGroovySourcePaths(final Set<Path> groovySourcePaths)
     {
         this.groovySourcePaths = ensureAbsolutePaths(groovySourcePaths);
-        return this;
     }
 
     public Set<Path> getJavaSourcePaths()
     {
-        return merge(getPath().resolve("src").resolve("main").resolve("java"), javaSourcePaths);
+        return javaSourcePaths;
     }
 
-    public ProjectConfiguration setJavaSourcePaths(final Set<Path> javaSourcePaths)
+    public void setJavaSourcePaths(final Set<Path> javaSourcePaths)
     {
         this.javaSourcePaths = ensureAbsolutePaths(javaSourcePaths);
-        return this;
     }
 
     private Set<Path> merge(final Path extra, final Set<Path> existing)
@@ -183,32 +168,6 @@ public class ProjectConfiguration
         return classpath;
     }
 
-    public ProjectConfiguration setClasspath(final Set<URL> classPath)
-    {
-        this.classpath = classPath;
-        return this;
-    }
-
-    /**
-     * Use setClasspath instead
-     */
-    @Deprecated
-    public ProjectConfiguration setClassPath(final Set<URL> classPath)
-    {
-        this.classpath = classPath;
-        return this;
-    }
-
-    public String getJavaCmd()
-    {
-        final String osName = System.getProperty("os.name").toLowerCase();
-        final boolean isWindows = osName.contains("win");
-        final String javaHome = System.getProperty("java.home");
-        Assert.isTrue(javaHome != null, "java.home system property must be set");
-        final String execPath = isWindows ? "bin/java.exe" : "bin/java";
-        return Paths.get(javaHome).resolve(execPath).toAbsolutePath().toString();
-    }
-
     public String toPrettyString()
     {
         try
@@ -223,16 +182,6 @@ public class ProjectConfiguration
         }
     }
 
-    public Path getLibraryPath()
-    {
-        return path.resolve(ProjectImpl.LIB_DIRECTORY);
-    }
-
-    public Path getSpecificationPath()
-    {
-        return this.getPath().resolve("src").resolve("main").resolve("resources").resolve(ProjectImpl.SPECIFICATION_DIRECTORY);
-    }
-
     public Path getTargetClassDirectory()
     {
         return path.resolve("target").resolve("classes");
@@ -243,29 +192,8 @@ public class ProjectConfiguration
         return path.resolve("src").resolve("main").resolve("resources");
     }
 
-    public DeploymentConfig getDeploymentConfig()
+    public ProjectInfo getProjectInfo()
     {
-        return deploymentConfig;
-    }
-
-    public ProjectConfiguration setDeploymentConfig(final DeploymentConfig deploymentConfig)
-    {
-        this.deploymentConfig = deploymentConfig;
-        return this;
-    }
-
-    public ProjectInfo getProject()
-    {
-        return project;
-    }
-
-    public Path getWorkDirectory()
-    {
-        return workDir;
-    }
-
-    public void addJavaSourcePath(final Path path)
-    {
-        javaSourcePaths.add(path);
+        return projectInfo;
     }
 }
