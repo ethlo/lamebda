@@ -25,6 +25,9 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -228,5 +231,10 @@ public class ProjectManager
     public LamebdaRootConfiguration getRootConfiguration()
     {
         return rootConfiguration;
+    }
+
+    public OffsetDateTime getStartupTime()
+    {
+        return OffsetDateTime.ofInstant(Instant.ofEpochMilli(parentContext.getStartupDate()), ZoneId.systemDefault());
     }
 }

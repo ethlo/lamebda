@@ -25,6 +25,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -90,6 +93,7 @@ public class ProjectInfoController
         final Map<String, Object> res = new LinkedHashMap<>();
         final Optional<String> optVersion = IoUtil.toString("lamebda-version.info");
         optVersion.ifPresent(versionStr -> res.put("lamebda_version", versionStr));
+        res.put("startup_time", projectManager.getStartupTime());
         final String rootContext = request.getContextPath() + "/" + projectManager.getRootConfiguration().getRequestPath();
         res.put("lamebda_root_context", rootContext);
         res.put("projects", projectManager.getProjects().values()
@@ -104,6 +108,7 @@ public class ProjectInfoController
         final Map<String, Object> projectInfo = new LinkedHashMap<>();
         final ProjectConfiguration pc = project.getProjectConfiguration();
         projectInfo.put("name", pc.getProject().getName());
+        projectInfo.put("last_loaded", OffsetDateTime.ofInstant(Instant.ofEpochMilli(project.getProjectContext().getStartupDate()), ZoneId.systemDefault()));
         projectInfo.put("context_path", pc.getContextPath());
         projectInfo.put("version", pc.getProject().getVersion());
         projectInfo.put("has_openapi_spec", getApiResource(project).exists());
