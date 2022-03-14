@@ -2,6 +2,8 @@
 [![Maven Central](https://img.shields.io/maven-central/v/com.ethlo.lamebda/lamebda.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.ethlo.lamebda%22)
 [![Hex.pm](https://img.shields.io/hexpm/l/plug.svg)](LICENSE)
 
+
+<img alt="Lamebda logo" src="./logo.svg" width="230" style="background:white; padding-right:10px; padding-left:20px; margin-right: 20px; float:left; fill:white">
 A simple, powerful, plugin system for adding new API endpoints or custom functionality to you Spring project. Oftentimes there are conflicting requirements from different clients utilizing a common main application. The required custom functionality needed is often easy to do with a few lines of code, but is not acceptable to add to your main code-base. With Lamebda you can load either precompiled or source files (Groovy/Java) for adding custom functionality.
 
 > It Really Whips The Lambda's Ass!
