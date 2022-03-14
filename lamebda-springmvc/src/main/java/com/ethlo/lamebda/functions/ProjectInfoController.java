@@ -42,7 +42,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -63,9 +62,8 @@ import com.ethlo.lamebda.util.IoUtil;
 @RequestMapping(value = "${lamebda.request-path}", produces = "application/json")
 public class ProjectInfoController
 {
-    private final ResourceLoader resourceLoader;
     private final ProjectManager projectManager;
-    private final PebbleRenderer pebbleRenderer = new PebbleRenderer(true);
+    private final PebbleRenderer pebbleRenderer;
 
     private static final Map<String, String> extensionMappings = new TreeMap<String, String>()
     {{
@@ -76,17 +74,16 @@ public class ProjectInfoController
         put("png", "image/png");
     }};
 
-    public ProjectInfoController(final ResourceLoader resourceLoader, final ProjectManager projectManager)
+    public ProjectInfoController(final ProjectManager projectManager)
     {
-        this.resourceLoader = resourceLoader;
         this.projectManager = projectManager;
+        this.pebbleRenderer = new PebbleRenderer(projectManager.getRootConfiguration().getUiBasePath(), true);
     }
 
     @GetMapping(produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> getHtml(final Locale locale, final HttpServletRequest request)
     {
-        final String template = getUiResource("index.html");
-        return ResponseEntity.ok(pebbleRenderer.render(getJson(request), template, locale));
+        return ResponseEntity.ok(pebbleRenderer.render(getJson(request), "index", locale));
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -96,7 +93,7 @@ public class ProjectInfoController
         final Optional<String> optVersion = IoUtil.toString("lamebda-version.info");
         optVersion.ifPresent(versionStr -> res.put("lamebda_version", versionStr));
         res.put("startup_time", projectManager.getStartupTime());
-        final String rootContext = request.getContextPath() + "/" + projectManager.getRootConfiguration().getRequestPath();
+        final String rootContext = getRootContext(request);
         res.put("lamebda_root_context", rootContext);
         res.put("projects", projectManager.getProjects().values()
                 .stream()
@@ -111,6 +108,11 @@ public class ProjectInfoController
                 .collect(Collectors.toList()));
         res.put("projects_down", down);
         return res;
+    }
+
+    private String getRootContext(final HttpServletRequest request)
+    {
+        return request.getContextPath() + "/" + projectManager.getRootConfiguration().getRequestPath();
     }
 
     private Map<String, Object> getProjectInfo(Project project)
@@ -188,24 +190,9 @@ public class ProjectInfoController
         {
             final Map<String, Object> data = new LinkedHashMap<>();
             data.put("project", getProjectInfo(project));
-            final String ui = getUiResource("swagger-ui.html");
-            final String html = pebbleRenderer.render(data, ui, locale);
+            final String html = pebbleRenderer.render(data, "swagger-ui", locale);
             return ResponseEntity.ok(html);
         }).orElse(ResponseEntity.notFound().build());
-    }
-
-    private String getUiResource(String path)
-    {
-        final Resource resource = resourceLoader.getResource(projectManager.getRootConfiguration().getUiBasePath() + "/" + path);
-        try
-        {
-            return IoUtil.toString(resource.getInputStream(), StandardCharsets.UTF_8);
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
-
     }
 
     @GetMapping(value = "/swagger-ui-resources/**")

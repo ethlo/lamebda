@@ -33,7 +33,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.ResourceLoader;
 
 import com.ethlo.lamebda.LamebdaRootConfiguration;
 import com.ethlo.lamebda.ProjectCleanupService;
@@ -66,9 +65,9 @@ public class LamebdaSpringWebAutoConfiguration
     }
 
     @Bean
-    public ProjectInfoController projectInfoController(final ResourceLoader resourceLoader, final ProjectManager projectManager)
+    public ProjectInfoController projectInfoController(final ProjectManager projectManager)
     {
-        return new ProjectInfoController(resourceLoader, projectManager);
+        return new ProjectInfoController(projectManager);
     }
 
     @Bean

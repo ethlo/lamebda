@@ -31,19 +31,24 @@ import com.ethlo.lamebda.templating.PebbleElapsedFilter;
 import com.mitchellbosecke.pebble.PebbleEngine;
 import com.mitchellbosecke.pebble.extension.AbstractExtension;
 import com.mitchellbosecke.pebble.extension.Filter;
-import com.mitchellbosecke.pebble.loader.StringLoader;
+import com.mitchellbosecke.pebble.loader.ClasspathLoader;
+import com.mitchellbosecke.pebble.loader.FileLoader;
+import com.mitchellbosecke.pebble.loader.Loader;
 
 public class PebbleRenderer
 {
     private final PebbleEngine engine;
 
-    public PebbleRenderer(boolean strict)
+    public PebbleRenderer(final String basePath, boolean strict)
     {
         final Map<String, Filter> filters = new TreeMap<>();
         filters.put("elapsed", new PebbleElapsedFilter());
+
+        final Loader<String> loader = getLoader(basePath);
         engine = new PebbleEngine.Builder()
+                .loader(loader)
+                .cacheActive(loader instanceof ClasspathLoader)
                 .strictVariables(strict)
-                .loader(new StringLoader())
                 .extension(new AbstractExtension()
                 {
                     @Override
@@ -54,12 +59,34 @@ public class PebbleRenderer
                 }).build();
     }
 
-    public String render(Map<String, Object> data, String message, Locale locale)
+    private Loader<String> getLoader(final String basePath)
+    {
+        if (basePath.startsWith("classpath:"))
+        {
+            final ClasspathLoader classpathLoader = new ClasspathLoader();
+            classpathLoader.setPrefix(basePath.substring(10));
+            classpathLoader.setSuffix(".tpl.html");
+            return classpathLoader;
+        }
+        if (basePath.startsWith("file://"))
+        {
+            final FileLoader fileLoader = new FileLoader();
+            fileLoader.setPrefix(basePath.substring(7));
+            fileLoader.setSuffix(".tpl.html");
+            return fileLoader;
+        }
+        else
+        {
+            throw new IllegalArgumentException("Unknown scheme: " + basePath);
+        }
+    }
+
+    public String render(Map<String, Object> data, String tplName, Locale locale)
     {
         final StringWriter sw = new StringWriter();
         try
         {
-            engine.getTemplate(message).evaluate(sw, data, locale);
+            engine.getTemplate(tplName).evaluate(sw, data, locale);
             return sw.toString();
         }
         catch (IOException e)
