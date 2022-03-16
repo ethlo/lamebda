@@ -57,7 +57,8 @@ public class PebbleElapsedFilter implements Filter
                     duration.getSeconds() - TimeUnit.MINUTES.toSeconds(duration.toMinutes())
             );
         }
-        return String.format("%s days, %02d:%02d:%02d", duration.toDays(),
+        final String dayPlurality = duration.toDays() == 1 ? "" : "s";
+        return String.format("%s day%s, %02d:%02d:%02d", duration.toDays(), dayPlurality,
                 duration.toHours() - TimeUnit.DAYS.toHours(duration.toDays()),
                 duration.toMinutes() - TimeUnit.HOURS.toMinutes(duration.toHours()),
                 duration.getSeconds() - TimeUnit.MINUTES.toSeconds(duration.toMinutes())
