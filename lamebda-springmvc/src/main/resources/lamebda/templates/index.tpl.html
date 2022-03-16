@@ -27,6 +27,9 @@
             <a href="{{lamebda_root_context}}/{{project['context_path']}}/health">Status</a>
         </td>
         <td>
+            <input type="checkbox" id="chk_operations_{{project.name}}">
+
+            <label for="chk_operations_{{project.name}}" class="first">{{project.request_mappings | length}} endpoint{%if project.request_mappings | length > 1 %}s{% endif %}</label>
             <ul class="no-bullets">
                 {% for rm in project.request_mappings %}
                 <li class="nowrap">

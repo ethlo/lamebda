@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
 
-        html, body {
+        @import url(https://fonts.googleapis.com/css?family=Roboto);
+
+        html, body{
+            font-family: "Roboto", sans-serif;
             font-size: 18px;
-            font-family: sans-serif;
             color: #333;
         }
 
@@ -103,6 +105,37 @@
         .warn-icon {
             fill: #dd3333;
             padding-right: 5px;
+        }
+
+        label{
+            display: block;
+            cursor: pointer;
+            padding-bottom:5px;
+        }
+
+        label:before {
+            content: "\25BC";
+            color: #777;
+        }
+
+        input[type="checkbox"]{
+            position: absolute;
+            left: -9999px;
+        }
+
+        input[type="checkbox"] ~ ul{
+            height: 0;
+            transform: scaleY(0);
+        }
+
+        input[type="checkbox"]:checked ~ ul{
+            height: 100%;
+            transform-origin: top;
+            transform: scaleY(1);
+        }
+
+        input[type="checkbox"]:checked + label{
+
         }
     </style>
 </head>
