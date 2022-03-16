@@ -35,7 +35,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @Component
 @ConfigurationProperties(prefix = "lamebda")
-public class LamebdaRootConfiguration
+public class LamebdaConfiguration
 {
     /**
      * The root request path in the URL
@@ -59,12 +59,14 @@ public class LamebdaRootConfiguration
     @NotNull
     private Path rootDirectory;
 
+    private boolean allowIndexAccess;
+
     public String getRequestPath()
     {
         return requestPath;
     }
 
-    public LamebdaRootConfiguration setRequestPath(final String requestPath)
+    public LamebdaConfiguration setRequestPath(final String requestPath)
     {
         this.requestPath = StringUtils.trimTrailingCharacter(StringUtils.trimLeadingCharacter(requestPath, '/'), '/');
         return this;
@@ -75,7 +77,7 @@ public class LamebdaRootConfiguration
         return rootDirectory;
     }
 
-    public LamebdaRootConfiguration setRootDirectory(final Path rootDirectory)
+    public LamebdaConfiguration setRootDirectory(final Path rootDirectory)
     {
         if (rootDirectory.startsWith("~/"))
         {
@@ -93,7 +95,7 @@ public class LamebdaRootConfiguration
         return enabled;
     }
 
-    public LamebdaRootConfiguration setEnabled(final boolean enabled)
+    public LamebdaConfiguration setEnabled(final boolean enabled)
     {
         this.enabled = enabled;
         return this;
@@ -142,7 +144,19 @@ public class LamebdaRootConfiguration
                 "request-path: " + requestPath + '\n' +
                         "ui-base-path: " + uiBasePath + '\n' +
                         "index-path: " + indexPath + '\n' +
+                        "allow-index-access: " + allowIndexAccess + '\n' +
                         "swagger-ui-path: " + swaggerUiPath + '\n' +
                         "root-directory: " + rootDirectory;
+    }
+
+    public boolean isAllowIndexAccess()
+    {
+        return allowIndexAccess;
+    }
+
+    public LamebdaConfiguration setAllowIndexAccess(final boolean allowIndexAccess)
+    {
+        this.allowIndexAccess = allowIndexAccess;
+        return this;
     }
 }

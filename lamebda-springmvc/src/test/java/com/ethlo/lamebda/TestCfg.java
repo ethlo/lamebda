@@ -43,16 +43,31 @@ public class TestCfg
     private List<MethodInterceptor> methodInterceptors = new LinkedList<>();
 
     @Bean
-    public ProjectManager projectManager(ApplicationContext applicationContext) throws IOException
+    public LamebdaConfiguration lamebdaRootConfiguration()
     {
         final Path basePath = Paths.get("src/test/projects");
-        return new ProjectManager(new LamebdaRootConfiguration().setRootDirectory(basePath).setRequestPath("lamebda"), applicationContext);
+        return new LamebdaConfiguration()
+                .setRootDirectory(basePath)
+                .setAllowIndexAccess(true)
+                .setRequestPath("lamebda");
     }
 
     @Bean
-    public ProjectInfoController deploymentStatusController(final ProjectManager projectManager)
+    public ProjectManager projectManager(LamebdaConfiguration lamebdaConfiguration, ApplicationContext applicationContext) throws IOException
     {
-        return new ProjectInfoController(projectManager);
+        return new ProjectManager(lamebdaConfiguration, applicationContext);
+    }
+
+    @Bean
+    public LamebdaMetaAccessService lamebdaMetaAccessService(LamebdaConfiguration lamebdaConfiguration)
+    {
+        return new LamebdaMetaAccessServiceImpl(lamebdaConfiguration);
+    }
+
+    @Bean
+    public ProjectInfoController deploymentStatusController(final ProjectManager projectManager, final LamebdaMetaAccessService lamebdaMetaAccessService)
+    {
+        return new ProjectInfoController(projectManager, lamebdaMetaAccessService);
     }
 
     @Bean

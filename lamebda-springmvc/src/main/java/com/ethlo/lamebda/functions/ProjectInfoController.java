@@ -20,25 +20,8 @@ package com.ethlo.lamebda.functions;
  * #L%
  */
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import com.ethlo.lamebda.*;
+import com.ethlo.lamebda.util.IoUtil;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
@@ -52,11 +35,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 
-import com.ethlo.lamebda.PebbleRenderer;
-import com.ethlo.lamebda.Project;
-import com.ethlo.lamebda.ProjectConfiguration;
-import com.ethlo.lamebda.ProjectManager;
-import com.ethlo.lamebda.util.IoUtil;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "${lamebda.request-path}", produces = "application/json")
@@ -64,6 +56,7 @@ public class ProjectInfoController
 {
     private final ProjectManager projectManager;
     private final PebbleRenderer pebbleRenderer;
+    private final LamebdaMetaAccessService lamebdaMetaAccessService;
 
     private static final Map<String, String> extensionMappings = new TreeMap<String, String>()
     {{
@@ -74,21 +67,32 @@ public class ProjectInfoController
         put("png", "image/png");
     }};
 
-    public ProjectInfoController(final ProjectManager projectManager)
+    public ProjectInfoController(final ProjectManager projectManager, final LamebdaMetaAccessService lamebdaMetaAccessService)
     {
         this.projectManager = projectManager;
         this.pebbleRenderer = new PebbleRenderer(projectManager.getRootConfiguration().getUiBasePath(), true);
+        this.lamebdaMetaAccessService = lamebdaMetaAccessService;
     }
 
     @GetMapping(produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<String> getHtml(final Locale locale, final HttpServletRequest request)
     {
-        return ResponseEntity.ok(pebbleRenderer.render(getJson(request), "index", locale));
+        if (!lamebdaMetaAccessService.isIndexInfoAccessGranted(request))
+        {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(pebbleRenderer.render(getJson(request).getBody(), "index", locale));
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public Map<String, Object> getJson(final HttpServletRequest request)
+    public ResponseEntity<Map<String, Object>> getJson(final HttpServletRequest request)
     {
+        if (!lamebdaMetaAccessService.isIndexInfoAccessGranted(request))
+        {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         final Map<String, Object> res = new LinkedHashMap<>();
         final Optional<String> optVersion = IoUtil.toString("lamebda-version.info");
         optVersion.ifPresent(versionStr -> res.put("lamebda_version", versionStr));
@@ -107,7 +111,7 @@ public class ProjectInfoController
                 .map(Path::toString)
                 .collect(Collectors.toList()));
         res.put("projects_down", down);
-        return res;
+        return ResponseEntity.ok(res);
     }
 
     private String getRootContext(final HttpServletRequest request)
@@ -144,8 +148,13 @@ public class ProjectInfoController
     }
 
     @GetMapping(value = "{project}/api.yaml", produces = "text/yaml")
-    public ResponseEntity<String> getSpecFile(@PathVariable("project") final String projectAlias)
+    public ResponseEntity<String> getSpecFile(@PathVariable("project") final String projectAlias, final HttpServletRequest request)
     {
+        if (!lamebdaMetaAccessService.isProjectInfoAccessGranted(projectAlias, request))
+        {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         final Optional<Project> optProject = getProject(projectAlias);
 
         return optProject.map(project ->

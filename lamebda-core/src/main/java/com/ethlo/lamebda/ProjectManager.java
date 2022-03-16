@@ -53,11 +53,11 @@ public class ProjectManager
 
     private final Map<Path, Project> projects = new ConcurrentHashMap<>();
     private final LocalProjectDao localProjectDao;
-    private final LamebdaRootConfiguration rootConfiguration;
+    private final LamebdaConfiguration rootConfiguration;
 
     private WatchDir watchDir;
 
-    public ProjectManager(final LamebdaRootConfiguration rootConfiguration, ApplicationContext parentContext) throws IOException
+    public ProjectManager(final LamebdaConfiguration rootConfiguration, ApplicationContext parentContext) throws IOException
     {
         this.rootConfiguration = rootConfiguration;
 
@@ -230,7 +230,7 @@ public class ProjectManager
         return this.projects;
     }
 
-    public LamebdaRootConfiguration getRootConfiguration()
+    public LamebdaConfiguration getRootConfiguration()
     {
         return rootConfiguration;
     }

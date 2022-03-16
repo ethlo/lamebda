@@ -34,25 +34,27 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.ethlo.lamebda.LamebdaRootConfiguration;
+import com.ethlo.lamebda.LamebdaConfiguration;
+import com.ethlo.lamebda.LamebdaMetaAccessService;
+import com.ethlo.lamebda.LamebdaMetaAccessServiceImpl;
 import com.ethlo.lamebda.ProjectCleanupService;
 import com.ethlo.lamebda.ProjectManager;
 import com.ethlo.lamebda.ProjectSetupService;
 import com.ethlo.lamebda.functions.ProjectInfoController;
 
 @Configuration
-@EnableConfigurationProperties(LamebdaRootConfiguration.class)
+@EnableConfigurationProperties(LamebdaConfiguration.class)
 @ConditionalOnProperty(prefix = "lamebda", name = "enabled")
 public class LamebdaSpringWebAutoConfiguration
 {
     private final List<MethodInterceptor> methodInterceptors;
-    private final LamebdaRootConfiguration lamebdaRootConfiguration;
+    private final LamebdaConfiguration lamebdaConfiguration;
     private final ConfigurableApplicationContext parentContext;
 
-    public LamebdaSpringWebAutoConfiguration(@Autowired(required = false) List<MethodInterceptor> methodInterceptors, LamebdaRootConfiguration lamebdaRootConfiguration, ConfigurableApplicationContext parentContext)
+    public LamebdaSpringWebAutoConfiguration(@Autowired(required = false) List<MethodInterceptor> methodInterceptors, LamebdaConfiguration lamebdaConfiguration, ConfigurableApplicationContext parentContext)
     {
         this.methodInterceptors = Optional.ofNullable(methodInterceptors).orElse(Collections.emptyList());
-        this.lamebdaRootConfiguration = lamebdaRootConfiguration;
+        this.lamebdaConfiguration = lamebdaConfiguration;
         this.parentContext = parentContext;
     }
 
@@ -61,13 +63,20 @@ public class LamebdaSpringWebAutoConfiguration
     @ConditionalOnProperty("lamebda.enabled")
     public ProjectManager projectManager() throws IOException
     {
-        return new ProjectManager(lamebdaRootConfiguration, parentContext);
+        return new ProjectManager(lamebdaConfiguration, parentContext);
     }
 
     @Bean
-    public ProjectInfoController projectInfoController(final ProjectManager projectManager)
+    @ConditionalOnMissingBean
+    public LamebdaMetaAccessService lamebdaMetaAccessService(final LamebdaConfiguration lamebdaConfig)
     {
-        return new ProjectInfoController(projectManager);
+        return new LamebdaMetaAccessServiceImpl(lamebdaConfig);
+    }
+
+    @Bean
+    public ProjectInfoController projectInfoController(final ProjectManager projectManager, final LamebdaMetaAccessService lamebdaMetaAccessService)
+    {
+        return new ProjectInfoController(projectManager, lamebdaMetaAccessService);
     }
 
     @Bean
