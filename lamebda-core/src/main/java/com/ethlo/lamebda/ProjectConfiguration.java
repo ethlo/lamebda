@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,7 +48,6 @@ public class ProjectConfiguration
     private final String rootContextPath;
 
     private final ProjectInfo projectInfo;
-    private boolean enableUrlProjectContextPrefix = true;
     private String contextPath;
 
     private Set<Path> groovySourcePaths = new LinkedHashSet<>();
@@ -57,18 +57,21 @@ public class ProjectConfiguration
 
     public ProjectConfiguration(final BootstrapConfiguration bootstrapConfiguration, Properties properties)
     {
-        this.rootContextPath = bootstrapConfiguration.getRootContextPath();
+        final boolean rootUrlPrefixEnabled = Boolean.parseBoolean(properties.getProperty("project.root-request-path-enabled", "true"));
+        this.rootContextPath = rootUrlPrefixEnabled ? bootstrapConfiguration.getRootContextPath() : "";
         this.path = bootstrapConfiguration.getPath();
 
         final String id = bootstrapConfiguration.getPath().getFileName().toString();
+
         this.projectInfo = new ProjectInfo();
-        this.projectInfo.setName(properties.getProperty("project.name") != null ? properties.getProperty("project.name") : id);
+        this.projectInfo.setName(Optional.ofNullable(properties.getProperty("project.name")).orElse(id));
         this.projectInfo.setBasePackages(getCsvSet("project.base-packages", properties));
 
-        this.setContextPath(properties.getProperty("project.context-path") != null ? properties.getProperty("project.context-path") : id);
+        final boolean useProjectNameUrlPrefix = Boolean.parseBoolean(properties.getProperty("project.url-prefix-enabled", "true"));
+        this.setContextPath(Optional.ofNullable(properties.getProperty("project.context-path")).orElse(useProjectNameUrlPrefix ? id : ""));
+
         this.setJavaSourcePaths(merge(getPath().resolve("src").resolve("main").resolve("java"), getCsvSet("project.java.sources", properties).stream().map(Paths::get).collect(Collectors.toSet())));
         this.setGroovySourcePaths(merge(getPath().resolve("src").resolve("main").resolve("groovy"), getCsvSet("project.groovy.sources", properties).stream().map(Paths::get).collect(Collectors.toSet())));
-        this.setEnableUrlProjectContextPrefix(Boolean.parseBoolean(properties.getProperty("project.url-prefix-enabled", "true")));
     }
 
     private Set<String> getCsvSet(final String setting, final Properties properties)
@@ -115,16 +118,6 @@ public class ProjectConfiguration
     public void setContextPath(final String contextPath)
     {
         this.contextPath = contextPath;
-    }
-
-    public boolean enableUrlProjectContextPrefix()
-    {
-        return enableUrlProjectContextPrefix;
-    }
-
-    public void setEnableUrlProjectContextPrefix(final boolean enableUrlProjectContextPrefix)
-    {
-        this.enableUrlProjectContextPrefix = enableUrlProjectContextPrefix;
     }
 
     public Path getPath()

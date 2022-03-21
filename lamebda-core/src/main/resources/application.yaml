@@ -1,0 +1,4 @@
+lamebda:
+  enabled: true
+  request-path: lamebda
+  ui-base-path: classpath:lamebda/templates

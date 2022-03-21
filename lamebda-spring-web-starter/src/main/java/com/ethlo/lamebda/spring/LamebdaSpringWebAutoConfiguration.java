@@ -34,9 +34,9 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.ethlo.lamebda.AllowAllLamebdaMetaAccessService;
 import com.ethlo.lamebda.LamebdaConfiguration;
 import com.ethlo.lamebda.LamebdaMetaAccessService;
-import com.ethlo.lamebda.LamebdaMetaAccessServiceImpl;
 import com.ethlo.lamebda.ProjectCleanupService;
 import com.ethlo.lamebda.ProjectManager;
 import com.ethlo.lamebda.ProjectSetupService;
@@ -68,9 +68,9 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Bean
     @ConditionalOnMissingBean
-    public LamebdaMetaAccessService lamebdaMetaAccessService(final LamebdaConfiguration lamebdaConfig)
+    public LamebdaMetaAccessService lamebdaMetaAccessService()
     {
-        return new LamebdaMetaAccessServiceImpl(lamebdaConfig);
+        return new AllowAllLamebdaMetaAccessService();
     }
 
     @Bean

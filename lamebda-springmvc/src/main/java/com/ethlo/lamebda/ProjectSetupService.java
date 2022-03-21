@@ -96,11 +96,8 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         final String rootContextPath = projectConfiguration.getRootContextPath();
         RequestMappingInfo mappingToUse = RequestMappingInfo.paths(rootContextPath).build();
 
-        if (projectConfiguration.enableUrlProjectContextPrefix())
-        {
-            final String projectContextPath = projectConfiguration.getContextPath();
-            mappingToUse = mappingToUse.combine(RequestMappingInfo.paths(projectContextPath).build());
-        }
+        final String projectContextPath = projectConfiguration.getContextPath();
+        mappingToUse = mappingToUse.combine(RequestMappingInfo.paths(projectContextPath).build());
 
         mappingToUse = mappingToUse.combine(mapping);
         final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method -> HttpMethod.parse(method.name())).collect(Collectors.toSet());

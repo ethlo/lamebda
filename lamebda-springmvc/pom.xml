@@ -7,7 +7,7 @@
     <parent>
         <artifactId>lamebda</artifactId>
         <groupId>com.ethlo.lamebda</groupId>
-        <version>1.0.2</version>
+        <version>1.0.3-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -17,7 +17,7 @@
         <dependency>
             <groupId>com.ethlo.lamebda</groupId>
             <artifactId>lamebda-core</artifactId>
-            <version>1.0.2</version>
+            <version>1.0.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>io.pebbletemplates</groupId>
@@ -63,6 +63,11 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

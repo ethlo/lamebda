@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Lamebda</name>
     <description>Simple HTTP handler supporting dynamic loading of HTTP handler functions</description>
@@ -21,6 +21,11 @@
             <url>https://ethlo.com</url>
         </developer>
     </developers>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.6.4</version>
+    </parent>
     <modules>
         <module>lamebda-core</module>
         <module>lamebda-spring-web-starter</module>
@@ -30,22 +35,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.source>${java.version}</maven.compiler.source>
-        <spring.boot.version>2.6.2</spring.boot.version>
         <java.version>1.8</java.version>
         <gpg.skip>true</gpg.skip>
     </properties>
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <!-- Import dependency management from Spring Boot -->
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring.boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
     <profiles>
         <profile>
             <id>disable-java8-doclint</id>

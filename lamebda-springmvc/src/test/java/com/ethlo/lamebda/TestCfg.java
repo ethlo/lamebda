@@ -46,10 +46,7 @@ public class TestCfg
     public LamebdaConfiguration lamebdaRootConfiguration()
     {
         final Path basePath = Paths.get("src/test/projects");
-        return new LamebdaConfiguration()
-                .setRootDirectory(basePath)
-                .setAllowIndexAccess(true)
-                .setRequestPath("lamebda");
+        return new LamebdaConfiguration("lamebda", "classpath:foo", "swaggerUiPath", true, basePath);
     }
 
     @Bean
@@ -59,9 +56,9 @@ public class TestCfg
     }
 
     @Bean
-    public LamebdaMetaAccessService lamebdaMetaAccessService(LamebdaConfiguration lamebdaConfiguration)
+    public LamebdaMetaAccessService lamebdaMetaAccessService()
     {
-        return new LamebdaMetaAccessServiceImpl(lamebdaConfiguration);
+        return new AllowAllLamebdaMetaAccessService();
     }
 
     @Bean

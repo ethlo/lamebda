@@ -22,7 +22,7 @@ package com.ethlo.lamebda;
 
 import javax.servlet.http.HttpServletRequest;
 
-public class LamebdaMetaAccessServiceImpl implements LamebdaMetaAccessService
+public class AllowAllLamebdaMetaAccessService implements LamebdaMetaAccessService
 {
     @Override
     public boolean isIndexInfoAccessGranted(final HttpServletRequest request)

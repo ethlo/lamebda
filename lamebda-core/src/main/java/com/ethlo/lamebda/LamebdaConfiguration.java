@@ -27,49 +27,55 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
+import org.springframework.boot.context.properties.ConstructorBinding;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 @Valid
 @Validated
-@Component
+@EnableConfigurationProperties
 @ConfigurationProperties(prefix = "lamebda")
+@ConstructorBinding
 public class LamebdaConfiguration
 {
     /**
      * The root request path in the URL
      */
-    private String requestPath = "lamebda";
+    private final String requestPath;
 
-    private String uiBasePath = "classpath:lamebda/templates";
+    /**
+     * The root path for the UI rendering of the Lamebda index page. Usually not required to be modified.
+     */
+    private final String uiBasePath;
 
-    private String indexPath = "";
-
-    private String swaggerUiPath;
+    /**
+     * If you want to render your OpenAPI APIs via Swagger UI, the class-path to the swagger UI base-path must be defined
+     */
+    private final String swaggerUiPath;
 
     /**
      * Turn Lamebda on/off
      */
-    private boolean enabled;
+    private final boolean enabled;
 
     /**
-     * The directory to load/store projects from. All projects will be in a sub-directory of this folder with the name of the project.
+     * The directory to load/store projects from. All projects will be in a subdirectory of this folder with the name of the project.
      */
     @NotNull
-    private Path rootDirectory;
+    private final Path rootDirectory;
 
-    private boolean allowIndexAccess;
+    public LamebdaConfiguration(final String requestPath, final String uiBasePath, final String swaggerUiPath, final boolean enabled, final Path rootDirectory)
+    {
+        this.requestPath = requestPath;
+        this.uiBasePath = uiBasePath;
+        this.swaggerUiPath = swaggerUiPath;
+        this.enabled = enabled;
+        this.rootDirectory = Paths.get(rootDirectory.toString().replaceFirst("^~", System.getProperty("user.home")));
+    }
 
     public String getRequestPath()
     {
         return requestPath;
-    }
-
-    public LamebdaConfiguration setRequestPath(final String requestPath)
-    {
-        this.requestPath = StringUtils.trimTrailingCharacter(StringUtils.trimLeadingCharacter(requestPath, '/'), '/');
-        return this;
     }
 
     public Path getRootDirectory()
@@ -77,43 +83,9 @@ public class LamebdaConfiguration
         return rootDirectory;
     }
 
-    public LamebdaConfiguration setRootDirectory(final Path rootDirectory)
-    {
-        if (rootDirectory.startsWith("~/"))
-        {
-            this.rootDirectory = Paths.get(rootDirectory.toString().replaceFirst("^~", System.getProperty("user.home")));
-        }
-        else
-        {
-            this.rootDirectory = rootDirectory;
-        }
-        return this;
-    }
-
     public boolean isEnabled()
     {
         return enabled;
-    }
-
-    public LamebdaConfiguration setEnabled(final boolean enabled)
-    {
-        this.enabled = enabled;
-        return this;
-    }
-
-    public String getIndexPath()
-    {
-        return indexPath;
-    }
-
-    /**
-     * The URL path the index for deployed modules are listed
-     *
-     * @param indexPath The URL path
-     */
-    public void setIndexPath(final String indexPath)
-    {
-        this.indexPath = indexPath;
     }
 
     public String getSwaggerUiPath()
@@ -121,20 +93,9 @@ public class LamebdaConfiguration
         return swaggerUiPath;
     }
 
-    public void setSwaggerUiPath(final String swaggerUiPath)
-    {
-        this.swaggerUiPath = swaggerUiPath;
-    }
-
-
     public String getUiBasePath()
     {
         return uiBasePath;
-    }
-
-    public void setUiBasePath(final String uiBasePath)
-    {
-        this.uiBasePath = uiBasePath;
     }
 
     @Override
@@ -143,20 +104,7 @@ public class LamebdaConfiguration
         return
                 "request-path: " + requestPath + '\n' +
                         "ui-base-path: " + uiBasePath + '\n' +
-                        "index-path: " + indexPath + '\n' +
-                        "allow-index-access: " + allowIndexAccess + '\n' +
                         "swagger-ui-path: " + swaggerUiPath + '\n' +
                         "root-directory: " + rootDirectory;
-    }
-
-    public boolean isAllowIndexAccess()
-    {
-        return allowIndexAccess;
-    }
-
-    public LamebdaConfiguration setAllowIndexAccess(final boolean allowIndexAccess)
-    {
-        this.allowIndexAccess = allowIndexAccess;
-        return this;
     }
 }
