@@ -32,7 +32,7 @@ Add dependency to your `pom.xml`
 </dependency>
 ```
 
-Add the following properties to `application.properties`:
+Add the following properties to your applications `application.properties|yaml`:
 ```properties
 lamebda.enabled=true
 lamebda.root-directory=/var/lib/lamebda
@@ -42,7 +42,9 @@ lamebda.request-path=/gateway
 ### Project configuration
 `project.properties`
 * `project.name` - Human-readable name of the project. Optional.
-* `project.base-packages` - The base packages that Spring IOC container is scanning for services and controllers
+* `project.base-packages` - The base packages that Spring IOC container is scanning for services and controllers.
+* `project.root-request-path-enabled` - Default is true. If you set this to false, the URLs in this project will not have the prepended `gateway` path.
+* `project.url-prefix-enabled` - Default is true. If you set this to false the URLs in this project will not have the prepended project alias.
 
 ### Setup a project folder
 Create a project folder. This folder is a logical grouping for your API functions. We will go with the create `test` for now. We now have the folder `/var/lib/lamebda/test`.
