@@ -29,7 +29,7 @@
         <dependency>
             <groupId>com.ethlo.lamebda</groupId>
             <artifactId>lamebda-springmvc</artifactId>
-            <version>1.0.3-SNAPSHOT</version>
+            <version>1.0.3</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
