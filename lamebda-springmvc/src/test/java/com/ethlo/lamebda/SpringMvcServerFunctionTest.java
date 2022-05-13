@@ -62,6 +62,6 @@ public class SpringMvcServerFunctionTest
                 perform(get("/foo/bar/lamebda/myproject/api.yaml").contextPath("/foo/bar"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("url: /lamebda/myproject/v1/mine")));
+                .andExpect(content().string(containsString("url: /foo/bar/lamebda/myproject/v1/mine")));
     }
 }

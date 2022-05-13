@@ -200,7 +200,7 @@ public class ProjectInfoController
                 final String url = server.path("url").textValue();
                 final UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(url);
                 final UriComponents uri = uriBuilder.build();
-                final boolean isRelative = Optional.ofNullable(uri.getPath()).map(path -> !path.startsWith("/")).orElse(false);
+                final boolean isRelative = uri.getHost() == null;
                 if (isRelative)
                 {
                     // Prepend

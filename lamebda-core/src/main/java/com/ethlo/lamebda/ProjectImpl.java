@@ -113,6 +113,8 @@ public class ProjectImpl implements Project
 
         readVersionFile(projectPath);
         readVersionFile(workDir);
+        logger.info("Version: {}", projectConfiguration.getProjectInfo().getVersion());
+
         logger.debug("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
 
         // Add manually added class-path entries

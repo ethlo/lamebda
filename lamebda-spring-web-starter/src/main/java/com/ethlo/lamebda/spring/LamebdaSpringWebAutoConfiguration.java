@@ -60,7 +60,6 @@ public class LamebdaSpringWebAutoConfiguration
 
     @Bean
     @ConditionalOnMissingBean
-    @ConditionalOnProperty("lamebda.enabled")
     public ProjectManager projectManager() throws IOException
     {
         return new ProjectManager(lamebdaConfiguration, parentContext);
