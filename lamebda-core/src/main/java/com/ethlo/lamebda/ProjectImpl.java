@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -114,9 +116,16 @@ public class ProjectImpl implements Project
         logger.debug("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
 
         // Add manually added class-path entries
-        for (URL cpUrl : projectConfiguration.getClasspath())
+        for (URI cpUrl : projectConfiguration.getClasspath())
         {
-            groovyClassLoader.addURL(cpUrl);
+            try
+            {
+                groovyClassLoader.addURL(cpUrl.toURL());
+            }
+            catch (MalformedURLException e)
+            {
+                throw new UncheckedIOException(e);
+            }
         }
 
         setupCompilers();
