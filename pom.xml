@@ -6,7 +6,7 @@
     <version>1.0.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Lamebda</name>
-    <description>Simple HTTP handler supporting dynamic loading of HTTP handler functions</description>
+    <description>HTTP API handler supporting dynamic loading of handler functions</description>
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>

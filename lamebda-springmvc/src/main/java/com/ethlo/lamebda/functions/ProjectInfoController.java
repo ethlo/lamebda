@@ -177,7 +177,7 @@ public class ProjectInfoController
                         {
                             try
                             {
-                                final String content = preProcessApi(project, IoUtil.toString(r.getInputStream(), StandardCharsets.UTF_8));
+                                final String content = preProcessApi(project, request.getContextPath(), IoUtil.toString(r.getInputStream(), StandardCharsets.UTF_8));
                                 return ResponseEntity.ok(content);
                             }
                             catch (IOException e)
@@ -188,7 +188,7 @@ public class ProjectInfoController
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    private String preProcessApi(final Project project, String openApi)
+    private String preProcessApi(final Project project, final String contextPath, String openApi)
     {
         final ObjectMapper mapper = new ObjectMapper(new YAMLFactory().enable(YAMLGenerator.Feature.MINIMIZE_QUOTES));
         try
@@ -207,6 +207,8 @@ public class ProjectInfoController
                     final String projectContextPath = project.getProjectConfiguration().getContextPath();
                     final UriComponentsBuilder updated = uriBuilder
                             .replacePath("/")
+                            .path(contextPath)
+                            .path("/")
                             .path(project.getProjectConfiguration().getRootContextPath())
                             .path("/")
                             .path(projectContextPath)

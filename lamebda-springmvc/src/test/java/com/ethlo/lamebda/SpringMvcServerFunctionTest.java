@@ -59,7 +59,7 @@ public class SpringMvcServerFunctionTest
     public void shouldCallOpenAPiController() throws Exception
     {
         this.mockMvc.
-                perform(get("/lamebda/myproject/api.yaml"))
+                perform(get("/foo/bar/lamebda/myproject/api.yaml").contextPath("/foo/bar"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("url: /lamebda/myproject/v1/mine")));
