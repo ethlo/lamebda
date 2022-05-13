@@ -43,15 +43,10 @@ public class TestCfg
     private List<MethodInterceptor> methodInterceptors = new LinkedList<>();
 
     @Bean
-    public LamebdaConfiguration lamebdaRootConfiguration()
+    public ProjectManager projectManager(ApplicationContext applicationContext) throws IOException
     {
         final Path basePath = Paths.get("src/test/projects");
-        return new LamebdaConfiguration("lamebda", "classpath:foo", "swaggerUiPath", true, basePath);
-    }
-
-    @Bean
-    public ProjectManager projectManager(LamebdaConfiguration lamebdaConfiguration, ApplicationContext applicationContext) throws IOException
-    {
+        final LamebdaConfiguration lamebdaConfiguration = new LamebdaConfiguration("lamebda", "classpath:foo", "swaggerUiPath", true, basePath);
         return new ProjectManager(lamebdaConfiguration, applicationContext);
     }
 

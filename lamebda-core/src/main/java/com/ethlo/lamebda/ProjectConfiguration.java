@@ -23,7 +23,7 @@ package com.ethlo.lamebda;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.UncheckedIOException;
-import java.net.URL;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,7 +53,8 @@ public class ProjectConfiguration
     private Set<Path> groovySourcePaths = new LinkedHashSet<>();
     private Set<Path> javaSourcePaths = new LinkedHashSet<>();
 
-    private final Set<URL> classpath = new LinkedHashSet<>();
+    private final Set<URI> classpath = new LinkedHashSet<>();
+    private final String apiSpecificationSource;
 
     public ProjectConfiguration(final BootstrapConfiguration bootstrapConfiguration, Properties properties)
     {
@@ -66,6 +67,8 @@ public class ProjectConfiguration
         this.projectInfo = new ProjectInfo();
         this.projectInfo.setName(Optional.ofNullable(properties.getProperty("project.name")).orElse(id));
         this.projectInfo.setBasePackages(getCsvSet("project.base-packages", properties));
+
+        this.apiSpecificationSource = Optional.ofNullable(properties.getProperty("project.api-specification.source")).orElse("specification/oas.yaml");
 
         final boolean useProjectNameUrlPrefix = Boolean.parseBoolean(properties.getProperty("project.url-prefix-enabled", "true"));
         this.setContextPath(Optional.ofNullable(properties.getProperty("project.context-path")).orElse(useProjectNameUrlPrefix ? id : ""));
@@ -156,7 +159,7 @@ public class ProjectConfiguration
         return paths.stream().map(p -> p.isAbsolute() ? p : path.resolve(p).normalize()).collect(Collectors.toSet());
     }
 
-    public Set<URL> getClasspath()
+    public Set<URI> getClasspath()
     {
         return classpath;
     }
@@ -188,5 +191,10 @@ public class ProjectConfiguration
     public ProjectInfo getProjectInfo()
     {
         return projectInfo;
+    }
+
+    public String getApiSpecificationSource()
+    {
+        return apiSpecificationSource;
     }
 }

@@ -20,24 +20,6 @@ package com.ethlo.lamebda.functions;
  * #L%
  */
 
-import com.ethlo.lamebda.*;
-import com.ethlo.lamebda.util.IoUtil;
-
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.AntPathMatcher;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.HandlerMapping;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -47,8 +29,41 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.AntPathMatcher;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.HandlerMapping;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.ethlo.lamebda.LamebdaMetaAccessService;
+import com.ethlo.lamebda.PebbleRenderer;
+import com.ethlo.lamebda.Project;
+import com.ethlo.lamebda.ProjectConfiguration;
+import com.ethlo.lamebda.ProjectManager;
+import com.ethlo.lamebda.util.IoUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 
 @RestController
 @RequestMapping(value = "${lamebda.request-path}", produces = "application/json")
@@ -127,7 +142,7 @@ public class ProjectInfoController
         projectInfo.put("last_loaded", OffsetDateTime.ofInstant(Instant.ofEpochMilli(project.getProjectContext().getStartupDate()), ZoneId.systemDefault()));
         projectInfo.put("context_path", pc.getContextPath());
         projectInfo.put("version", pc.getProjectInfo().getVersion());
-        projectInfo.put("has_openapi_spec", getApiResource(project).exists());
+        projectInfo.put("has_openapi_spec", project.getApiSpecification().isPresent());
         projectInfo.put("request_mappings", project.getProjectContext().getBean("_all_mappings"));
         return projectInfo;
     }
@@ -157,29 +172,55 @@ public class ProjectInfoController
 
         final Optional<Project> optProject = getProject(projectAlias);
 
-        return optProject.map(project ->
-                {
-                    final Resource resource = getApiResource(project);
-                    if (resource.exists())
-                    {
-                        try
+        return optProject.flatMap(project ->
+                        project.getApiSpecification().map(r ->
                         {
-                            final String content = IoUtil.toString(resource.getInputStream(), StandardCharsets.UTF_8);
-                            return ResponseEntity.ok(content);
-                        }
-                        catch (IOException e)
-                        {
-                            throw new UncheckedIOException(e);
-                        }
-                    }
-                    return null;
-                })
+                            try
+                            {
+                                final String content = preProcessApi(project, IoUtil.toString(r.getInputStream(), StandardCharsets.UTF_8));
+                                return ResponseEntity.ok(content);
+                            }
+                            catch (IOException e)
+                            {
+                                throw new UncheckedIOException(e);
+                            }
+                        }))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    private Resource getApiResource(final Project project)
+    private String preProcessApi(final Project project, String openApi)
     {
-        return project.getProjectContext().getResource("/specification/oas.yaml");
+        final ObjectMapper mapper = new ObjectMapper(new YAMLFactory().enable(YAMLGenerator.Feature.MINIMIZE_QUOTES));
+        try
+        {
+            final JsonNode node = mapper.readTree(openApi);
+
+            node.withArray("servers").forEach(server ->
+            {
+                final String url = server.path("url").textValue();
+                final UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(url);
+                final UriComponents uri = uriBuilder.build();
+                final boolean isRelative = Optional.ofNullable(uri.getPath()).map(path -> !path.startsWith("/")).orElse(false);
+                if (isRelative)
+                {
+                    // Prepend
+                    final String projectContextPath = project.getProjectConfiguration().getContextPath();
+                    final UriComponentsBuilder updated = uriBuilder
+                            .replacePath("/")
+                            .path(project.getProjectConfiguration().getRootContextPath())
+                            .path("/")
+                            .path(projectContextPath)
+                            .path("/")
+                            .path(uri.getPath());
+                    ((ObjectNode) server).put("url", updated.build().toUri().toString());
+                }
+            });
+            return mapper.writeValueAsString(node);
+        }
+        catch (IOException exc)
+        {
+            throw new UncheckedIOException(exc);
+        }
     }
 
     private Optional<Project> getProject(String projectAlias)

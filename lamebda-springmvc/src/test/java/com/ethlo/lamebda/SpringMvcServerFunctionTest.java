@@ -55,15 +55,13 @@ public class SpringMvcServerFunctionTest
                 .andExpect(content().string(containsString("{\"id\":\"123\"}")));
     }
 
-    @Disabled("Not found in context")
     @Test
-    public void shouldCallDeploymentsController() throws Exception
+    public void shouldCallOpenAPiController() throws Exception
     {
         this.mockMvc.
-                perform(get("/lamebda/status"))
+                perform(get("/lamebda/myproject/api.yaml"))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("{\"id\":\"123\"}")));
+                .andExpect(content().string(containsString("url: /lamebda/myproject/v1/mine")));
     }
-
 }

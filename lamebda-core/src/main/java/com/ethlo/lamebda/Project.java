@@ -21,6 +21,9 @@ package com.ethlo.lamebda;
  */
 
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.io.Resource;
+
+import java.util.Optional;
 
 public interface Project extends AutoCloseable
 {
@@ -29,4 +32,6 @@ public interface Project extends AutoCloseable
     void close();
 
     AnnotationConfigApplicationContext getProjectContext();
+
+    Optional<Resource> getApiSpecification();
 }
