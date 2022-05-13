@@ -212,7 +212,6 @@ public class ProjectInfoController
                             .path(projectContextPath)
                             .path("/")
                             .path(uri.getPath());
-                    System.out.println(updated.build());
                     ((ObjectNode) server).put("url", updated.build().toUri().toString());
                 }
             });
