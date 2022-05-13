@@ -1,11 +1,29 @@
 package com.ethlo.lamebda;
 
-import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
-import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
-import com.ethlo.lamebda.util.IoUtil;
-import com.ethlo.qjc.groovy.GroovyCompiler;
-import com.ethlo.qjc.java.JavaCompiler;
-import groovy.lang.GroovyClassLoader;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UncheckedIOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Stream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,17 +41,12 @@ import org.springframework.instrument.classloading.SimpleThrowawayClassLoader;
 import org.springframework.lang.NonNull;
 import org.springframework.util.StringUtils;
 
-import java.io.*;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.*;
-import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
+import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
+import com.ethlo.lamebda.util.IoUtil;
+import com.ethlo.qjc.groovy.GroovyCompiler;
+import com.ethlo.qjc.java.JavaCompiler;
+import groovy.lang.GroovyClassLoader;
 
 /*-
  * #%L
@@ -59,12 +72,10 @@ public class ProjectImpl implements Project
 {
     public static final String PROJECT_FILENAME = "project.properties";
     public static final String DEFAULT_CONFIG_FILENAME = "application.properties";
-    public static final String API_SPECIFICATION_YAML_FILENAME = "oas.yaml";
     public static final String JAR_EXTENSION = "jar";
     public static final String GROOVY_EXTENSION = "groovy";
     public static final String JAVA_EXTENSION = "java";
     public static final String PROPERTIES_EXTENSION = "properties";
-    public static final String SPECIFICATION_DIRECTORY = "specification";
     public static final String LIB_DIRECTORY = "lib";
     private static final Logger logger = LoggerFactory.getLogger(ProjectImpl.class);
     private final BootstrapConfiguration bootstrapConfiguration;
@@ -354,6 +365,13 @@ public class ProjectImpl implements Project
     public AnnotationConfigApplicationContext getProjectContext()
     {
         return projectCtx;
+    }
+
+    @Override
+    public Optional<Resource> getApiSpecification()
+    {
+        final Resource resource = getProjectContext().getResource(projectConfiguration.getApiSpecificationSource());
+        return Optional.ofNullable(resource.exists() ? resource : null);
     }
 
     @Override
