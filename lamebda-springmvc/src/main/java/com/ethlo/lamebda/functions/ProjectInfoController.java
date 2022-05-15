@@ -204,14 +204,13 @@ public class ProjectInfoController
                 if (isRelative)
                 {
                     // Prepend
-                    final String projectContextPath = project.getProjectConfiguration().getContextPath();
                     final UriComponentsBuilder updated = uriBuilder
                             .replacePath("/")
                             .path(contextPath)
                             .path("/")
                             .path(project.getProjectConfiguration().getRootContextPath())
                             .path("/")
-                            .path(projectContextPath)
+                            .path(project.getProjectConfiguration().getContextPath())
                             .path("/")
                             .path(uri.getPath());
                     ((ObjectNode) server).put("url", updated.build().toUri().toString());

@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <packaging>pom</packaging>
     <name>Lamebda</name>
     <description>HTTP API handler supporting dynamic loading of handler functions</description>
@@ -188,7 +188,7 @@
         <repository>
             <id>sonatype-nexus-staging</id>
             <name>Nexus Release Repository</name>
-            <url>http://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
         <snapshotRepository>
             <id>sonatype-nexus-snapshots</id>
@@ -197,7 +197,7 @@
         </snapshotRepository>
     </distributionManagement>
     <scm>
-        <url>http://github.com:ethlo/lamebda</url>
+        <url>https://github.com/ethlo/lamebda</url>
         <connection>scm:git:git@github.com:ethlo/lamebda.git</connection>
         <developerConnection>scm:git:git@github.com:ethlo/lamebda.git</developerConnection>
     </scm>
