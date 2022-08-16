@@ -117,7 +117,7 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
     {
         final AnnotationConfigApplicationContext projectCtx = event.getProjectContext();
         final ProjectConfiguration projectCfg = event.getProjectConfiguration();
-        final RequestMappingHandlerMapping handlerMapping = projectCtx.getBean(RequestMappingHandlerMapping.class);
+        final RequestMappingHandlerMapping handlerMapping = ProjectCleanupService.getMappingHandler(projectCfg.getRequestMappingHandlerMappingBeanName(), event);
 
         // Register controller beans
         final SortedSet<RequestMapping> allMappings = new TreeSet<>();

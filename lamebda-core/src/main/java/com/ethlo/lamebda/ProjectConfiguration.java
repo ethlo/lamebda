@@ -55,8 +55,9 @@ public class ProjectConfiguration
 
     private final Set<URI> classpath = new LinkedHashSet<>();
     private final String apiSpecificationSource;
+    private final String requestMappingHandlerMappingBeanName;
 
-    public ProjectConfiguration(final BootstrapConfiguration bootstrapConfiguration, Properties properties)
+    public ProjectConfiguration(final BootstrapConfiguration bootstrapConfiguration, final Properties properties)
     {
         final boolean rootUrlPrefixEnabled = Boolean.parseBoolean(properties.getProperty("project.root-request-path-enabled", "true"));
         this.rootContextPath = rootUrlPrefixEnabled ? bootstrapConfiguration.getRootContextPath() : "";
@@ -72,6 +73,7 @@ public class ProjectConfiguration
 
         final boolean useProjectNameUrlPrefix = Boolean.parseBoolean(properties.getProperty("project.url-prefix-enabled", "true"));
         this.setContextPath(Optional.ofNullable(properties.getProperty("project.context-path")).orElse(useProjectNameUrlPrefix ? id : ""));
+        this.requestMappingHandlerMappingBeanName = Optional.ofNullable(properties.getProperty("project.request-mapping-handler-mapping-bean-name")).orElse("requestMappingHandlerMapping");
 
         this.setJavaSourcePaths(merge(getPath().resolve("src").resolve("main").resolve("java"), getCsvSet("project.java.sources", properties).stream().map(Paths::get).collect(Collectors.toSet())));
         this.setGroovySourcePaths(merge(getPath().resolve("src").resolve("main").resolve("groovy"), getCsvSet("project.groovy.sources", properties).stream().map(Paths::get).collect(Collectors.toSet())));
@@ -196,5 +198,10 @@ public class ProjectConfiguration
     public String getApiSpecificationSource()
     {
         return apiSpecificationSource;
+    }
+
+    public String getRequestMappingHandlerMappingBeanName()
+    {
+        return requestMappingHandlerMappingBeanName;
     }
 }

@@ -27,11 +27,13 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
+import com.ethlo.lamebda.lifecycle.ProjectEvent;
 
 public class ProjectCleanupService implements ApplicationListener<ProjectClosingEvent>
 {
@@ -53,7 +55,7 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
     public void onApplicationEvent(final ProjectClosingEvent event)
     {
         final ProjectConfiguration projectConfiguration = event.getProjectConfiguration();
-        final RequestMappingHandlerMapping mappingHandler = event.getProjectContext().getBean(RequestMappingHandlerMapping.class);
+        final RequestMappingHandlerMapping mappingHandler = getMappingHandler(projectConfiguration.getRequestMappingHandlerMappingBeanName(), event);
         final Map<RequestMappingInfo, HandlerMethod> handlerMethods = mappingHandler.getHandlerMethods();
         final String prefix = projectConfiguration.getRootContextPath() + "/" + projectConfiguration.getContextPath();
         final List<RequestMappingInfo> toRemove = new LinkedList<>();
@@ -68,5 +70,11 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
             logger.debug("Unregistering {}, ", key);
             mappingHandler.unregisterMapping(key);
         });
+    }
+
+    public static RequestMappingHandlerMapping getMappingHandler(final String beanName, ProjectEvent event)
+    {
+        final AnnotationConfigApplicationContext ctx = event.getProjectContext();
+        return ctx.getBean(beanName, RequestMappingHandlerMapping.class);
     }
 }
