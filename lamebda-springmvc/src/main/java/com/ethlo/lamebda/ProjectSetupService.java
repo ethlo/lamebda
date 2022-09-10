@@ -48,6 +48,7 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.mvc.condition.PatternsRequestCondition;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+import org.springframework.web.util.pattern.PathPatternParser;
 
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.mapping.RequestMapping;
@@ -94,10 +95,23 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
     private RequestMapping doRegister(final RequestMappingHandlerMapping handlerMapping, final Object object, final Method m, final RequestMappingInfo mapping, ProjectConfiguration projectConfiguration)
     {
         final String rootContextPath = projectConfiguration.getRootContextPath();
-        RequestMappingInfo mappingToUse = RequestMappingInfo.paths(rootContextPath).build();
+
+        RequestMappingInfo mappingToUse = RequestMappingInfo
+                .paths(rootContextPath)
+                .build();
+
+        final PathPatternParser patternParser = handlerMapping.getBuilderConfiguration().getPatternParser();
+        final RequestMappingInfo.BuilderConfiguration options = new RequestMappingInfo.BuilderConfiguration();
+        if (patternParser != null)
+        {
+            options.setPatternParser(patternParser);
+        }
 
         final String projectContextPath = projectConfiguration.getContextPath();
-        mappingToUse = mappingToUse.combine(RequestMappingInfo.paths(projectContextPath).build());
+        mappingToUse = mappingToUse.combine(RequestMappingInfo
+                .paths(projectContextPath)
+                .options(options)
+                .build());
 
         mappingToUse = mappingToUse.combine(mapping);
         final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method -> HttpMethod.parse(method.name())).collect(Collectors.toSet());
