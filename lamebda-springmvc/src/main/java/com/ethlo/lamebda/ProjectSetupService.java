@@ -105,6 +105,7 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         if (patternParser != null)
         {
             options.setPatternParser(patternParser);
+
         }
 
         final String projectContextPath = projectConfiguration.getContextPath();
