@@ -27,6 +27,8 @@ import java.util.Set;
 import com.ethlo.lamebda.HttpMethod;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import org.springframework.lang.NonNull;
+
 public class RequestMapping implements Comparable<RequestMapping>
 {
     private final Set<String> patterns;
@@ -99,7 +101,7 @@ public class RequestMapping implements Comparable<RequestMapping>
     }
 
     @Override
-    public int compareTo(final RequestMapping requestMapping)
+    public int compareTo(@NonNull final RequestMapping requestMapping)
     {
         return from(this).compareTo(from(requestMapping));
     }
