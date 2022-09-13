@@ -100,21 +100,25 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
                 .paths(rootContextPath)
                 .build();
 
+        final String projectContextPath = projectConfiguration.getContextPath();
+        mappingToUse = mappingToUse.combine(RequestMappingInfo
+                .paths(projectContextPath)
+                .build());
+
         final PathPatternParser patternParser = handlerMapping.getBuilderConfiguration().getPatternParser();
         final RequestMappingInfo.BuilderConfiguration options = new RequestMappingInfo.BuilderConfiguration();
         if (patternParser != null)
         {
+            logger.debug("Found PathPatternParser is in use");
             options.setPatternParser(patternParser);
-
         }
 
-        final String projectContextPath = projectConfiguration.getContextPath();
-        mappingToUse = mappingToUse.combine(RequestMappingInfo
-                .paths(projectContextPath)
+        mappingToUse = mappingToUse
+                .combine(mapping)
+                .mutate()
                 .options(options)
-                .build());
+                .build();
 
-        mappingToUse = mappingToUse.combine(mapping);
         final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method -> HttpMethod.parse(method.name())).collect(Collectors.toSet());
         final Set<String> patterns = Optional.ofNullable(mappingToUse.getPatternsCondition()).map(PatternsRequestCondition::getPatterns).orElse(Collections.emptySet());
         final Set<String> consumes = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
