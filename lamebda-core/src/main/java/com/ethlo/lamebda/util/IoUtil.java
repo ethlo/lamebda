@@ -112,7 +112,7 @@ public class IoUtil
     {
         try
         {
-            return Optional.of(new String(Files.readAllBytes(file), StandardCharsets.UTF_8));
+            return Optional.of(Files.readString(file));
         }
         catch (IOException e)
         {
@@ -136,7 +136,7 @@ public class IoUtil
     {
         try (final Stream<Path> fs = Files.list(dir.getParent()))
         {
-            return !fs.findFirst().isPresent();
+            return fs.findFirst().isEmpty();
         }
         catch (IOException e)
         {

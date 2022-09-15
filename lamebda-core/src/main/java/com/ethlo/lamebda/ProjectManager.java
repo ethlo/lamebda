@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -98,7 +99,7 @@ public class ProjectManager
                         IoUtil.deleteDirectory(workDir.getParent());
                     }
                 }
-                catch (FileNotFoundException exc)
+                catch (NoSuchFileException | FileNotFoundException exc)
                 {
                     logger.debug("Could not delete temp directory " + workDir + ": " + exc.getMessage());
                 }
