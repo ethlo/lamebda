@@ -48,17 +48,14 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.web.servlet.mvc.condition.PatternsRequestCondition;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import org.springframework.web.util.pattern.PathPatternParser;
 
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.mapping.RequestMapping;
-import com.ethlo.lamebda.spring.OpenRequestMappingHandlerMapping;
+import com.ethlo.lamebda.spring.RequestMappingInfoUtil;
 
 public class ProjectSetupService implements ApplicationListener<ProjectLoadedEvent>
 {
     private static final Logger logger = LoggerFactory.getLogger(ProjectSetupService.class);
-    private final OpenRequestMappingHandlerMapping openRequestMappingHandlerMapping = new OpenRequestMappingHandlerMapping();
-
     private final ListableBeanFactory beanFactory;
     private final List<MethodInterceptor> methodInterceptors;
 
@@ -73,12 +70,13 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         final Object wrappedController = wrapController(controller);
 
         final List<RequestMapping> result = new LinkedList<>();
+
         Arrays.asList(ReflectionUtils.getUniqueDeclaredMethods(controller.getClass())).forEach(method ->
         {
-            final RequestMappingInfo mapping = openRequestMappingHandlerMapping.getMappingForMethod(propertyResolver, method, controller);
+            final RequestMappingInfo mapping = RequestMappingInfoUtil.getMappingForMethod(projectConfiguration, propertyResolver, method);
             if (mapping != null)
             {
-                final RequestMapping res = doRegister(handlerMapping, wrappedController, method, mapping, projectConfiguration);
+                final RequestMapping res = doRegister(handlerMapping, wrappedController, method, mapping);
                 result.add(res);
             }
         });
@@ -92,32 +90,8 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         return createAOPProxyWithInterceptorsAndAdvisors(methodInterceptors, advisors, controller);
     }
 
-    private RequestMapping doRegister(final RequestMappingHandlerMapping handlerMapping, final Object object, final Method m, final RequestMappingInfo mapping, ProjectConfiguration projectConfiguration)
+    private RequestMapping doRegister(final RequestMappingHandlerMapping handlerMapping, final Object object, final Method m, final RequestMappingInfo mappingToUse)
     {
-        final String rootContextPath = projectConfiguration.getRootContextPath();
-
-        RequestMappingInfo mappingToUse = RequestMappingInfo
-                .paths(rootContextPath)
-                .build();
-
-        final String projectContextPath = projectConfiguration.getContextPath();
-        mappingToUse = mappingToUse.combine(RequestMappingInfo
-                .paths(projectContextPath)
-                .build());
-
-        final PathPatternParser patternParser = handlerMapping.getBuilderConfiguration().getPatternParser();
-        final RequestMappingInfo.BuilderConfiguration options = new RequestMappingInfo.BuilderConfiguration();
-        if (patternParser != null)
-        {
-            logger.debug("Found PathPatternParser is in use");
-            options.setPatternParser(patternParser);
-        }
-
-        mappingToUse = mappingToUse
-                .combine(mapping)
-                .mutate()
-                .options(options)
-                .build();
 
         final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method -> HttpMethod.parse(method.name())).collect(Collectors.toSet());
         final Set<String> patterns = Optional.ofNullable(mappingToUse.getPatternsCondition()).map(PatternsRequestCondition::getPatterns).orElse(Collections.emptySet());

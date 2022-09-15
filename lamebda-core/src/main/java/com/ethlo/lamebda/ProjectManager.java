@@ -214,7 +214,7 @@ public class ProjectManager
                 logger.warn("An error occurred cleaning up failed project initialization", e);
             }
 
-            logger.warn("Unable to load project in " + projectPath, exc);
+            logger.warn("Unable to load project in {}", projectPath, exc);
         }
     }
 
