@@ -20,12 +20,6 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +30,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = TestCfg.class)
 @AutoConfigureWebMvc
@@ -45,10 +45,44 @@ public class SpringMvcServerFunctionTest
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private ProjectManager projectManager;
+
+    @Test
+    public void lifecycles()
+    {
+        final Project project = projectManager.getByAlias("myproject").orElseThrow();
+        assertFound(true);
+        projectManager.unload(project);
+        assertFound(false);
+        projectManager.load(project);
+        assertFound(true);
+        projectManager.reload(project);
+        assertFound(true);
+        projectManager.load(project);
+        assertFound(true);
+    }
+
+    private void assertFound(final boolean found)
+    {
+        try
+        {
+            mockMvc.
+                    perform(post("/lamebda/myproject/test/123")
+                            .content("{\"payload\": 999}")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(found ? status().isOk() : status().isNotFound());
+        }
+        catch (Exception e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test
     public void shouldCallController() throws Exception
     {
-        this.mockMvc.
+        mockMvc.
                 perform(post("/lamebda/myproject/test/123")
                         .content("{\"payload\": 999}")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -64,7 +98,7 @@ public class SpringMvcServerFunctionTest
                         .content("{}")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                        .andExpect(content().string(containsString("{\"id\":\"998877\"}")));
+                .andExpect(content().string(containsString("{\"id\":\"998877\"}")));
 
     }
 

@@ -157,7 +157,7 @@ public class WatchDir implements AutoCloseable
 
             for (WatchEvent<?> event : key.pollEvents())
             {
-                WatchEvent.Kind kind = event.kind();
+                WatchEvent.Kind<?> kind = event.kind();
                 if (kind == OVERFLOW)
                 {
                     continue;
@@ -173,7 +173,7 @@ public class WatchDir implements AutoCloseable
                 listener.accept(e);
 
                 // if directory is created, and watching recursively, then
-                // register it and its sub-directories
+                // register it and its subdirectories
                 if (kind == ENTRY_CREATE && recursive)
                 {
                     try

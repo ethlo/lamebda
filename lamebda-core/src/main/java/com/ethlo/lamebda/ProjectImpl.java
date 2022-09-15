@@ -323,7 +323,7 @@ public class ProjectImpl implements Project
             }
         }
 
-        return new PropertySource<Properties>(StringUtils.arrayToCommaDelimitedString(configFilePath), result)
+        return new PropertySource<>(StringUtils.arrayToCommaDelimitedString(configFilePath), result)
         {
             @Override
             public String getProperty(@NonNull String key)
@@ -383,6 +383,12 @@ public class ProjectImpl implements Project
     {
         final Resource resource = getProjectContext().getResource(projectConfiguration.getApiSpecificationSource());
         return Optional.ofNullable(resource.exists() ? resource : null);
+    }
+
+    @Override
+    public String getAlias()
+    {
+        return Project.toAlias(projectPath);
     }
 
     @Override

@@ -30,6 +30,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -51,7 +52,7 @@ public class ProjectManager
     private final Path rootDirectory;
     private final ApplicationContext parentContext;
 
-    private final Map<Path, Project> projects = new ConcurrentHashMap<>();
+    private final Map<String, Project> projects = new ConcurrentHashMap<>();
     private final LocalProjectDao localProjectDao;
     private final LamebdaConfiguration rootConfiguration;
 
@@ -134,13 +135,13 @@ public class ProjectManager
             else if (e.getChangeType() == ChangeType.DELETED && isProjectPath)
             {
                 logger.info("Closing project due to deletion of project directory: {}", e.getPath());
-                closeProject(projectPath);
+                closeProject(Project.toAlias(e.getPath()));
             }
             else if (e.getChangeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath || isProjectJar))
             {
                 logger.info("Reloading project due to modification of {}", path);
-                closeProject(projectPath);
-                loadProject(projectPath);
+                closeProject(Project.toAlias(projectPath));
+                loadProject(Project.toAlias(projectPath));
             }
         }, true, rootDirectory);
         new Thread()
@@ -176,29 +177,30 @@ public class ProjectManager
 
         for (Path projectPath : localProjectDao.getLocalProjectDirectories())
         {
-            loadProject(projectPath);
+            loadProject(Project.toAlias(projectPath));
         }
     }
 
-    private void closeProject(final Path projectPath)
+    private void closeProject(final String alias)
     {
-        final Project existing = this.projects.remove(projectPath);
+        final Project existing = projects.remove(alias);
         if (existing != null)
         {
-            logger.info("Closing {}", projectPath);
+            logger.info("Closing {}", alias);
             existing.close();
         }
     }
 
-    private void loadProject(final Path projectPath)
+    private void loadProject(final String alias)
     {
-        logger.info("Loading {}", projectPath);
+        logger.info("Loading {}", alias);
+        final Path projectPath = rootDirectory.resolve(alias);
         Project project = null;
         try
         {
             final BootstrapConfiguration cfg = new BootstrapConfiguration(rootConfiguration.getRequestPath(), projectPath, System.getProperties());
             project = new ProjectImpl(parentContext, cfg, setupWorkDir(projectPath));
-            projects.put(projectPath, project);
+            projects.put(Project.toAlias(projectPath), project);
         }
         catch (Exception exc)
         {
@@ -225,7 +227,7 @@ public class ProjectManager
                 || filename.endsWith(ProjectImpl.PROPERTIES_EXTENSION);
     }
 
-    public Map<Path, Project> getProjects()
+    public Map<String, Project> getProjects()
     {
         return this.projects;
     }
@@ -246,5 +248,30 @@ public class ProjectManager
                 .stream()
                 .map(path -> path.getFileName().toString())
                 .collect(Collectors.toList());
+    }
+
+    public Optional<Project> getByAlias(String alias)
+    {
+        return projects
+                .values()
+                .stream()
+                .filter(p -> p.getProjectConfiguration().getPath().getFileName().toString().equals(alias))
+                .findFirst();
+    }
+
+    public void reload(final Project project)
+    {
+        unload(project);
+        load(project);
+    }
+
+    public void load(Project project)
+    {
+        loadProject(project.getAlias());
+    }
+
+    public void unload(Project project)
+    {
+        closeProject(project.getAlias());
     }
 }

@@ -25,7 +25,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -121,10 +120,7 @@ public class ProjectInfoController
         final List<String> down = projectManager.getProjectAliases();
         down.removeAll(projectManager.getProjects()
                 .keySet()
-                .stream()
-                .map(Path::getFileName)
-                .map(Path::toString)
-                .collect(Collectors.toList()));
+                .stream().toList());
         res.put("projects_down", down);
         return ResponseEntity.ok(res);
     }
@@ -212,7 +208,7 @@ public class ProjectInfoController
                             .path("/")
                             .path(project.getProjectConfiguration().getContextPath())
                             .path("/")
-                            .path(uri.getPath());
+                            .path(uri.getPath() != null ? uri.getPath() : "");
                     ((ObjectNode) server).put("url", updated.build().toUri().toString());
                 }
             });

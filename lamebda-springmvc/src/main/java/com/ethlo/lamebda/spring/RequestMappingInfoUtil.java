@@ -22,6 +22,7 @@ package com.ethlo.lamebda.spring;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.env.PropertyResolver;
@@ -69,5 +70,10 @@ public class RequestMappingInfoUtil
             return rootPathRequestMappingInfo.combine(projectPathRequestMappingInfo.combine(mapping));
         }
         return null;
+    }
+
+    public static String normalizeSlashes(final String path)
+    {
+        return Arrays.stream(path.split("/")).filter(s -> !"".equals(s)).collect(Collectors.joining("/"));
     }
 }

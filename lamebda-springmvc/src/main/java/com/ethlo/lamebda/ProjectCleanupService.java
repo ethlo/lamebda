@@ -20,6 +20,8 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import static com.ethlo.lamebda.spring.RequestMappingInfoUtil.normalizeSlashes;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,9 +43,9 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
 
     private boolean isProjectMapped(final String prefix, final RequestMappingInfo mappingInfo)
     {
-        for (String pattern : mappingInfo.getPatternsCondition().getPatterns())
+        for (String pattern : mappingInfo.getPatternValues())
         {
-            if (pattern.startsWith(prefix))
+            if (normalizeSlashes(pattern).startsWith(normalizeSlashes(prefix)))
             {
                 return true;
             }
@@ -67,7 +69,7 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
         });
 
         toRemove.forEach(key -> {
-            logger.debug("Unregistering {}, ", key);
+            logger.info("Unregistering {}", key);
             mappingHandler.unregisterMapping(key);
         });
     }

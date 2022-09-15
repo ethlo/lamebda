@@ -47,12 +47,12 @@ lamebda.request-path=/gateway
 * `project.url-prefix-enabled` - Default is true. If you set this to false the URLs in this project will not have the prepended project alias.
 
 ### Setup a project folder
-Create a project folder. This folder is a logical grouping for your API functions. We will go with the create `test` for now. We now have the folder `/var/lib/lamebda/test`.
+Create a project folder. This folder is a logical grouping for your API functions. We will go with the creative choice `test` for now. We now have the folder `/var/lib/lamebda/test`.
 
 ### Add your first script
 1. Create a folder for the functions in the test project: `/var/lib/lamebda/test/src/main/groovy/com/acme`
 
-2. Add a simple script in the scripts folder:
+2. Add a simple script in the `scripts` folder:
 
 ```groovy
 @RestController

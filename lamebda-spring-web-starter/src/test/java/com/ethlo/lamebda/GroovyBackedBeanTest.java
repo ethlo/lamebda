@@ -21,8 +21,6 @@ package com.ethlo.lamebda;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -45,9 +43,8 @@ public class GroovyBackedBeanTest
     @Test
     public void init()
     {
-        final Path projectPath = Paths.get("src/test/projects/myproject");
-        final Map<Path, Project> managers = functionManagerDirector.getProjects();
-        final ProjectImpl fm = (ProjectImpl) managers.get(projectPath);
-        assertThat(fm).isNotNull();
+        final Map<String, Project> managers = functionManagerDirector.getProjects();
+        final Project project = managers.get("myproject");
+        assertThat(project).isNotNull();
     }
 }

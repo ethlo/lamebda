@@ -35,7 +35,6 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "lamebda")
-@ConstructorBinding
 public class LamebdaConfiguration
 {
     /**
@@ -64,6 +63,7 @@ public class LamebdaConfiguration
     @NotNull
     private final Path rootDirectory;
 
+    @ConstructorBinding
     public LamebdaConfiguration(final String requestPath, final String uiBasePath, final String swaggerUiPath, final boolean enabled, final Path rootDirectory)
     {
         this.requestPath = requestPath;

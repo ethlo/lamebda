@@ -20,6 +20,8 @@ package com.ethlo.lamebda.mapping;
  * #L%
  */
 
+import org.springframework.lang.NonNull;
+
 import java.util.Comparator;
 import java.util.Objects;
 
@@ -67,7 +69,7 @@ public class MethodAndPattern implements Comparable<MethodAndPattern>
     }
 
     @Override
-    public int compareTo(final MethodAndPattern b)
+    public int compareTo(@NonNull final MethodAndPattern b)
     {
         return Comparator.comparing(MethodAndPattern::getMethod).thenComparing(MethodAndPattern::getPattern).compare(this, b);
     }

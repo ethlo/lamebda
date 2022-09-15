@@ -23,10 +23,16 @@ package com.ethlo.lamebda;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.io.Resource;
 
+import java.nio.file.Path;
 import java.util.Optional;
 
 public interface Project extends AutoCloseable
 {
+    static String toAlias(Path projectPath)
+    {
+        return projectPath.getFileName().toString();
+    }
+
     ProjectConfiguration getProjectConfiguration();
 
     void close();
@@ -34,4 +40,6 @@ public interface Project extends AutoCloseable
     AnnotationConfigApplicationContext getProjectContext();
 
     Optional<Resource> getApiSpecification();
+
+    String getAlias();
 }
