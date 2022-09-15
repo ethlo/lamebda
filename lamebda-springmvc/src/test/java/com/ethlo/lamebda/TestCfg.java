@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,7 +37,6 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import com.ethlo.lamebda.functions.ProjectInfoController;
 
 @Configuration
-@EnableWebMvc
 public class TestCfg
 {
     @Autowired(required = false)

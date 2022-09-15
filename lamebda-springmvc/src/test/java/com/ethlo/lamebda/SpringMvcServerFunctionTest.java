@@ -23,15 +23,14 @@ package com.ethlo.lamebda;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureWebMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -39,6 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = TestCfg.class)
+@AutoConfigureWebMvc
 @AutoConfigureMockMvc
 public class SpringMvcServerFunctionTest
 {
@@ -49,18 +49,31 @@ public class SpringMvcServerFunctionTest
     public void shouldCallController() throws Exception
     {
         this.mockMvc.
-                perform(post("/lamebda/myproject/test/123").content("{\"payload\": 999}").contentType(MediaType.APPLICATION_JSON))
-                .andDo(print())
+                perform(post("/lamebda/myproject/test/123")
+                        .content("{\"payload\": 999}")
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("{\"id\":\"123\"}")));
     }
 
     @Test
-    public void shouldCallOpenAPiController() throws Exception
+    public void shouldCallController2() throws Exception
+    {
+        mockMvc.
+                perform(post("/lamebda/myproject/test/998877")
+                        .content("{}")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                        .andExpect(content().string(containsString("{\"id\":\"998877\"}")));
+
+    }
+
+    @Test
+    public void shouldCallOpenApiController() throws Exception
     {
         this.mockMvc.
-                perform(get("/foo/bar/lamebda/myproject/api.yaml").contextPath("/foo/bar"))
-                .andDo(print())
+                perform(get("/foo/bar/lamebda/myproject/api.yaml")
+                        .contextPath("/foo/bar"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("url: /foo/bar/lamebda/myproject/v1/mine")));
     }
