@@ -28,7 +28,7 @@ Add dependency to your `pom.xml`
 <dependency>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda-spring-web-starter</artifactId>
-    <version>1.2.0</version>
+    <version>1.3.1</version>
 </dependency>
 ```
 
