@@ -20,11 +20,9 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -34,6 +32,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +43,6 @@ import com.ethlo.lamebda.dao.LocalProjectDao;
 import com.ethlo.lamebda.dao.LocalProjectDaoImpl;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
-import com.ethlo.lamebda.util.IoUtil;
 
 public class ProjectManager
 {
@@ -56,6 +54,7 @@ public class ProjectManager
     private final Map<String, Project> projects = new ConcurrentHashMap<>();
     private final LocalProjectDao localProjectDao;
     private final LamebdaConfiguration rootConfiguration;
+    private static final long pid = ProcessHandle.current().pid();;
 
     private WatchDir watchDir;
 
@@ -87,28 +86,23 @@ public class ProjectManager
         try
         {
             Files.createDirectories(parentWorkDir);
-            final Path workDir = Files.createTempDirectory(parentWorkDir, null);
-
-            Runtime.getRuntime().addShutdownHook(new Thread(() ->
+            final Path workDir = Files.createTempDirectory(parentWorkDir, pid + "_");
+            try (final Stream<Path> l = Files.list(parentWorkDir))
             {
-                try
-                {
-                    FileSystemUtils.deleteRecursively(workDir);
-                    if (IoUtil.isEmptyDir(workDir.getParent()))
-                    {
-                        IoUtil.deleteDirectory(workDir.getParent());
-                    }
-                }
-                catch (NoSuchFileException | FileNotFoundException exc)
-                {
-                    logger.debug("Could not delete temp directory " + workDir + ": " + exc.getMessage());
-                }
-                catch (IOException exc)
-                {
-                    logger.warn("Could not delete temp directory " + workDir + ": " + exc.getMessage());
-                }
-            }));
-
+                l.filter(Files::isDirectory)
+                        .filter(path -> !path.getFileName().toString().startsWith(Long.toString(pid)))
+                        .forEach(root ->
+                        {
+                            try
+                            {
+                                FileSystemUtils.deleteRecursively(root);
+                            }
+                            catch (IOException exc)
+                            {
+                                logger.warn("Could not delete temp directory " + workDir + ": " + exc.getMessage());
+                            }
+                        });
+            }
             return workDir;
         }
         catch (IOException e)
