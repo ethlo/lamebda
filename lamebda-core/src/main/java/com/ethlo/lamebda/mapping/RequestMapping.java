@@ -24,10 +24,10 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
+import org.springframework.lang.NonNull;
+
 import com.ethlo.lamebda.HttpMethod;
 import com.fasterxml.jackson.annotation.JsonInclude;
-
-import org.springframework.lang.NonNull;
 
 public class RequestMapping implements Comparable<RequestMapping>
 {
@@ -106,7 +106,7 @@ public class RequestMapping implements Comparable<RequestMapping>
         return from(this).compareTo(from(requestMapping));
     }
 
-    private MethodAndPattern from(final RequestMapping requestMapping)
+    private static MethodAndPattern from(final RequestMapping requestMapping)
     {
         final String method = requestMapping.getMethods().isEmpty() ? "" : requestMapping.getMethods().iterator().next().name();
         final String pattern = requestMapping.getPatterns().isEmpty() ? "" : requestMapping.getPatterns().iterator().next();

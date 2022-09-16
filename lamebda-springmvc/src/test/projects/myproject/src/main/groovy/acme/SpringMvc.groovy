@@ -27,9 +27,9 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseBody
 
 @Controller
-@RequestMapping("\${custom-base-path:}")
+@RequestMapping("/baz/\${custom-base-path:}")
 class SpringMvc {
-    @PostMapping("test/{id}")
+    @PostMapping("/test/{id}")
     @ResponseBody
     post(@RequestBody RequestClass request, @PathVariable("id") String id) {
         return Collections.singletonMap("id", id)

@@ -72,7 +72,7 @@ public class ProjectInfoController
     private final PebbleRenderer pebbleRenderer;
     private final LamebdaMetaAccessService lamebdaMetaAccessService;
 
-    private static final Map<String, String> extensionMappings = new TreeMap<String, String>()
+    private static final Map<String, String> extensionMappings = new TreeMap<>()
     {{
         put("html", "text/html");
         put("css", "text/css");

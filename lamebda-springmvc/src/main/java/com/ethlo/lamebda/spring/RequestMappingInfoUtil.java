@@ -20,6 +20,7 @@ package com.ethlo.lamebda.spring;
  * #L%
  */
 
+import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -28,37 +29,34 @@ import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.env.PropertyResolver;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.util.pattern.PathPatternParser;
 
 import com.ethlo.lamebda.ProjectConfiguration;
 
 public class RequestMappingInfoUtil
 {
-    private static final RequestMappingHandlerMapping delegate = new RequestMappingHandlerMapping();
+    private static final RequestMappingInfo.BuilderConfiguration options;
 
-    public static RequestMappingInfo getMappingForMethod(final ProjectConfiguration projectConfiguration, final PropertyResolver propertyResolver, final Method method)
+    static
     {
-        final RequestMappingInfo.BuilderConfiguration options = new RequestMappingInfo.BuilderConfiguration();
+        options = new RequestMappingInfo.BuilderConfiguration();
         options.setPatternParser(new PathPatternParser());
-        delegate.setEmbeddedValueResolver(propertyResolver::resolveRequiredPlaceholders);
+    }
 
-        final RequestMapping requestMapping = AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class);
-        if (requestMapping != null)
+    public static RequestMappingInfo getMappingForMethod(final ProjectConfiguration projectConfiguration, final PropertyResolver propertyResolver, final AnnotatedElement instance, final Method method)
+    {
+        final RequestMappingInfo methodLevel = getMapping(method, propertyResolver);
+        if (methodLevel != null)
         {
-            final RequestMappingInfo mapping = RequestMappingInfo
-                    .paths(Arrays.stream(requestMapping.path()).map(propertyResolver::resolveRequiredPlaceholders).toArray(String[]::new))
-                    .methods(requestMapping.method())
-                    .params(requestMapping.params())
-                    .headers(requestMapping.headers())
-                    .consumes(requestMapping.consumes())
-                    .produces(requestMapping.produces())
-                    .mappingName(requestMapping.name())
-                    .options(options)
-                    .build();
+            RequestMappingInfo mapping = methodLevel;
+            final RequestMappingInfo typeInfo = getMapping(instance, propertyResolver);
+            if (typeInfo != null)
+            {
+                mapping = typeInfo.combine(methodLevel);
+            }
 
             // Project context path
-            RequestMappingInfo projectPathRequestMappingInfo = RequestMappingInfo
+            final RequestMappingInfo projectPathRequestMappingInfo = RequestMappingInfo
                     .paths(projectConfiguration.getContextPath())
                     .options(options).build();
 
@@ -68,6 +66,25 @@ public class RequestMappingInfoUtil
                     .options(options).build();
 
             return rootPathRequestMappingInfo.combine(projectPathRequestMappingInfo.combine(mapping));
+        }
+        return null;
+    }
+
+    private static RequestMappingInfo getMapping(AnnotatedElement userInstance, final PropertyResolver propertyResolver)
+    {
+        final RequestMapping requestMapping = AnnotatedElementUtils.findMergedAnnotation(userInstance, RequestMapping.class);
+        if (requestMapping != null)
+        {
+            return RequestMappingInfo
+                    .paths(Arrays.stream(requestMapping.path()).map(propertyResolver::resolveRequiredPlaceholders).toArray(String[]::new))
+                    .methods(requestMapping.method())
+                    .params(requestMapping.params())
+                    .headers(requestMapping.headers())
+                    .consumes(requestMapping.consumes())
+                    .produces(requestMapping.produces())
+                    .mappingName(requestMapping.name())
+                    .options(options)
+                    .build();
         }
         return null;
     }

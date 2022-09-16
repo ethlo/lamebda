@@ -21,11 +21,9 @@ package com.ethlo.lamebda;
  */
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -41,11 +39,11 @@ import org.springframework.aop.target.SingletonTargetSource;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.MethodIntrospector;
 import org.springframework.core.env.PropertyResolver;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.ClassUtils;
 import org.springframework.util.MimeType;
-import org.springframework.util.ReflectionUtils;
-import org.springframework.web.servlet.mvc.condition.PatternsRequestCondition;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
@@ -71,15 +69,23 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
 
         final List<RequestMapping> result = new LinkedList<>();
 
-        Arrays.asList(ReflectionUtils.getUniqueDeclaredMethods(controller.getClass())).forEach(method ->
-        {
-            final RequestMappingInfo mapping = RequestMappingInfoUtil.getMappingForMethod(projectConfiguration, propertyResolver, method);
-            if (mapping != null)
-            {
-                final RequestMapping res = doRegister(handlerMapping, wrappedController, method, mapping);
-                result.add(res);
-            }
-        });
+        final Class<?> userType = ClassUtils.getUserClass(controller.getClass());
+
+        final Map<Method, RequestMappingInfo> methods = MethodIntrospector.selectMethods(userType, (MethodIntrospector.MetadataLookup<RequestMappingInfo>) method ->
+                {
+                    try
+                    {
+                        return RequestMappingInfoUtil.getMappingForMethod(projectConfiguration, propertyResolver, userType, method);
+                    }
+                    catch (Throwable ex)
+                    {
+                        throw new IllegalStateException("Invalid mapping on handler class [" +
+                                userType.getName() + "]: " + method, ex);
+                    }
+                }
+        );
+
+        methods.forEach((method, mapping) -> result.add(doRegister(handlerMapping, wrappedController, method, mapping)));
         return result;
     }
 
@@ -94,7 +100,7 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
     {
 
         final Set<HttpMethod> methods = mappingToUse.getMethodsCondition().getMethods().stream().map(method -> HttpMethod.parse(method.name())).collect(Collectors.toSet());
-        final Set<String> patterns = Optional.ofNullable(mappingToUse.getPatternsCondition()).map(PatternsRequestCondition::getPatterns).orElse(Collections.emptySet());
+        final Set<String> patterns = mappingToUse.getPatternValues();
         final Set<String> consumes = mappingToUse.getConsumesCondition().getConsumableMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
         final Set<String> produces = mappingToUse.getProducesCondition().getProducibleMediaTypes().stream().map(MimeType::toString).collect(Collectors.toSet());
 

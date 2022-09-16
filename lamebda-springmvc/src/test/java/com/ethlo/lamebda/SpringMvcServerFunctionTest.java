@@ -68,7 +68,7 @@ public class SpringMvcServerFunctionTest
         try
         {
             mockMvc.
-                    perform(post("/lamebda/myproject/test/123")
+                    perform(post("/lamebda/myproject/baz/test/123")
                             .content("{\"payload\": 999}")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(found ? status().isOk() : status().isNotFound());
@@ -83,7 +83,7 @@ public class SpringMvcServerFunctionTest
     public void shouldCallController() throws Exception
     {
         mockMvc.
-                perform(post("/lamebda/myproject/test/123")
+                perform(post("/lamebda/myproject/baz/test/123")
                         .content("{\"payload\": 999}")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -94,7 +94,7 @@ public class SpringMvcServerFunctionTest
     public void shouldCallController2() throws Exception
     {
         mockMvc.
-                perform(post("/lamebda/myproject/test/998877")
+                perform(post("/lamebda/myproject/baz/test/998877")
                         .content("{}")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
