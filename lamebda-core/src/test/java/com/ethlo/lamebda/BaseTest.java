@@ -53,7 +53,7 @@ public abstract class BaseTest
         properties.put("project.source.java", "target/generated-sources/java");
         properties.put("project.base-packages", "acme");
         final BootstrapConfiguration cfg = new BootstrapConfiguration("/gateway", projectPath, properties);
-        project = new ProjectImpl(parentContext, cfg, ProjectManager.setupWorkDir(projectPath));
+        project = new ProjectImpl("myproject", parentContext, cfg, ProjectManager.setupWorkDir(projectPath));
     }
 
     private void deleteTarget()

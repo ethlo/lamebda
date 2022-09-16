@@ -134,7 +134,9 @@ public class ProjectInfoController
     {
         final Map<String, Object> projectInfo = new LinkedHashMap<>();
         final ProjectConfiguration pc = project.getProjectConfiguration();
+        projectInfo.put("alias", project.getAlias());
         projectInfo.put("name", pc.getProjectInfo().getName());
+        projectInfo.put("base_packages", pc.getProjectInfo().getBasePackages());
         projectInfo.put("last_loaded", OffsetDateTime.ofInstant(Instant.ofEpochMilli(project.getProjectContext().getStartupDate()), ZoneId.systemDefault()));
         projectInfo.put("context_path", pc.getContextPath());
         projectInfo.put("version", pc.getProjectInfo().getVersion());

@@ -30,6 +30,7 @@ import javax.validation.constraints.NotEmpty;
 public class ProjectInfo
 {
     private String name;
+
     private String version;
 
     @NotEmpty

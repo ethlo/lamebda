@@ -200,7 +200,7 @@ public class ProjectManager
         try
         {
             final BootstrapConfiguration cfg = new BootstrapConfiguration(rootConfiguration.getRequestPath(), projectPath, System.getProperties());
-            project = new ProjectImpl(parentContext, cfg, setupWorkDir(projectPath));
+            project = new ProjectImpl(alias, parentContext, cfg, setupWorkDir(projectPath));
             projects.put(Project.toAlias(projectPath), project);
         }
         catch (Exception exc)

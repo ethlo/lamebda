@@ -80,6 +80,7 @@ public class ProjectImpl implements Project
     public static final String PROPERTIES_EXTENSION = "properties";
     public static final String LIB_DIRECTORY = "lib";
     private static final Logger logger = LoggerFactory.getLogger(ProjectImpl.class);
+    private String alias;
     private final BootstrapConfiguration bootstrapConfiguration;
     private final ApplicationContext parentContext;
     private final GroovyClassLoader groovyClassLoader = new GroovyClassLoader();
@@ -91,8 +92,9 @@ public class ProjectImpl implements Project
     private JavaCompiler javaCompiler;
     private GroovyCompiler groovyCompiler;
 
-    public ProjectImpl(ApplicationContext parentContext, BootstrapConfiguration bootstrapConfiguration, final Path workDirectory)
+    public ProjectImpl(final String alias, ApplicationContext parentContext, BootstrapConfiguration bootstrapConfiguration, final Path workDirectory)
     {
+        this.alias = alias;
         this.bootstrapConfiguration = Objects.requireNonNull(bootstrapConfiguration);
         this.parentContext = Objects.requireNonNull(parentContext);
         this.projectPath = bootstrapConfiguration.getPath();
@@ -388,7 +390,7 @@ public class ProjectImpl implements Project
     @Override
     public String getAlias()
     {
-        return Project.toAlias(projectPath);
+        return alias;
     }
 
     @Override
