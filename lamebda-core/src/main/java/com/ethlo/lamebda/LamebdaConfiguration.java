@@ -63,10 +63,10 @@ public class LamebdaConfiguration
     @NotNull
     private final Path rootDirectory;
 
-    private final boolean directoryWatchEnabled;
+    private final Boolean directoryWatchEnabled;
 
     @ConstructorBinding
-    public LamebdaConfiguration(final String requestPath, final String uiBasePath, final String swaggerUiPath, final boolean enabled, final Path rootDirectory, final boolean directoryWatchEnabled)
+    public LamebdaConfiguration(final String requestPath, final String uiBasePath, final String swaggerUiPath, final boolean enabled, final Path rootDirectory, final Boolean directoryWatchEnabled)
     {
         this.requestPath = requestPath;
         this.uiBasePath = uiBasePath;
@@ -103,7 +103,7 @@ public class LamebdaConfiguration
 
     public boolean isDirectoryWatchEnabled()
     {
-        return directoryWatchEnabled;
+        return directoryWatchEnabled != null ? directoryWatchEnabled : true;
     }
 
     @Override
