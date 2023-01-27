@@ -54,7 +54,8 @@ public class ProjectManager
     private final Map<String, Project> projects = new ConcurrentHashMap<>();
     private final LocalProjectDao localProjectDao;
     private final LamebdaConfiguration rootConfiguration;
-    private static final long pid = ProcessHandle.current().pid();;
+    private static final long pid = ProcessHandle.current().pid();
+    ;
 
     private WatchDir watchDir;
 
@@ -168,7 +169,14 @@ public class ProjectManager
 
     private void initializeAll() throws IOException
     {
-        setupDirectoryWatcher();
+        if (rootConfiguration.isDirectoryWatchEnabled())
+        {
+            setupDirectoryWatcher();
+        }
+        else
+        {
+            logger.info("Directory watch is disabled. No automatic reload will occur");
+        }
 
         for (Path projectPath : localProjectDao.getLocalProjectDirectories())
         {

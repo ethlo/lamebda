@@ -20,16 +20,16 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
+
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 @Valid
 @Validated
@@ -63,14 +63,17 @@ public class LamebdaConfiguration
     @NotNull
     private final Path rootDirectory;
 
+    private final boolean directoryWatchEnabled;
+
     @ConstructorBinding
-    public LamebdaConfiguration(final String requestPath, final String uiBasePath, final String swaggerUiPath, final boolean enabled, final Path rootDirectory)
+    public LamebdaConfiguration(final String requestPath, final String uiBasePath, final String swaggerUiPath, final boolean enabled, final Path rootDirectory, final boolean directoryWatchEnabled)
     {
         this.requestPath = requestPath;
         this.uiBasePath = uiBasePath;
         this.swaggerUiPath = swaggerUiPath;
         this.enabled = enabled;
         this.rootDirectory = Paths.get(rootDirectory.toString().replaceFirst("^~", System.getProperty("user.home")));
+        this.directoryWatchEnabled = directoryWatchEnabled;
     }
 
     public String getRequestPath()
@@ -96,6 +99,11 @@ public class LamebdaConfiguration
     public String getUiBasePath()
     {
         return uiBasePath;
+    }
+
+    public boolean isDirectoryWatchEnabled()
+    {
+        return directoryWatchEnabled;
     }
 
     @Override

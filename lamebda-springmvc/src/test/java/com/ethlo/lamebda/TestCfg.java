@@ -28,11 +28,9 @@ import java.util.List;
 
 import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
 import com.ethlo.lamebda.functions.ProjectInfoController;
 
@@ -46,7 +44,7 @@ public class TestCfg
     public ProjectManager projectManager(ApplicationContext applicationContext) throws IOException
     {
         final Path basePath = Paths.get("src/test/projects");
-        final LamebdaConfiguration lamebdaConfiguration = new LamebdaConfiguration("lamebda", "classpath:foo", "swaggerUiPath", true, basePath);
+        final LamebdaConfiguration lamebdaConfiguration = new LamebdaConfiguration("lamebda", "classpath:foo", "swaggerUiPath", true, basePath, true);
         return new ProjectManager(lamebdaConfiguration, applicationContext);
     }
 
