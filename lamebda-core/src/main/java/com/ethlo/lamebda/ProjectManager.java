@@ -54,8 +54,7 @@ public class ProjectManager
     private final Map<String, Project> projects = new ConcurrentHashMap<>();
     private final LocalProjectDao localProjectDao;
     private final LamebdaConfiguration rootConfiguration;
-    private static final long pid = ProcessHandle.current().pid();
-    ;
+    private static final long PID = ProcessHandle.current().pid();
 
     private WatchDir watchDir;
 
@@ -87,11 +86,11 @@ public class ProjectManager
         try
         {
             Files.createDirectories(parentWorkDir);
-            final Path workDir = Files.createTempDirectory(parentWorkDir, pid + "_");
+            final Path workDir = Files.createTempDirectory(parentWorkDir, PID + "_");
             try (final Stream<Path> l = Files.list(parentWorkDir))
             {
                 l.filter(Files::isDirectory)
-                        .filter(path -> !path.getFileName().toString().startsWith(Long.toString(pid)))
+                        .filter(path -> !path.getFileName().toString().startsWith(Long.toString(PID)))
                         .forEach(root ->
                         {
                             try
@@ -100,7 +99,7 @@ public class ProjectManager
                             }
                             catch (IOException exc)
                             {
-                                logger.warn("Could not delete temp directory " + workDir + ": " + exc.getMessage());
+                                logger.warn("Could not delete temp directory {}}: {}", workDir, exc.getMessage());
                             }
                         });
             }
@@ -119,10 +118,13 @@ public class ProjectManager
         {
             final Path path = e.getPath();
             final Path projectPath = getProjectPath(path);
+            final String alias = Project.toAlias(projectPath);
             final boolean isWorkDirPath = path.toAbsolutePath().startsWith(projectPath.resolve(WORKDIR_DIRECTORY_NAME).toAbsolutePath());
             final boolean isProjectPath = projectPath.equals(path);
             final boolean isProjectJar = projectPath.resolve(projectPath.getFileName().toString() + ".jar").equals(path);
             final boolean isKnownType = isKnownType(path.getFileName().toString());
+            final Path noReloadFile = projectPath.resolve(".no_reload");
+            final boolean reloadDisabledByFile = Files.exists(noReloadFile);
 
             if (isWorkDirPath)
             {
@@ -131,13 +133,20 @@ public class ProjectManager
             else if (e.getChangeType() == ChangeType.DELETED && isProjectPath)
             {
                 logger.info("Closing project due to deletion of project directory: {}", e.getPath());
-                closeProject(Project.toAlias(e.getPath()));
+                closeProject(alias);
             }
             else if (e.getChangeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath || isProjectJar))
             {
-                logger.info("Reloading project due to modification of {}", path);
-                closeProject(Project.toAlias(projectPath));
-                loadProject(Project.toAlias(projectPath));
+                if (!reloadDisabledByFile)
+                {
+                    logger.info("Reloading project {} due to modification of {}", alias, path);
+                    closeProject(alias);
+                    loadProject(alias);
+                }
+                else
+                {
+                    logger.info("Reload is temporarily disabled for project {} due to the presence of file {}", alias, noReloadFile);
+                }
             }
         }, true, rootDirectory);
         new Thread()
@@ -198,6 +207,7 @@ public class ProjectManager
     {
         logger.info("Loading {}", alias);
         final Path projectPath = rootDirectory.resolve(alias);
+
         Project project = null;
         try
         {
