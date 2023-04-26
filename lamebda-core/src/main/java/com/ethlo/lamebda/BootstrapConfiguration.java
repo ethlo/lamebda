@@ -20,11 +20,11 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import jakarta.validation.Valid;
+
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.util.Properties;
-
-import javax.validation.Valid;
 
 @Valid
 public class BootstrapConfiguration implements Serializable

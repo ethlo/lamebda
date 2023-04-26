@@ -20,13 +20,13 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import jakarta.validation.Valid;
+
+import jakarta.validation.constraints.NotNull;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -65,7 +65,6 @@ public class LamebdaConfiguration
 
     private final Boolean directoryWatchEnabled;
 
-    @ConstructorBinding
     public LamebdaConfiguration(final String requestPath, final String uiBasePath, final String swaggerUiPath, final boolean enabled, final Path rootDirectory, final Boolean directoryWatchEnabled)
     {
         this.requestPath = requestPath;
