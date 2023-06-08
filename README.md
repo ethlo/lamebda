@@ -23,14 +23,22 @@ A simple, powerful, plugin system for adding new API endpoints or custom functio
 
 #### Usage with Spring Boot and Spring MVC
 
+##### Note:
+
+1.x releases are for Spring Boot 2.x.
+
+2.x releases are for Spring Boot 3.x.
+
 Add dependency to your `pom.xml`
 ```xml
 <dependency>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda-spring-web-starter</artifactId>
-    <version>1.3.1</version>
+    <version>2.0.1</version>
 </dependency>
 ```
+
+
 
 Add the following properties to your applications `application.properties|yaml`:
 ```properties
