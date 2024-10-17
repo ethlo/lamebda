@@ -41,6 +41,12 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
 {
     private static final Logger logger = LoggerFactory.getLogger(ProjectCleanupService.class);
 
+    public static RequestMappingHandlerMapping getMappingHandler(final String beanName, ProjectEvent event)
+    {
+        final AnnotationConfigApplicationContext ctx = event.getProjectContext();
+        return ctx.getBean(beanName, RequestMappingHandlerMapping.class);
+    }
+
     private boolean isProjectMapped(final String prefix, final RequestMappingInfo mappingInfo)
     {
         for (String pattern : mappingInfo.getPatternValues())
@@ -72,11 +78,5 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
             logger.info("Unregistering {}", key);
             mappingHandler.unregisterMapping(key);
         });
-    }
-
-    public static RequestMappingHandlerMapping getMappingHandler(final String beanName, ProjectEvent event)
-    {
-        final AnnotationConfigApplicationContext ctx = event.getProjectContext();
-        return ctx.getBean(beanName, RequestMappingHandlerMapping.class);
     }
 }

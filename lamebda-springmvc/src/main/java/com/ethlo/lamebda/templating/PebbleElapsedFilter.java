@@ -20,11 +20,6 @@ package com.ethlo.lamebda.templating;
  * #L%
  */
 
-import io.pebbletemplates.pebble.error.PebbleException;
-import io.pebbletemplates.pebble.extension.Filter;
-import io.pebbletemplates.pebble.template.EvaluationContext;
-import io.pebbletemplates.pebble.template.PebbleTemplate;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -33,20 +28,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import io.pebbletemplates.pebble.error.PebbleException;
+import io.pebbletemplates.pebble.extension.Filter;
+import io.pebbletemplates.pebble.template.EvaluationContext;
+import io.pebbletemplates.pebble.template.PebbleTemplate;
+
 public class PebbleElapsedFilter implements Filter
 {
-    @Override
-    public Object apply(final Object input, final Map<String, Object> args, final PebbleTemplate self, final EvaluationContext context, final int lineNumber) throws PebbleException
-    {
-        return humanReadableFormat(Duration.ofSeconds(Instant.now().toEpochMilli() / 1000).minusSeconds(((OffsetDateTime) input).toEpochSecond()));
-    }
-
-    @Override
-    public List<String> getArgumentNames()
-    {
-        return Collections.emptyList();
-    }
-
     public static String humanReadableFormat(Duration duration)
     {
         if (duration.toDays() == 0)
@@ -63,5 +51,17 @@ public class PebbleElapsedFilter implements Filter
                 duration.toMinutes() - TimeUnit.HOURS.toMinutes(duration.toHours()),
                 duration.getSeconds() - TimeUnit.MINUTES.toSeconds(duration.toMinutes())
         );
+    }
+
+    @Override
+    public Object apply(final Object input, final Map<String, Object> args, final PebbleTemplate self, final EvaluationContext context, final int lineNumber) throws PebbleException
+    {
+        return humanReadableFormat(Duration.ofSeconds(Instant.now().toEpochMilli() / 1000).minusSeconds(((OffsetDateTime) input).toEpochSecond()));
+    }
+
+    @Override
+    public List<String> getArgumentNames()
+    {
+        return Collections.emptyList();
     }
 }

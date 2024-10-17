@@ -3,10 +3,10 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda</artifactId>
-    <version>2.0.1</version>
+    <version>3.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Lamebda</name>
-    <description>Powerful plugin system for adding custom functionality to existing applications, supporting both pre-compiled or source code, with live reload.</description>
+    <description>Powerful plug-in system for adding custom functionality to existing applications with live reload.</description>
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
@@ -24,7 +24,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.0.7</version>
+        <version>3.3.4</version>
     </parent>
     <modules>
         <module>lamebda-core</module>
@@ -44,7 +44,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version>
+                <version>3.5.0</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -57,25 +57,7 @@
                         </goals>
                     </execution>
                 </executions>
-                <version>3.2.1</version>
-            </plugin>
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.7</version>
-                <executions>
-                    <execution>
-                        <id>prepare-agent</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.eluder.coveralls</groupId>
-                <artifactId>coveralls-maven-plugin</artifactId>
-                <version>4.3.0</version>
+                <version>3.3.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -92,7 +74,7 @@
                     <doclint>none</doclint>
                     <show>public</show>
                 </configuration>
-                <version>3.3.1</version>
+                <version>3.6.3</version>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

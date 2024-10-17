@@ -49,6 +49,13 @@ public class RequestMapping implements Comparable<RequestMapping>
         return new RequestMapping(Collections.singleton(pattern), Collections.singleton(method), null, null);
     }
 
+    private static MethodAndPattern from(final RequestMapping requestMapping)
+    {
+        final String method = requestMapping.getMethods().isEmpty() ? "" : requestMapping.getMethods().iterator().next().name();
+        final String pattern = requestMapping.getPatterns().isEmpty() ? "" : requestMapping.getPatterns().iterator().next();
+        return new MethodAndPattern(method, pattern);
+    }
+
     public Set<String> getPatterns()
     {
         return patterns;
@@ -104,12 +111,5 @@ public class RequestMapping implements Comparable<RequestMapping>
     public int compareTo(@NonNull final RequestMapping requestMapping)
     {
         return from(this).compareTo(from(requestMapping));
-    }
-
-    private static MethodAndPattern from(final RequestMapping requestMapping)
-    {
-        final String method = requestMapping.getMethods().isEmpty() ? "" : requestMapping.getMethods().iterator().next().name();
-        final String pattern = requestMapping.getPatterns().isEmpty() ? "" : requestMapping.getPatterns().iterator().next();
-        return new MethodAndPattern(method, pattern);
     }
 }

@@ -20,10 +20,10 @@ package com.ethlo.lamebda.mapping;
  * #L%
  */
 
-import org.springframework.lang.NonNull;
-
 import java.util.Comparator;
 import java.util.Objects;
+
+import org.springframework.lang.NonNull;
 
 public class MethodAndPattern implements Comparable<MethodAndPattern>
 {

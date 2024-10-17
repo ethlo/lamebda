@@ -21,7 +21,6 @@ package com.ethlo.lamebda;
  */
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -32,12 +31,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.util.FileSystemUtils;
 
 import com.ethlo.lamebda.dao.LocalProjectDao;
 import com.ethlo.lamebda.dao.LocalProjectDaoImpl;
@@ -48,14 +45,12 @@ public class ProjectManager
 {
     public static final String WORKDIR_DIRECTORY_NAME = "workdir";
     private static final Logger logger = LoggerFactory.getLogger(ProjectManager.class);
+
     private final Path rootDirectory;
     private final ApplicationContext parentContext;
-
     private final Map<String, Project> projects = new ConcurrentHashMap<>();
     private final LocalProjectDao localProjectDao;
     private final LamebdaConfiguration rootConfiguration;
-    private static final long PID = ProcessHandle.current().pid();
-
     private WatchDir watchDir;
 
     public ProjectManager(final LamebdaConfiguration rootConfiguration, ApplicationContext parentContext) throws IOException
@@ -78,37 +73,6 @@ public class ProjectManager
         logger.debug("Parent application context ID: {}", parentContext.getId());
 
         initializeAll();
-    }
-
-    public static Path setupWorkDir(final Path projectPath)
-    {
-        final Path parentWorkDir = projectPath.resolve(WORKDIR_DIRECTORY_NAME);
-        try
-        {
-            Files.createDirectories(parentWorkDir);
-            final Path workDir = Files.createTempDirectory(parentWorkDir, PID + "_");
-            try (final Stream<Path> l = Files.list(parentWorkDir))
-            {
-                l.filter(Files::isDirectory)
-                        .filter(path -> !path.getFileName().toString().startsWith(Long.toString(PID)))
-                        .forEach(root ->
-                        {
-                            try
-                            {
-                                FileSystemUtils.deleteRecursively(root);
-                            }
-                            catch (IOException exc)
-                            {
-                                logger.warn("Could not delete temp directory {}}: {}", workDir, exc.getMessage());
-                            }
-                        });
-            }
-            return workDir;
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
     }
 
     private void setupDirectoryWatcher() throws IOException
@@ -206,14 +170,13 @@ public class ProjectManager
     private void loadProject(final String alias)
     {
         logger.info("Loading {}", alias);
-        final Path projectPath = rootDirectory.resolve(alias);
 
         Project project = null;
         try
         {
-            final BootstrapConfiguration cfg = new BootstrapConfiguration(rootConfiguration.getRequestPath(), projectPath, System.getProperties());
-            project = new ProjectImpl(alias, parentContext, cfg, setupWorkDir(projectPath));
-            projects.put(Project.toAlias(projectPath), project);
+            final BootstrapConfiguration cfg = new BootstrapConfiguration(rootConfiguration.getRequestPath(), rootDirectory.resolve(alias), System.getProperties());
+            project = new ProjectImpl(alias, parentContext, cfg);
+            projects.put(alias, project);
         }
         catch (Exception exc)
         {
@@ -229,15 +192,20 @@ public class ProjectManager
                 logger.warn("An error occurred cleaning up failed project initialization", e);
             }
 
-            logger.warn("Unable to load project in {}", projectPath, exc);
+            if (rootConfiguration.haltOnError())
+            {
+                throw new ProjectLoadException("Unable to load project " + alias, exc);
+            }
+            else
+            {
+                logger.warn("Unable to load project {}", alias, exc);
+            }
         }
     }
 
     private boolean isKnownType(final String filename)
     {
-        return filename.endsWith(ProjectImpl.GROOVY_EXTENSION)
-                || filename.endsWith(ProjectImpl.JAVA_EXTENSION)
-                || filename.endsWith(ProjectImpl.PROPERTIES_EXTENSION);
+        return filename.endsWith(ProjectImpl.PROPERTIES_EXTENSION);
     }
 
     public Map<String, Project> getProjects()

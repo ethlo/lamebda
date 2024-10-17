@@ -20,11 +20,11 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
-
 import java.util.LinkedHashSet;
 import java.util.Set;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 
 @Valid
 public class ProjectInfo

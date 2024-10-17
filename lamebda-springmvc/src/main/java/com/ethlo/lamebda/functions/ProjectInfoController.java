@@ -36,10 +36,6 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import jakarta.servlet.http.HttpServletRequest;
-
-import jakarta.servlet.http.HttpServletResponse;
-
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -64,15 +60,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping(value = "${lamebda.request-path}", produces = "application/json")
 public class ProjectInfoController
 {
-    private final ProjectManager projectManager;
-    private final PebbleRenderer pebbleRenderer;
-    private final LamebdaMetaAccessService lamebdaMetaAccessService;
-
     private static final Map<String, String> extensionMappings = new TreeMap<>()
     {{
         put("html", "text/html");
@@ -81,6 +75,9 @@ public class ProjectInfoController
         put("gif", "image/gif");
         put("png", "image/png");
     }};
+    private final ProjectManager projectManager;
+    private final PebbleRenderer pebbleRenderer;
+    private final LamebdaMetaAccessService lamebdaMetaAccessService;
 
     public ProjectInfoController(final ProjectManager projectManager, final LamebdaMetaAccessService lamebdaMetaAccessService)
     {

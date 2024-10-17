@@ -1,10 +1,10 @@
-package foo;
+package com.ethlo.lamebda;
 
 /*-
  * #%L
  * lamebda-core
  * %%
- * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2024 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,19 +19,13 @@ package foo;
  * limitations under the License.
  * #L%
  */
-//import org.springframework.stereotype.Service;
 
-public class Hello
+import org.springframework.core.NestedRuntimeException;
+
+public class ProjectLoadException extends NestedRuntimeException
 {
-    private String name;
-
-    public Hello(String name)
+    public ProjectLoadException(String message, Exception exc)
     {
-        this.name = name;
-    }
-
-    public String getName()
-    {
-        return name;
+        super(message, exc);
     }
 }

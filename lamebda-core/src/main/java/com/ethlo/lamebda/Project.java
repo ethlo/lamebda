@@ -20,11 +20,11 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.core.io.Resource;
-
 import java.nio.file.Path;
 import java.util.Optional;
+
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.io.Resource;
 
 public interface Project extends AutoCloseable
 {
