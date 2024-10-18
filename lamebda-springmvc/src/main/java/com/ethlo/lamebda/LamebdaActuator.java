@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.Period;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ public class LamebdaActuator
         final Optional<String> optVersion = IoUtil.toString("lamebda-version.info");
         optVersion.ifPresent(versionStr -> res.put("lamebda_version", versionStr));
         res.put("startup_time", projectManager.getStartupTime());
-        res.put("uptime", getIso8601Duration(projectManager.getStartupTime(), OffsetDateTime.now()));
+        res.put("uptime", getIso8601Duration(projectManager.getStartupTime().truncatedTo(ChronoUnit.SECONDS), OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS)));
         res.put("projects", projectManager.getProjects().values()
                 .stream()
                 .map(this::getProjectInfo)
