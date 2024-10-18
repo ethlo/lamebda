@@ -21,6 +21,7 @@ package com.ethlo.lamebda;
  */
 
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -63,7 +64,7 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         this.methodInterceptors = methodInterceptors;
     }
 
-    private List<RequestMapping> register(PropertyResolver propertyResolver, RequestMappingHandlerMapping handlerMapping, Object controller, ProjectConfiguration projectConfiguration)
+    private List<RequestMapping> register(PropertyResolver propertyResolver, Collection<RequestMappingHandlerMapping> handlerMappings, Object controller, ProjectConfiguration projectConfiguration)
     {
         final Object wrappedController = wrapController(controller);
 
@@ -85,7 +86,7 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
                 }
         );
 
-        methods.forEach((method, mapping) -> result.add(doRegister(handlerMapping, wrappedController, method, mapping)));
+        handlerMappings.forEach(handlerMapping -> methods.forEach((method, mapping) -> result.add(doRegister(handlerMapping, wrappedController, method, mapping))));
         return result;
     }
 
@@ -111,24 +112,6 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         return new RequestMapping(patterns, methods, consumes, produces);
     }
 
-    @Override
-    public void onApplicationEvent(final ProjectLoadedEvent event)
-    {
-        final AnnotationConfigApplicationContext projectCtx = event.getProjectContext();
-        final ProjectConfiguration projectCfg = event.getProjectConfiguration();
-        final RequestMappingHandlerMapping handlerMapping = ProjectCleanupService.getMappingHandler(projectCfg.getRequestMappingHandlerMappingBeanName(), event);
-
-        // Register controller beans
-        final SortedSet<RequestMapping> allMappings = new TreeSet<>();
-        projectCtx.getBeansWithAnnotation(Controller.class).forEach((beanName, controller) ->
-        {
-            final List<RequestMapping> mappings = register(projectCtx.getEnvironment(), handlerMapping, controller, projectCfg);
-            allMappings.addAll(mappings);
-        });
-
-        event.getProjectContext().registerBean("_all_mappings", Set.class, () -> allMappings);
-    }
-
     private Object createAOPProxyWithInterceptorsAndAdvisors(final List<MethodInterceptor> methodInterceptors, final List<Advisor> advisors, Object controller)
     {
         final ProxyFactoryBean proxyFactoryBean = new ProxyFactoryBean();
@@ -138,5 +121,24 @@ public class ProjectSetupService implements ApplicationListener<ProjectLoadedEve
         proxyFactoryBean.addAdvisors(advisors);
         methodInterceptors.forEach(proxyFactoryBean::addAdvice);
         return proxyFactoryBean.getObject();
+    }
+
+    @Override
+    public void onApplicationEvent(final ProjectLoadedEvent event)
+    {
+        final AnnotationConfigApplicationContext projectCtx = event.getProjectContext();
+        final ProjectConfiguration projectCfg = event.getProjectConfiguration();
+
+        final List<RequestMappingHandlerMapping> handlerMappings = ProjectCleanupService.getMappingHandler(event);
+
+        // Register controller beans
+        final SortedSet<RequestMapping> allMappings = new TreeSet<>();
+        projectCtx.getBeansWithAnnotation(Controller.class).forEach((beanName, controller) ->
+        {
+            final List<RequestMapping> mappings = register(projectCtx.getEnvironment(), handlerMappings, controller, projectCfg);
+            allMappings.addAll(mappings);
+        });
+
+        event.getProjectContext().registerBean("_all_mappings", Set.class, () -> allMappings);
     }
 }

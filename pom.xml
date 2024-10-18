@@ -6,7 +6,8 @@
     <version>3.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Lamebda</name>
-    <description>Powerful plug-in system for adding custom functionality to existing applications with live reload.</description>
+    <description>Powerful plug-in system for adding custom functionality to existing applications with live reload.
+    </description>
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>

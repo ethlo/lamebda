@@ -23,26 +23,8 @@ package com.ethlo.lamebda.io;
 import java.nio.file.Path;
 import java.util.Objects;
 
-public class FileSystemEvent
+public record FileSystemEvent(ChangeType changeType, Path path)
 {
-    private final Path path;
-    private final ChangeType changeType;
-
-    public FileSystemEvent(final ChangeType changeType, final Path path)
-    {
-        this.changeType = changeType;
-        this.path = path;
-    }
-
-    public Path getPath()
-    {
-        return path;
-    }
-
-    public ChangeType getChangeType()
-    {
-        return changeType;
-    }
 
     @Override
     public boolean equals(final Object o)
@@ -52,12 +34,6 @@ public class FileSystemEvent
         final FileSystemEvent that = (FileSystemEvent) o;
         return Objects.equals(path, that.path) &&
                 changeType == that.changeType;
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(path, changeType);
     }
 
     @Override

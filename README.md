@@ -81,6 +81,6 @@ Add `com.acme` as base-package in your `project.properties`:
 
 Your function should be available under `/gateway/test/my/123`
 
-### Built in functions
+### Built-in functions
 
 * /&lt;servlet&gt;/gateway - Status page showing your projects

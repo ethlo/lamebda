@@ -19,7 +19,6 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -105,15 +104,13 @@ public class ProjectImpl implements Project
         }
 
         decompressArchive();
-        logger.info("Using work directory {}", workDir);
 
         this.projectConfiguration = ProjectConfiguration.load(bootstrapConfiguration, workDir);
 
         readVersionFile(projectPath);
         readVersionFile(workDir);
-        logger.info("Version: {}", projectConfiguration.getProjectInfo().getVersion());
 
-        logger.debug("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
+        logger.info("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
 
         final URL[] extraUrls = getExtraClasspathUrls();
         this.classLoader = new URLClassLoader(extraUrls, parentContext.getClassLoader());
@@ -123,18 +120,14 @@ public class ProjectImpl implements Project
 
     private URL[] getExtraClasspathUrls()
     {
-        final Set<String> allExtraLibs = projectConfiguration.getClasspath()
-                .stream().map(URI::toString)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        allExtraLibs.add(IoUtil.toURL(projectConfiguration.getTargetClassDirectory()).toString());
-        allExtraLibs.add(IoUtil.toURL(projectConfiguration.getMainResourcePath()).toString());
+        final Set<URI> allExtraLibs = projectConfiguration.getClasspath();
         findLibraries(workDir, allExtraLibs);
 
         return allExtraLibs.stream().map(spec ->
         {
             try
             {
-                return new URL(spec);
+                return spec.toURL();
             }
             catch (MalformedURLException e)
             {
@@ -163,7 +156,7 @@ public class ProjectImpl implements Project
         }
     }
 
-    private void findLibraries(Path path, Set<String> targetList)
+    private void findLibraries(Path path, Set<URI> targetList)
     {
         final Path libPath = path.resolve(ProjectImpl.LIB_DIRECTORY);
         if (Files.isDirectory(libPath))
@@ -171,7 +164,7 @@ public class ProjectImpl implements Project
             getLibUrls(libPath).forEach(url ->
             {
                 targetList.add(url);
-                logger.debug("Adding library classpath {}", url);
+                logger.info("Adding library classpath {}", url);
             });
         }
         else
@@ -203,13 +196,22 @@ public class ProjectImpl implements Project
         Files.copy(zis, inTempTarget, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private List<String> getLibUrls(Path path)
+    private List<URI> getLibUrls(Path path)
     {
         if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS))
         {
             return Collections.emptyList();
         }
-        return IoUtil.toClassPathList(path);
+        try (final Stream<Path> fs = Files.list(path))
+        {
+            return fs.filter(p -> p.getFileName().toString().endsWith("." + ProjectImpl.JAR_EXTENSION))
+                    .map(Path::toUri)
+                    .collect(Collectors.toList());
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private void initialize()
@@ -225,16 +227,8 @@ public class ProjectImpl implements Project
     {
         // Scan for beans
         final Set<String> basePackages = projectConfiguration.getProjectInfo().getBasePackages();
-        if (!basePackages.isEmpty())
-        {
-            logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(basePackages));
-            this.projectCtx.scan(basePackages.toArray(new String[0]));
-        }
-        else
-        {
-            logger.warn("No base-packages set to scan");
-        }
-
+        logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(basePackages));
+        projectCtx.scan(basePackages.toArray(new String[0]));
         projectCtx.refresh();
     }
 
@@ -340,13 +334,6 @@ public class ProjectImpl implements Project
     public AnnotationConfigApplicationContext getProjectContext()
     {
         return projectCtx;
-    }
-
-    @Override
-    public Optional<Resource> getApiSpecification()
-    {
-        final Resource resource = getProjectContext().getResource(projectConfiguration.getApiSpecificationSource());
-        return Optional.ofNullable(resource.exists() ? resource : null);
     }
 
     @Override

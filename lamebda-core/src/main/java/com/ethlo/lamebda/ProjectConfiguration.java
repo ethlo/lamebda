@@ -44,11 +44,8 @@ public class ProjectConfiguration
 {
     private final Path path;
     private final String rootContextPath;
-
     private final ProjectInfo projectInfo;
     private final Set<URI> classpath = new LinkedHashSet<>();
-    private final String apiSpecificationSource;
-    private final String requestMappingHandlerMappingBeanName;
     private String contextPath;
 
     public ProjectConfiguration(final BootstrapConfiguration bootstrapConfiguration, final Properties properties)
@@ -63,11 +60,8 @@ public class ProjectConfiguration
         this.projectInfo.setName(Optional.ofNullable(properties.getProperty("project.name")).orElse(id));
         this.projectInfo.setBasePackages(getCsvSet(properties));
 
-        this.apiSpecificationSource = Optional.ofNullable(properties.getProperty("project.api-specification.source")).orElse("specification/oas.yaml");
-
         final boolean useProjectNameUrlPrefix = Boolean.parseBoolean(properties.getProperty("project.url-prefix-enabled", "true"));
         this.setContextPath(Optional.ofNullable(properties.getProperty("project.context-path")).orElse(useProjectNameUrlPrefix ? id : ""));
-        this.requestMappingHandlerMappingBeanName = Optional.ofNullable(properties.getProperty("project.request-mapping-handler-mapping-bean-name")).orElse("requestMappingHandlerMapping");
     }
 
     public static ProjectConfiguration load(final BootstrapConfiguration bootstrapConfiguration, final Path workDir)
@@ -140,28 +134,8 @@ public class ProjectConfiguration
         }
     }
 
-    public Path getTargetClassDirectory()
-    {
-        return path.resolve("target").resolve("classes");
-    }
-
-    public Path getMainResourcePath()
-    {
-        return path.resolve("src").resolve("main").resolve("resources");
-    }
-
     public ProjectInfo getProjectInfo()
     {
         return projectInfo;
-    }
-
-    public String getApiSpecificationSource()
-    {
-        return apiSpecificationSource;
-    }
-
-    public String getRequestMappingHandlerMappingBeanName()
-    {
-        return requestMappingHandlerMappingBeanName;
     }
 }

@@ -21,30 +21,11 @@ package com.ethlo.lamebda.mapping;
  */
 
 import java.util.Comparator;
-import java.util.Objects;
 
 import org.springframework.lang.NonNull;
 
-public class MethodAndPattern implements Comparable<MethodAndPattern>
+public record MethodAndPattern(String method, String pattern) implements Comparable<MethodAndPattern>
 {
-    private final String method;
-    private final String pattern;
-
-    public MethodAndPattern(final String method, final String pattern)
-    {
-        this.method = method;
-        this.pattern = pattern;
-    }
-
-    public String getMethod()
-    {
-        return method;
-    }
-
-    public String getPattern()
-    {
-        return pattern;
-    }
 
     @Override
     public String toString()
@@ -53,24 +34,8 @@ public class MethodAndPattern implements Comparable<MethodAndPattern>
     }
 
     @Override
-    public boolean equals(final Object o)
-    {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final MethodAndPattern that = (MethodAndPattern) o;
-        return Objects.equals(method, that.method) &&
-                Objects.equals(pattern, that.pattern);
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(method, pattern);
-    }
-
-    @Override
     public int compareTo(@NonNull final MethodAndPattern b)
     {
-        return Comparator.comparing(MethodAndPattern::getMethod).thenComparing(MethodAndPattern::getPattern).compare(this, b);
+        return Comparator.comparing(MethodAndPattern::method).thenComparing(MethodAndPattern::pattern).compare(this, b);
     }
 }

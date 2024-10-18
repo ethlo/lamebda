@@ -21,7 +21,6 @@ package com.ethlo.lamebda.mapping;
  */
 
 import java.util.Collections;
-import java.util.Objects;
 import java.util.Set;
 
 import org.springframework.lang.NonNull;
@@ -29,20 +28,9 @@ import org.springframework.lang.NonNull;
 import com.ethlo.lamebda.HttpMethod;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-public class RequestMapping implements Comparable<RequestMapping>
+public record RequestMapping(Set<String> patterns, Set<HttpMethod> methods, Set<String> consumes,
+                             Set<String> produces) implements Comparable<RequestMapping>
 {
-    private final Set<String> patterns;
-    private final Set<HttpMethod> methods;
-    private final Set<String> consumes;
-    private final Set<String> produces;
-
-    public RequestMapping(final Set<String> patterns, final Set<HttpMethod> methods, final Set<String> consumes, final Set<String> produces)
-    {
-        this.patterns = patterns;
-        this.methods = methods;
-        this.consumes = consumes;
-        this.produces = produces;
-    }
 
     public static RequestMapping of(final HttpMethod method, String pattern)
     {
@@ -51,29 +39,21 @@ public class RequestMapping implements Comparable<RequestMapping>
 
     private static MethodAndPattern from(final RequestMapping requestMapping)
     {
-        final String method = requestMapping.getMethods().isEmpty() ? "" : requestMapping.getMethods().iterator().next().name();
-        final String pattern = requestMapping.getPatterns().isEmpty() ? "" : requestMapping.getPatterns().iterator().next();
+        final String method = requestMapping.methods().isEmpty() ? "" : requestMapping.methods().iterator().next().name();
+        final String pattern = requestMapping.patterns().isEmpty() ? "" : requestMapping.patterns().iterator().next();
         return new MethodAndPattern(method, pattern);
     }
 
-    public Set<String> getPatterns()
-    {
-        return patterns;
-    }
-
-    public Set<HttpMethod> getMethods()
-    {
-        return methods;
-    }
-
+    @Override
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    public Set<String> getConsumes()
+    public Set<String> consumes()
     {
         return consumes;
     }
 
+    @Override
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-    public Set<String> getProduces()
+    public Set<String> produces()
     {
         return produces;
     }
@@ -87,24 +67,6 @@ public class RequestMapping implements Comparable<RequestMapping>
                 ", consumes=" + consumes +
                 ", produces=" + produces +
                 '}';
-    }
-
-    @Override
-    public boolean equals(final Object o)
-    {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final RequestMapping that = (RequestMapping) o;
-        return Objects.equals(patterns, that.patterns) &&
-                Objects.equals(methods, that.methods) &&
-                Objects.equals(consumes, that.consumes) &&
-                Objects.equals(produces, that.produces);
-    }
-
-    @Override
-    public int hashCode()
-    {
-        return Objects.hash(patterns, methods, consumes, produces);
     }
 
     @Override

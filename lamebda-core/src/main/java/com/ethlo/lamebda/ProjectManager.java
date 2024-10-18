@@ -28,7 +28,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -53,13 +52,12 @@ public class ProjectManager
     private final LamebdaConfiguration rootConfiguration;
     private WatchDir watchDir;
 
-    public ProjectManager(final LamebdaConfiguration rootConfiguration, ApplicationContext parentContext) throws IOException
+    public ProjectManager(final LamebdaConfiguration lamebdaConfiguration, ApplicationContext parentContext) throws IOException
     {
-        this.rootConfiguration = rootConfiguration;
+        this.rootConfiguration = lamebdaConfiguration;
 
-        this.rootDirectory = rootConfiguration.getRootDirectory();
-        logger.info("Initializing Lamebda with root directory '{}'", rootDirectory.toAbsolutePath());
-        logger.debug("Root configuration: {}", rootConfiguration);
+        this.rootDirectory = lamebdaConfiguration.getRootDirectory();
+        logger.info("Initializing Lamebda with configuration:\n{}", lamebdaConfiguration.toPrettyString());
 
         if (!Files.isDirectory(rootDirectory))
         {
@@ -80,7 +78,7 @@ public class ProjectManager
         // Register directory watcher to discover new project directories created in root directory
         this.watchDir = new WatchDir(e ->
         {
-            final Path path = e.getPath();
+            final Path path = e.path();
             final Path projectPath = getProjectPath(path);
             final String alias = Project.toAlias(projectPath);
             final boolean isWorkDirPath = path.toAbsolutePath().startsWith(projectPath.resolve(WORKDIR_DIRECTORY_NAME).toAbsolutePath());
@@ -94,12 +92,12 @@ public class ProjectManager
             {
                 logger.debug("Skipping target file: {}", path);
             }
-            else if (e.getChangeType() == ChangeType.DELETED && isProjectPath)
+            else if (e.changeType() == ChangeType.DELETED && isProjectPath)
             {
-                logger.info("Closing project due to deletion of project directory: {}", e.getPath());
+                logger.info("Closing project due to deletion of project directory: {}", e.path());
                 closeProject(alias);
             }
-            else if (e.getChangeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath || isProjectJar))
+            else if (e.changeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath || isProjectJar))
             {
                 if (!reloadDisabledByFile)
                 {
@@ -229,21 +227,6 @@ public class ProjectManager
                 .stream()
                 .map(path -> path.getFileName().toString())
                 .collect(Collectors.toList());
-    }
-
-    public Optional<Project> getByAlias(String alias)
-    {
-        return projects
-                .values()
-                .stream()
-                .filter(p -> p.getProjectConfiguration().getPath().getFileName().toString().equals(alias))
-                .findFirst();
-    }
-
-    public void reload(final Project project)
-    {
-        unload(project);
-        load(project);
     }
 
     public void load(Project project)

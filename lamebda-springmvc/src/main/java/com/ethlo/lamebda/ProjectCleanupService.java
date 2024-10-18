@@ -22,12 +22,14 @@ package com.ethlo.lamebda;
 
 import static com.ethlo.lamebda.spring.RequestMappingInfoUtil.normalizeSlashes;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.web.method.HandlerMethod;
@@ -41,10 +43,10 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
 {
     private static final Logger logger = LoggerFactory.getLogger(ProjectCleanupService.class);
 
-    public static RequestMappingHandlerMapping getMappingHandler(final String beanName, ProjectEvent event)
+    public static List<RequestMappingHandlerMapping> getMappingHandler(ProjectEvent event)
     {
         final AnnotationConfigApplicationContext ctx = event.getProjectContext();
-        return ctx.getBean(beanName, RequestMappingHandlerMapping.class);
+        return new ArrayList<>(BeanFactoryUtils.beansOfTypeIncludingAncestors(ctx.getBeanFactory(), RequestMappingHandlerMapping.class).values());
     }
 
     private boolean isProjectMapped(final String prefix, final RequestMappingInfo mappingInfo)
@@ -63,20 +65,23 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
     public void onApplicationEvent(final ProjectClosingEvent event)
     {
         final ProjectConfiguration projectConfiguration = event.getProjectConfiguration();
-        final RequestMappingHandlerMapping mappingHandler = getMappingHandler(projectConfiguration.getRequestMappingHandlerMappingBeanName(), event);
-        final Map<RequestMappingInfo, HandlerMethod> handlerMethods = mappingHandler.getHandlerMethods();
-        final String prefix = projectConfiguration.getRootContextPath() + "/" + projectConfiguration.getContextPath();
-        final List<RequestMappingInfo> toRemove = new LinkedList<>();
-        handlerMethods.forEach((key, value) -> {
-            if (isProjectMapped(prefix, key))
-            {
-                toRemove.add(key);
-            }
-        });
+        final List<RequestMappingHandlerMapping> mappingHandlers = getMappingHandler(event);
+        mappingHandlers.forEach(mappingHandler ->
+        {
+            final Map<RequestMappingInfo, HandlerMethod> handlerMethods = mappingHandler.getHandlerMethods();
+            final String prefix = projectConfiguration.getRootContextPath() + "/" + projectConfiguration.getContextPath();
+            final List<RequestMappingInfo> toRemove = new LinkedList<>();
+            handlerMethods.forEach((key, value) -> {
+                if (isProjectMapped(prefix, key))
+                {
+                    toRemove.add(key);
+                }
+            });
 
-        toRemove.forEach(key -> {
-            logger.info("Unregistering {}", key);
-            mappingHandler.unregisterMapping(key);
+            toRemove.forEach(key -> {
+                logger.info("Unregistering {}", key);
+                mappingHandler.unregisterMapping(key);
+            });
         });
     }
 }
