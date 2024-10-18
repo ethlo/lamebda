@@ -80,7 +80,7 @@ public class LamebdaActuator
         final Map<String, Object> res = new LinkedHashMap<>();
         final Optional<String> optVersion = IoUtil.toString("lamebda-version.info");
         optVersion.ifPresent(versionStr -> res.put("lamebda_version", versionStr));
-        res.put("startup_time", projectManager.getStartupTime());
+        res.put("startup_time", projectManager.getStartupTime().truncatedTo(ChronoUnit.SECONDS));
         res.put("uptime", getIso8601Duration(projectManager.getStartupTime().truncatedTo(ChronoUnit.SECONDS), OffsetDateTime.now().truncatedTo(ChronoUnit.SECONDS)));
         res.put("projects", projectManager.getProjects().values()
                 .stream()
