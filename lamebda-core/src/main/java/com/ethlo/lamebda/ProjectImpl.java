@@ -11,7 +11,9 @@ import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -23,6 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -39,16 +42,13 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
-import org.springframework.instrument.classloading.SimpleThrowawayClassLoader;
 import org.springframework.lang.NonNull;
 import org.springframework.util.StringUtils;
 
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.util.IoUtil;
-import com.ethlo.qjc.groovy.GroovyCompiler;
-import com.ethlo.qjc.java.JavaCompiler;
-import groovy.lang.GroovyClassLoader;
+import com.google.common.jimfs.Jimfs;
 
 /*-
  * #%L
@@ -75,31 +75,27 @@ public class ProjectImpl implements Project
     public static final String PROJECT_FILENAME = "project.properties";
     public static final String DEFAULT_CONFIG_FILENAME = "application.properties";
     public static final String JAR_EXTENSION = "jar";
-    public static final String GROOVY_EXTENSION = "groovy";
-    public static final String JAVA_EXTENSION = "java";
     public static final String PROPERTIES_EXTENSION = "properties";
     public static final String LIB_DIRECTORY = "lib";
     private static final Logger logger = LoggerFactory.getLogger(ProjectImpl.class);
-    private String alias;
+    private final String alias;
     private final BootstrapConfiguration bootstrapConfiguration;
     private final ApplicationContext parentContext;
-    private final GroovyClassLoader groovyClassLoader = new GroovyClassLoader();
+    private final URLClassLoader classLoader;
     private final Path workDir;
     private final Path projectPath;
-    private final Path classesDir;
     private final ProjectConfiguration projectConfiguration;
+    private final FileSystem fs;
     private AnnotationConfigApplicationContext projectCtx;
-    private JavaCompiler javaCompiler;
-    private GroovyCompiler groovyCompiler;
 
-    public ProjectImpl(final String alias, ApplicationContext parentContext, BootstrapConfiguration bootstrapConfiguration, final Path workDirectory)
+    public ProjectImpl(final String alias, ApplicationContext parentContext, BootstrapConfiguration bootstrapConfiguration)
     {
         this.alias = alias;
         this.bootstrapConfiguration = Objects.requireNonNull(bootstrapConfiguration);
         this.parentContext = Objects.requireNonNull(parentContext);
         this.projectPath = bootstrapConfiguration.getPath();
-        this.workDir = Objects.requireNonNull(workDirectory).toAbsolutePath();
-        this.classesDir = createDirectory(workDir.resolve("target").resolve("classes"));
+        this.fs = Jimfs.newFileSystem();
+        this.workDir = fs.getPath(ProjectManager.WORKDIR_DIRECTORY_NAME);
 
         final Path projectPath = bootstrapConfiguration.getPath();
         if (!Files.exists(projectPath))
@@ -107,46 +103,37 @@ public class ProjectImpl implements Project
             throw new UncheckedIOException(new FileNotFoundException("Cannot use " + projectPath.toAbsolutePath() + " as project directory as it does not exist"));
         }
 
-        decompressIfApplicable();
-        logger.info("Using work directory {}", workDir);
-        addLibraries(workDir);
+        decompressArchive();
 
         this.projectConfiguration = ProjectConfiguration.load(bootstrapConfiguration, workDir);
 
         readVersionFile(projectPath);
         readVersionFile(workDir);
-        logger.info("Version: {}", projectConfiguration.getProjectInfo().getVersion());
 
-        logger.debug("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
+        logger.info("ProjectConfiguration: {}", projectConfiguration.toPrettyString());
 
-        // Add manually added class-path entries
-        for (URI cpUrl : projectConfiguration.getClasspath())
+        final URL[] extraUrls = getExtraClasspathUrls();
+        this.classLoader = new URLClassLoader(extraUrls, parentContext.getClassLoader());
+
+        initialize();
+    }
+
+    private URL[] getExtraClasspathUrls()
+    {
+        final Set<URI> allExtraLibs = projectConfiguration.getClasspath();
+        findLibraries(workDir, allExtraLibs);
+
+        return allExtraLibs.stream().map(spec ->
         {
             try
             {
-                groovyClassLoader.addURL(cpUrl.toURL());
+                return spec.toURL();
             }
             catch (MalformedURLException e)
             {
                 throw new UncheckedIOException(e);
             }
-        }
-
-        setupCompilers();
-        initialize();
-    }
-
-    private Path createDirectory(final Path path)
-    {
-        try
-        {
-            Files.createDirectories(path);
-            return path;
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException("Unable to create directory: " + path, e);
-        }
+        }).toList().toArray(new URL[0]);
     }
 
     private void readVersionFile(final Path path)
@@ -155,43 +142,29 @@ public class ProjectImpl implements Project
         optVersion.ifPresent(versionStr -> projectConfiguration.getProjectInfo().setVersion(versionStr.replaceAll("^[\r\n]+|[\r\n]+$", "")));
     }
 
-    private void setupCompilers()
-    {
-        javaCompiler = new JavaCompiler(new SimpleThrowawayClassLoader(groovyClassLoader));
-        groovyCompiler = new GroovyCompiler(groovyClassLoader);
-    }
-
-    private void decompressIfApplicable()
+    private void decompressArchive()
     {
         final Path archivePath = projectPath.resolve(projectPath.getFileName() + "." + JAR_EXTENSION);
-        logger.info("Looking for project archive file at {}", archivePath);
-        if (Files.exists(archivePath))
+        logger.debug("Decompressing project archive {}", archivePath);
+        try
         {
-            logger.info("Decompressing project archive file {}", archivePath);
-            try
-            {
-                unzipDirectory(archivePath, workDir);
-            }
-            catch (IOException e)
-            {
-                throw new UncheckedIOException(e);
-            }
+            unzipDirectory(archivePath, workDir);
         }
-        else
+        catch (IOException e)
         {
-            logger.info("No project archive file found at {}", archivePath);
+            throw new UncheckedIOException(e);
         }
     }
 
-    private void addLibraries(Path path)
+    private void findLibraries(Path path, Set<URI> targetList)
     {
         final Path libPath = path.resolve(ProjectImpl.LIB_DIRECTORY);
         if (Files.isDirectory(libPath))
         {
             getLibUrls(libPath).forEach(url ->
             {
-                groovyClassLoader.addClasspath(url);
-                logger.debug("Adding library classpath {}", url);
+                targetList.add(url);
+                logger.info("Adding library classpath {}", url);
             });
         }
         else
@@ -223,21 +196,28 @@ public class ProjectImpl implements Project
         Files.copy(zis, inTempTarget, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private List<String> getLibUrls(Path path)
+    private List<URI> getLibUrls(Path path)
     {
         if (!Files.exists(path, LinkOption.NOFOLLOW_LINKS))
         {
             return Collections.emptyList();
         }
-        return IoUtil.toClassPathList(path);
+        try (final Stream<Path> fs = Files.list(path))
+        {
+            return fs.filter(p -> p.getFileName().toString().endsWith("." + ProjectImpl.JAR_EXTENSION))
+                    .map(Path::toUri)
+                    .collect(Collectors.toList());
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private void initialize()
     {
         setupSpringChildContext();
-        addResourceClasspath();
         createProjectConfigBean();
-        compileSources();
         findBeans();
 
         parentContext.publishEvent(new ProjectLoadedEvent(projectConfiguration, projectCtx));
@@ -247,16 +227,8 @@ public class ProjectImpl implements Project
     {
         // Scan for beans
         final Set<String> basePackages = projectConfiguration.getProjectInfo().getBasePackages();
-        if (!basePackages.isEmpty())
-        {
-            logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(basePackages));
-            this.projectCtx.scan(basePackages.toArray(new String[0]));
-        }
-        else
-        {
-            logger.warn("No base-packages set to scan");
-        }
-
+        logger.info("Scanning base packages: {}", StringUtils.collectionToCommaDelimitedString(basePackages));
+        projectCtx.scan(basePackages.toArray(new String[0]));
         projectCtx.refresh();
     }
 
@@ -265,7 +237,7 @@ public class ProjectImpl implements Project
         this.projectCtx = new AnnotationConfigApplicationContext();
         this.projectCtx.setParent(parentContext);
         this.projectCtx.setAllowBeanDefinitionOverriding(false);
-        this.projectCtx.setClassLoader(groovyClassLoader);
+        this.projectCtx.setClassLoader(classLoader);
         this.projectCtx.setId(projectConfiguration.getProjectInfo().getName());
 
         final Resource[] configResources = getConfigResources();
@@ -335,27 +307,10 @@ public class ProjectImpl implements Project
         };
     }
 
-    private void addResourceClasspath()
-    {
-        final URL mainResourcesUrl = IoUtil.toURL(projectConfiguration.getMainResourcePath());
-        logger.debug("Adding main resources to classpath: {}", mainResourcesUrl);
-        groovyClassLoader.addURL(mainResourcesUrl);
-
-        final URL targetResourcesUrl = IoUtil.toURL(classesDir);
-        logger.debug("Adding main classes to classpath: {}", targetResourcesUrl);
-        groovyClassLoader.addURL(targetResourcesUrl);
-    }
-
     private void createProjectConfigBean()
     {
         final ConfigurableListableBeanFactory bf = projectCtx.getBeanFactory();
         bf.registerSingleton("projectConfiguration", bootstrapConfiguration);
-    }
-
-    private void compileSources()
-    {
-        javaCompiler.compile(projectConfiguration.getJavaSourcePaths(), projectConfiguration.getTargetClassDirectory());
-        groovyCompiler.compile(projectConfiguration.getGroovySourcePaths(), projectConfiguration.getTargetClassDirectory());
     }
 
     @Override
@@ -366,7 +321,8 @@ public class ProjectImpl implements Project
         try
         {
             projectCtx.close();
-            groovyClassLoader.close();
+            classLoader.close();
+            fs.close();
         }
         catch (IOException e)
         {
@@ -378,13 +334,6 @@ public class ProjectImpl implements Project
     public AnnotationConfigApplicationContext getProjectContext()
     {
         return projectCtx;
-    }
-
-    @Override
-    public Optional<Resource> getApiSpecification()
-    {
-        final Resource resource = getProjectContext().getResource(projectConfiguration.getApiSpecificationSource());
-        return Optional.ofNullable(resource.exists() ? resource : null);
     }
 
     @Override

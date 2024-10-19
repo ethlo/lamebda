@@ -103,13 +103,10 @@ public class WatchDir implements AutoCloseable
 
     private void registerRecursive(final Path dir) throws IOException
     {
-        Files.walkFileTree(dir, new SimpleFileVisitor<Path>()
-        {
+        Files.walkFileTree(dir, new SimpleFileVisitor<>() {
             @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException
-            {
-                if (Files.isHidden(dir))
-                {
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                if (Files.isHidden(dir)) {
                     return FileVisitResult.SKIP_SUBTREE;
                 }
 

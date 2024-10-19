@@ -21,7 +21,6 @@ package com.ethlo.lamebda;
  */
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -29,15 +28,12 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.util.FileSystemUtils;
 
 import com.ethlo.lamebda.dao.LocalProjectDao;
 import com.ethlo.lamebda.dao.LocalProjectDaoImpl;
@@ -48,23 +44,20 @@ public class ProjectManager
 {
     public static final String WORKDIR_DIRECTORY_NAME = "workdir";
     private static final Logger logger = LoggerFactory.getLogger(ProjectManager.class);
+
     private final Path rootDirectory;
     private final ApplicationContext parentContext;
-
     private final Map<String, Project> projects = new ConcurrentHashMap<>();
     private final LocalProjectDao localProjectDao;
     private final LamebdaConfiguration rootConfiguration;
-    private static final long PID = ProcessHandle.current().pid();
-
     private WatchDir watchDir;
 
-    public ProjectManager(final LamebdaConfiguration rootConfiguration, ApplicationContext parentContext) throws IOException
+    public ProjectManager(final LamebdaConfiguration lamebdaConfiguration, ApplicationContext parentContext) throws IOException
     {
-        this.rootConfiguration = rootConfiguration;
+        this.rootConfiguration = lamebdaConfiguration;
 
-        this.rootDirectory = rootConfiguration.getRootDirectory();
-        logger.info("Initializing Lamebda with root directory '{}'", rootDirectory.toAbsolutePath());
-        logger.debug("Root configuration: {}", rootConfiguration);
+        this.rootDirectory = lamebdaConfiguration.getRootDirectory();
+        logger.info("Initializing Lamebda with configuration:\n{}", lamebdaConfiguration.toPrettyString());
 
         if (!Files.isDirectory(rootDirectory))
         {
@@ -80,43 +73,12 @@ public class ProjectManager
         initializeAll();
     }
 
-    public static Path setupWorkDir(final Path projectPath)
-    {
-        final Path parentWorkDir = projectPath.resolve(WORKDIR_DIRECTORY_NAME);
-        try
-        {
-            Files.createDirectories(parentWorkDir);
-            final Path workDir = Files.createTempDirectory(parentWorkDir, PID + "_");
-            try (final Stream<Path> l = Files.list(parentWorkDir))
-            {
-                l.filter(Files::isDirectory)
-                        .filter(path -> !path.getFileName().toString().startsWith(Long.toString(PID)))
-                        .forEach(root ->
-                        {
-                            try
-                            {
-                                FileSystemUtils.deleteRecursively(root);
-                            }
-                            catch (IOException exc)
-                            {
-                                logger.warn("Could not delete temp directory {}}: {}", workDir, exc.getMessage());
-                            }
-                        });
-            }
-            return workDir;
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
-    }
-
     private void setupDirectoryWatcher() throws IOException
     {
         // Register directory watcher to discover new project directories created in root directory
         this.watchDir = new WatchDir(e ->
         {
-            final Path path = e.getPath();
+            final Path path = e.path();
             final Path projectPath = getProjectPath(path);
             final String alias = Project.toAlias(projectPath);
             final boolean isWorkDirPath = path.toAbsolutePath().startsWith(projectPath.resolve(WORKDIR_DIRECTORY_NAME).toAbsolutePath());
@@ -130,12 +92,12 @@ public class ProjectManager
             {
                 logger.debug("Skipping target file: {}", path);
             }
-            else if (e.getChangeType() == ChangeType.DELETED && isProjectPath)
+            else if (e.changeType() == ChangeType.DELETED && isProjectPath)
             {
-                logger.info("Closing project due to deletion of project directory: {}", e.getPath());
+                logger.info("Closing project due to deletion of project directory: {}", e.path());
                 closeProject(alias);
             }
-            else if (e.getChangeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath || isProjectJar))
+            else if (e.changeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath || isProjectJar))
             {
                 if (!reloadDisabledByFile)
                 {
@@ -206,14 +168,13 @@ public class ProjectManager
     private void loadProject(final String alias)
     {
         logger.info("Loading {}", alias);
-        final Path projectPath = rootDirectory.resolve(alias);
 
         Project project = null;
         try
         {
-            final BootstrapConfiguration cfg = new BootstrapConfiguration(rootConfiguration.getRequestPath(), projectPath, System.getProperties());
-            project = new ProjectImpl(alias, parentContext, cfg, setupWorkDir(projectPath));
-            projects.put(Project.toAlias(projectPath), project);
+            final BootstrapConfiguration cfg = new BootstrapConfiguration(rootConfiguration.getRequestPath(), rootDirectory.resolve(alias), System.getProperties());
+            project = new ProjectImpl(alias, parentContext, cfg);
+            projects.put(alias, project);
         }
         catch (Exception exc)
         {
@@ -229,15 +190,20 @@ public class ProjectManager
                 logger.warn("An error occurred cleaning up failed project initialization", e);
             }
 
-            logger.warn("Unable to load project in {}", projectPath, exc);
+            if (rootConfiguration.haltOnError())
+            {
+                throw new ProjectLoadException("Unable to load project " + alias, exc);
+            }
+            else
+            {
+                logger.warn("Unable to load project {}", alias, exc);
+            }
         }
     }
 
     private boolean isKnownType(final String filename)
     {
-        return filename.endsWith(ProjectImpl.GROOVY_EXTENSION)
-                || filename.endsWith(ProjectImpl.JAVA_EXTENSION)
-                || filename.endsWith(ProjectImpl.PROPERTIES_EXTENSION);
+        return filename.endsWith(ProjectImpl.PROPERTIES_EXTENSION);
     }
 
     public Map<String, Project> getProjects()
@@ -261,21 +227,6 @@ public class ProjectManager
                 .stream()
                 .map(path -> path.getFileName().toString())
                 .collect(Collectors.toList());
-    }
-
-    public Optional<Project> getByAlias(String alias)
-    {
-        return projects
-                .values()
-                .stream()
-                .filter(p -> p.getProjectConfiguration().getPath().getFileName().toString().equals(alias))
-                .findFirst();
-    }
-
-    public void reload(final Project project)
-    {
-        unload(project);
-        load(project);
     }
 
     public void load(Project project)

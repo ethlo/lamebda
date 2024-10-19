@@ -27,13 +27,11 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.util.StringUtils;
@@ -46,16 +44,9 @@ public class ProjectConfiguration
 {
     private final Path path;
     private final String rootContextPath;
-
     private final ProjectInfo projectInfo;
-    private String contextPath;
-
-    private Set<Path> groovySourcePaths = new LinkedHashSet<>();
-    private Set<Path> javaSourcePaths = new LinkedHashSet<>();
-
     private final Set<URI> classpath = new LinkedHashSet<>();
-    private final String apiSpecificationSource;
-    private final String requestMappingHandlerMappingBeanName;
+    private String contextPath;
 
     public ProjectConfiguration(final BootstrapConfiguration bootstrapConfiguration, final Properties properties)
     {
@@ -67,21 +58,10 @@ public class ProjectConfiguration
 
         this.projectInfo = new ProjectInfo();
         this.projectInfo.setName(Optional.ofNullable(properties.getProperty("project.name")).orElse(id));
-        this.projectInfo.setBasePackages(getCsvSet("project.base-packages", properties));
-
-        this.apiSpecificationSource = Optional.ofNullable(properties.getProperty("project.api-specification.source")).orElse("specification/oas.yaml");
+        this.projectInfo.setBasePackages(getCsvSet(properties));
 
         final boolean useProjectNameUrlPrefix = Boolean.parseBoolean(properties.getProperty("project.url-prefix-enabled", "true"));
         this.setContextPath(Optional.ofNullable(properties.getProperty("project.context-path")).orElse(useProjectNameUrlPrefix ? id : ""));
-        this.requestMappingHandlerMappingBeanName = Optional.ofNullable(properties.getProperty("project.request-mapping-handler-mapping-bean-name")).orElse("requestMappingHandlerMapping");
-
-        this.setJavaSourcePaths(merge(getPath().resolve("src").resolve("main").resolve("java"), getCsvSet("project.java.sources", properties).stream().map(Paths::get).collect(Collectors.toSet())));
-        this.setGroovySourcePaths(merge(getPath().resolve("src").resolve("main").resolve("groovy"), getCsvSet("project.groovy.sources", properties).stream().map(Paths::get).collect(Collectors.toSet())));
-    }
-
-    private Set<String> getCsvSet(final String setting, final Properties properties)
-    {
-        return properties.getProperty(setting) != null ? StringUtils.commaDelimitedListToSet(properties.getProperty(setting)) : Collections.emptySet();
     }
 
     public static ProjectConfiguration load(final BootstrapConfiguration bootstrapConfiguration, final Path workDir)
@@ -110,6 +90,11 @@ public class ProjectConfiguration
         return result;
     }
 
+    private Set<String> getCsvSet(final Properties properties)
+    {
+        return properties.getProperty("project.base-packages") != null ? StringUtils.commaDelimitedListToSet(properties.getProperty("project.base-packages")) : Collections.emptySet();
+    }
+
     public String getRootContextPath()
     {
         return rootContextPath;
@@ -128,37 +113,6 @@ public class ProjectConfiguration
     public Path getPath()
     {
         return path;
-    }
-
-    public Set<Path> getGroovySourcePaths()
-    {
-        return groovySourcePaths;
-    }
-
-    public void setGroovySourcePaths(final Set<Path> groovySourcePaths)
-    {
-        this.groovySourcePaths = ensureAbsolutePaths(groovySourcePaths);
-    }
-
-    public Set<Path> getJavaSourcePaths()
-    {
-        return javaSourcePaths;
-    }
-
-    public void setJavaSourcePaths(final Set<Path> javaSourcePaths)
-    {
-        this.javaSourcePaths = ensureAbsolutePaths(javaSourcePaths);
-    }
-
-    private Set<Path> merge(final Path extra, final Set<Path> existing)
-    {
-        existing.add(extra);
-        return existing;
-    }
-
-    private Set<Path> ensureAbsolutePaths(final Set<Path> paths)
-    {
-        return paths.stream().map(p -> p.isAbsolute() ? p : path.resolve(p).normalize()).collect(Collectors.toSet());
     }
 
     public Set<URI> getClasspath()
@@ -180,28 +134,8 @@ public class ProjectConfiguration
         }
     }
 
-    public Path getTargetClassDirectory()
-    {
-        return path.resolve("target").resolve("classes");
-    }
-
-    public Path getMainResourcePath()
-    {
-        return path.resolve("src").resolve("main").resolve("resources");
-    }
-
     public ProjectInfo getProjectInfo()
     {
         return projectInfo;
-    }
-
-    public String getApiSpecificationSource()
-    {
-        return apiSpecificationSource;
-    }
-
-    public String getRequestMappingHandlerMappingBeanName()
-    {
-        return requestMappingHandlerMappingBeanName;
     }
 }

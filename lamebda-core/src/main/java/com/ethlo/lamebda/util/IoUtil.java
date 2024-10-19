@@ -94,20 +94,6 @@ public class IoUtil
         FileSystemUtils.deleteRecursively(directory);
     }
 
-    public static List<String> toClassPathList(final Path jarPath)
-    {
-        try (final Stream<Path> fs = Files.list(jarPath))
-        {
-            return fs.filter(p -> p.getFileName().toString().endsWith("." + ProjectImpl.JAR_EXTENSION))
-                    .map(Path::toString)
-                    .collect(Collectors.toList());
-        }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
-    }
-
     public static Optional<String> toString(final Path file)
     {
         try

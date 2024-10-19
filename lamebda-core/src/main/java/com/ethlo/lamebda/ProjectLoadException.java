@@ -2,9 +2,9 @@ package com.ethlo.lamebda;
 
 /*-
  * #%L
- * lamebda-springmvc
+ * lamebda-core
  * %%
- * Copyright (C) 2018 - 2022 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2024 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,12 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.NestedRuntimeException;
 
-public interface LamebdaMetaAccessService
+public class ProjectLoadException extends NestedRuntimeException
 {
-    boolean isIndexInfoAccessGranted(final HttpServletRequest request);
-
-    boolean isProjectInfoAccessGranted(String projectAlias, HttpServletRequest request);
+    public ProjectLoadException(String message, Exception exc)
+    {
+        super(message, exc);
+    }
 }
