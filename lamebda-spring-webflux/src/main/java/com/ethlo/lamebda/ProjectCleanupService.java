@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +34,9 @@ import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+import org.springframework.web.reactive.result.method.RequestMappingInfo;
+import org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping;
+import org.springframework.web.util.pattern.PathPattern;
 
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectEvent;
@@ -51,7 +53,7 @@ public class ProjectCleanupService implements ApplicationListener<ProjectClosing
 
     private boolean isProjectMapped(final String prefix, final RequestMappingInfo mappingInfo)
     {
-        for (String pattern : mappingInfo.getPatternValues())
+        for (String pattern : mappingInfo.getPatternsCondition().getPatterns().stream().map(PathPattern::getPatternString).collect(Collectors.toSet()))
         {
             if (normalizeSlashes(pattern).startsWith(normalizeSlashes(prefix)))
             {

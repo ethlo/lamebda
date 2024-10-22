@@ -29,8 +29,11 @@
     </parent>
     <modules>
         <module>lamebda-core</module>
-        <module>lamebda-spring-web-starter</module>
-        <module>lamebda-springmvc</module>
+        <module>lamebda-spring-webmvc-starter</module>
+        <module>lamebda-spring-webflux-starter</module>
+        <module>lamebda-spring-webmvc</module>
+        <module>lamebda-spring-webflux</module>
+        <module>lamebda-spring-web</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

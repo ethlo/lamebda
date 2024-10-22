@@ -3,7 +3,7 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>lamebda-springmvc</artifactId>
+    <artifactId>lamebda-spring-webflux</artifactId>
     <parent>
         <artifactId>lamebda</artifactId>
         <groupId>com.ethlo.lamebda</groupId>
@@ -11,21 +11,13 @@
     </parent>
     <dependencies>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.ethlo.lamebda</groupId>
-            <artifactId>lamebda-core</artifactId>
+            <artifactId>lamebda-spring-web</artifactId>
             <version>3.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-actuator</artifactId>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webflux</artifactId>
         </dependency>
 
         <!-- TEST -->
