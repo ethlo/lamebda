@@ -70,7 +70,7 @@ public class LamebdaConfiguration
     {
         this.requestPath = requestPath;
         this.enabled = Optional.ofNullable(enabled).orElse(true);
-        this.rootDirectory = Paths.get(rootDirectory.toString().replaceFirst("^~", System.getProperty("user.home")));
+        this.rootDirectory = Optional.ofNullable(rootDirectory).map(dir->Paths.get(dir.toString().replaceFirst("^~", System.getProperty("user.home")))).orElseThrow(()->new IllegalArgumentException("The Lamebda root directory must be set"));
         this.directoryWatchEnabled = Optional.ofNullable(directoryWatchEnabled).orElse(true);
         this.haltOnError = Optional.ofNullable(haltOnError).orElse(true);
     }

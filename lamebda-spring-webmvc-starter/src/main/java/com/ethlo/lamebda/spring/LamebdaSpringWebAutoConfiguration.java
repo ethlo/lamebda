@@ -36,9 +36,7 @@ import org.springframework.context.annotation.Configuration;
 
 import com.ethlo.lamebda.LamebdaActuator;
 import com.ethlo.lamebda.LamebdaConfiguration;
-import com.ethlo.lamebda.ProjectCleanupService;
 import com.ethlo.lamebda.ProjectManager;
-import com.ethlo.lamebda.ProjectSetupService;
 
 @Configuration
 @EnableConfigurationProperties(LamebdaConfiguration.class)
