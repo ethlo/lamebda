@@ -1,10 +1,10 @@
-package com.ethlo.lamebda.mapping;
+package com.ethlo.lamebda;
 
 /*-
  * #%L
  * lamebda-core
  * %%
- * Copyright (C) 2018 - 2019 Morten Haraldsen (ethlo)
+ * Copyright (C) 2018 - 2024 Morten Haraldsen (ethlo)
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,22 +20,12 @@ package com.ethlo.lamebda.mapping;
  * #L%
  */
 
-import java.util.Comparator;
+import org.springframework.core.NestedRuntimeException;
 
-import org.springframework.lang.NonNull;
-
-public record MethodAndPattern(String method, String pattern) implements Comparable<MethodAndPattern>
+public class ProjectLoadException extends NestedRuntimeException
 {
-
-    @Override
-    public String toString()
+    public ProjectLoadException(String message, Exception exc)
     {
-        return method + " " + pattern;
-    }
-
-    @Override
-    public int compareTo(@NonNull final MethodAndPattern b)
-    {
-        return Comparator.comparing(MethodAndPattern::method).thenComparing(MethodAndPattern::pattern).compare(this, b);
+        super(message, exc);
     }
 }

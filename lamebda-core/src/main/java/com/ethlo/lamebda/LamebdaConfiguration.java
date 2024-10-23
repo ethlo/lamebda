@@ -20,16 +20,20 @@ package com.ethlo.lamebda;
  * #L%
  */
 
-import jakarta.validation.Valid;
-
-import jakarta.validation.constraints.NotNull;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Optional;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 @Valid
 @Validated
@@ -43,16 +47,6 @@ public class LamebdaConfiguration
     private final String requestPath;
 
     /**
-     * The root path for the UI rendering of the Lamebda index page. Usually not required to be modified.
-     */
-    private final String uiBasePath;
-
-    /**
-     * If you want to render your OpenAPI APIs via Swagger UI, the class-path to the swagger UI base-path must be defined
-     */
-    private final String swaggerUiPath;
-
-    /**
      * Turn Lamebda on/off
      */
     private final boolean enabled;
@@ -63,16 +57,22 @@ public class LamebdaConfiguration
     @NotNull
     private final Path rootDirectory;
 
-    private final Boolean directoryWatchEnabled;
+    /**
+     * If enabled the projects will reload automatically if there are any file modifications in the project
+     */
+    private final boolean directoryWatchEnabled;
+    /**
+     * Whether the failure of loading a project should halt or log a warning
+     */
+    private final boolean haltOnError;
 
-    public LamebdaConfiguration(final String requestPath, final String uiBasePath, final String swaggerUiPath, final boolean enabled, final Path rootDirectory, final Boolean directoryWatchEnabled)
+    public LamebdaConfiguration(final String requestPath, final Boolean enabled, final Path rootDirectory, final Boolean directoryWatchEnabled, final Boolean haltOnError)
     {
         this.requestPath = requestPath;
-        this.uiBasePath = uiBasePath;
-        this.swaggerUiPath = swaggerUiPath;
-        this.enabled = enabled;
-        this.rootDirectory = Paths.get(rootDirectory.toString().replaceFirst("^~", System.getProperty("user.home")));
-        this.directoryWatchEnabled = directoryWatchEnabled;
+        this.enabled = Optional.ofNullable(enabled).orElse(true);
+        this.rootDirectory = Optional.ofNullable(rootDirectory).map(dir->Paths.get(dir.toString().replaceFirst("^~", System.getProperty("user.home")))).orElseThrow(()->new IllegalArgumentException("The Lamebda root directory must be set"));
+        this.directoryWatchEnabled = Optional.ofNullable(directoryWatchEnabled).orElse(true);
+        this.haltOnError = Optional.ofNullable(haltOnError).orElse(true);
     }
 
     public String getRequestPath()
@@ -90,28 +90,27 @@ public class LamebdaConfiguration
         return enabled;
     }
 
-    public String getSwaggerUiPath()
-    {
-        return swaggerUiPath;
-    }
-
-    public String getUiBasePath()
-    {
-        return uiBasePath;
-    }
-
     public boolean isDirectoryWatchEnabled()
     {
-        return directoryWatchEnabled != null ? directoryWatchEnabled : true;
+        return directoryWatchEnabled;
     }
 
-    @Override
-    public String toString()
+    public String toPrettyString()
     {
-        return
-                "request-path: " + requestPath + '\n' +
-                        "ui-base-path: " + uiBasePath + '\n' +
-                        "swagger-ui-path: " + swaggerUiPath + '\n' +
-                        "root-directory: " + rootDirectory;
+        try
+        {
+            final ObjectMapper mapper = new ObjectMapper();
+            mapper.enable(SerializationFeature.INDENT_OUTPUT);
+            return mapper.writeValueAsString(this);
+        }
+        catch (JsonProcessingException e)
+        {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    public boolean haltOnError()
+    {
+        return haltOnError;
     }
 }

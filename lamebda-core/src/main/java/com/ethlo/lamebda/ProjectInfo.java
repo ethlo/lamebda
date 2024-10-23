@@ -20,11 +20,12 @@ package com.ethlo.lamebda;
  * #L%
  */
 
+import java.util.LinkedHashSet;
+import java.util.Optional;
+import java.util.Set;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
-
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 @Valid
 public class ProjectInfo
@@ -60,7 +61,7 @@ public class ProjectInfo
 
     public Set<String> getBasePackages()
     {
-        return basePackages;
+        return Optional.ofNullable(basePackages).orElseThrow(() -> new IllegalArgumentException("No base-packages set to scan"));
     }
 
     public ProjectInfo setBasePackages(final Set<String> basePackages)
