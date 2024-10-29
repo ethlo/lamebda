@@ -13,7 +13,6 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -48,7 +47,6 @@ import org.springframework.util.StringUtils;
 import com.ethlo.lamebda.lifecycle.ProjectClosingEvent;
 import com.ethlo.lamebda.lifecycle.ProjectLoadedEvent;
 import com.ethlo.lamebda.util.IoUtil;
-import com.google.common.jimfs.Jimfs;
 
 /*-
  * #%L
@@ -85,17 +83,15 @@ public class ProjectImpl implements Project
     private final Path workDir;
     private final Path projectPath;
     private final ProjectConfiguration projectConfiguration;
-    private final FileSystem fs;
     private AnnotationConfigApplicationContext projectCtx;
 
-    public ProjectImpl(final String alias, ApplicationContext parentContext, BootstrapConfiguration bootstrapConfiguration)
+    public ProjectImpl(final String alias, ApplicationContext parentContext, BootstrapConfiguration bootstrapConfiguration, final Path workDir)
     {
         this.alias = alias;
         this.bootstrapConfiguration = Objects.requireNonNull(bootstrapConfiguration);
         this.parentContext = Objects.requireNonNull(parentContext);
         this.projectPath = bootstrapConfiguration.getPath();
-        this.fs = Jimfs.newFileSystem();
-        this.workDir = fs.getPath(ProjectManager.WORKDIR_DIRECTORY_NAME);
+        this.workDir = workDir;
 
         final Path projectPath = bootstrapConfiguration.getPath();
         if (!Files.exists(projectPath))
@@ -164,7 +160,7 @@ public class ProjectImpl implements Project
             getLibUrls(libPath).forEach(url ->
             {
                 targetList.add(url);
-                logger.info("Adding library classpath {}", url);
+                logger.debug("Adding library classpath {}", url);
             });
         }
         else
@@ -322,7 +318,6 @@ public class ProjectImpl implements Project
         {
             projectCtx.close();
             classLoader.close();
-            fs.close();
         }
         catch (IOException e)
         {

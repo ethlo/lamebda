@@ -21,6 +21,7 @@ package com.ethlo.lamebda;
  */
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -30,10 +31,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.util.FileSystemUtils;
 
 import com.ethlo.lamebda.dao.LocalProjectDao;
 import com.ethlo.lamebda.dao.LocalProjectDaoImpl;
@@ -44,7 +47,7 @@ public class ProjectManager
 {
     public static final String WORKDIR_DIRECTORY_NAME = "workdir";
     private static final Logger logger = LoggerFactory.getLogger(ProjectManager.class);
-
+    private static final long PID = ProcessHandle.current().pid();
     private final Path rootDirectory;
     private final ApplicationContext parentContext;
     private final Map<String, Project> projects = new ConcurrentHashMap<>();
@@ -57,7 +60,7 @@ public class ProjectManager
         this.rootConfiguration = lamebdaConfiguration;
 
         this.rootDirectory = lamebdaConfiguration.getRootDirectory();
-        logger.info("Initializing Lamebda with configuration:\n{}", lamebdaConfiguration.toPrettyString());
+        logger.info("Initializing Lamebda with PID={}. Configuration:\n{}", PID, lamebdaConfiguration.toPrettyString());
 
         if (!Files.isDirectory(rootDirectory))
         {
@@ -71,6 +74,37 @@ public class ProjectManager
         logger.debug("Parent application context ID: {}", parentContext.getId());
 
         initializeAll();
+    }
+
+    public static Path setupWorkDir(final Path projectPath)
+    {
+        final Path parentWorkDir = projectPath.resolve(WORKDIR_DIRECTORY_NAME);
+        try
+        {
+            Files.createDirectories(parentWorkDir);
+            final Path workDir = Files.createTempDirectory(parentWorkDir, PID + "_");
+            try (final Stream<Path> l = Files.list(parentWorkDir))
+            {
+                l.filter(Files::isDirectory)
+                        .filter(path -> !path.getFileName().toString().startsWith(Long.toString(PID)))
+                        .forEach(root ->
+                        {
+                            try
+                            {
+                                FileSystemUtils.deleteRecursively(root);
+                            }
+                            catch (IOException exc)
+                            {
+                                logger.warn("Could not delete temp directory " + workDir + ": " + exc.getMessage());
+                            }
+                        });
+            }
+            return workDir;
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private void setupDirectoryWatcher() throws IOException
@@ -172,8 +206,10 @@ public class ProjectManager
         Project project = null;
         try
         {
-            final BootstrapConfiguration cfg = new BootstrapConfiguration(rootConfiguration.getRequestPath(), rootDirectory.resolve(alias), System.getProperties());
-            project = new ProjectImpl(alias, parentContext, cfg);
+            final Path projectDirectory = rootDirectory.resolve(alias);
+            final BootstrapConfiguration cfg = new BootstrapConfiguration(rootConfiguration.getRequestPath(), projectDirectory, System.getProperties());
+            final Path workDir = setupWorkDir(projectDirectory);
+            project = new ProjectImpl(alias, parentContext, cfg, workDir);
             projects.put(alias, project);
         }
         catch (Exception exc)

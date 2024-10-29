@@ -7,13 +7,13 @@
     <parent>
         <artifactId>lamebda</artifactId>
         <groupId>com.ethlo.lamebda</groupId>
-        <version>3.0.0</version>
+        <version>3.1.0</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.ethlo.lamebda</groupId>
             <artifactId>lamebda-spring-web</artifactId>
-            <version>3.0.0</version>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>

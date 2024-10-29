@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.ethlo.lamebda</groupId>
         <artifactId>lamebda</artifactId>
-        <version>3.0.0</version>
+        <version>3.1.0</version>
     </parent>
     <artifactId>lamebda-spring-webflux-starter</artifactId>
     <dependencies>
@@ -24,7 +24,7 @@
         <dependency>
             <groupId>com.ethlo.lamebda</groupId>
             <artifactId>lamebda-spring-webflux</artifactId>
-            <version>3.0.0</version>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
