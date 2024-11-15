@@ -35,19 +35,23 @@ import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.util.FileSystemUtils;
 
 import com.ethlo.lamebda.dao.LocalProjectDao;
 import com.ethlo.lamebda.dao.LocalProjectDaoImpl;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
+import jakarta.annotation.Nonnull;
 
-public class ProjectManager
+public class ProjectManager implements ApplicationListener<ApplicationEvent>
 {
     public static final String WORKDIR_DIRECTORY_NAME = "workdir";
     private static final Logger logger = LoggerFactory.getLogger(ProjectManager.class);
-    private static final long PID = ProcessHandle.current().pid();
     private final Path rootDirectory;
     private final ApplicationContext parentContext;
     private final Map<String, Project> projects = new ConcurrentHashMap<>();
@@ -55,12 +59,12 @@ public class ProjectManager
     private final LamebdaConfiguration rootConfiguration;
     private WatchDir watchDir;
 
-    public ProjectManager(final LamebdaConfiguration lamebdaConfiguration, ApplicationContext parentContext) throws IOException
+    public ProjectManager(final LamebdaConfiguration lamebdaConfiguration, ConfigurableApplicationContext parentContext) throws IOException
     {
         this.rootConfiguration = lamebdaConfiguration;
 
         this.rootDirectory = lamebdaConfiguration.getRootDirectory();
-        logger.info("Initializing Lamebda with PID={}. Configuration:\n{}", PID, lamebdaConfiguration.toPrettyString());
+        logger.info("Initializing Lamebda. Configuration:\n{}", lamebdaConfiguration.toPrettyString());
 
         if (!Files.isDirectory(rootDirectory))
         {
@@ -73,7 +77,7 @@ public class ProjectManager
 
         logger.debug("Parent application context ID: {}", parentContext.getId());
 
-        initializeAll();
+        parentContext.addApplicationListener(this);
     }
 
     public static Path setupWorkDir(final Path projectPath)
@@ -81,12 +85,13 @@ public class ProjectManager
         final Path parentWorkDir = projectPath.resolve(WORKDIR_DIRECTORY_NAME);
         try
         {
+            final String prefix = Instant.now().getEpochSecond() + "_";
             Files.createDirectories(parentWorkDir);
-            final Path workDir = Files.createTempDirectory(parentWorkDir, PID + "_");
+            final Path workDir = Files.createTempDirectory(parentWorkDir, prefix);
             try (final Stream<Path> l = Files.list(parentWorkDir))
             {
                 l.filter(Files::isDirectory)
-                        .filter(path -> !path.getFileName().toString().startsWith(Long.toString(PID)))
+                        .filter(path -> !path.getFileName().toString().startsWith(prefix))
                         .forEach(root ->
                         {
                             try
@@ -107,44 +112,51 @@ public class ProjectManager
         }
     }
 
-    private void setupDirectoryWatcher() throws IOException
+    private void setupDirectoryWatcher()
     {
         // Register directory watcher to discover new project directories created in root directory
-        this.watchDir = new WatchDir(e ->
+        try
         {
-            final Path path = e.path();
-            final Path projectPath = getProjectPath(path);
-            final String alias = Project.toAlias(projectPath);
-            final boolean isWorkDirPath = path.toAbsolutePath().startsWith(projectPath.resolve(WORKDIR_DIRECTORY_NAME).toAbsolutePath());
-            final boolean isProjectPath = projectPath.equals(path);
-            final boolean isProjectJar = projectPath.resolve(projectPath.getFileName().toString() + ".jar").equals(path);
-            final boolean isKnownType = isKnownType(path.getFileName().toString());
-            final Path noReloadFile = projectPath.resolve(".no_reload");
-            final boolean reloadDisabledByFile = Files.exists(noReloadFile);
+            this.watchDir = new WatchDir(e ->
+            {
+                final Path path = e.path();
+                final Path projectPath = getProjectPath(path);
+                final String alias = Project.toAlias(projectPath);
+                final boolean isWorkDirPath = path.toAbsolutePath().startsWith(projectPath.resolve(WORKDIR_DIRECTORY_NAME).toAbsolutePath());
+                final boolean isProjectPath = projectPath.equals(path);
+                final boolean isProjectJar = projectPath.resolve(projectPath.getFileName().toString() + ".jar").equals(path);
+                final boolean isKnownType = isKnownType(path.getFileName().toString());
+                final Path noReloadFile = projectPath.resolve(".no_reload");
+                final boolean reloadDisabledByFile = Files.exists(noReloadFile);
 
-            if (isWorkDirPath)
-            {
-                logger.debug("Skipping target file: {}", path);
-            }
-            else if (e.changeType() == ChangeType.DELETED && isProjectPath)
-            {
-                logger.info("Closing project due to deletion of project directory: {}", e.path());
-                closeProject(alias);
-            }
-            else if (e.changeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath || isProjectJar))
-            {
-                if (!reloadDisabledByFile)
+                if (isWorkDirPath)
                 {
-                    logger.info("Reloading project {} due to modification of {}", alias, path);
+                    logger.debug("Skipping target file: {}", path);
+                }
+                else if (e.changeType() == ChangeType.DELETED && isProjectPath)
+                {
+                    logger.info("Closing project due to deletion of project directory: {}", e.path());
                     closeProject(alias);
-                    loadProject(alias);
                 }
-                else
+                else if (e.changeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath || isProjectJar))
                 {
-                    logger.info("Reload is temporarily disabled for project {} due to the presence of file {}", alias, noReloadFile);
+                    if (!reloadDisabledByFile)
+                    {
+                        logger.info("Reloading project {} due to modification of {}", alias, path);
+                        closeProject(alias);
+                        loadProject(alias);
+                    }
+                    else
+                    {
+                        logger.info("Reload is temporarily disabled for project {} due to the presence of file {}", alias, noReloadFile);
+                    }
                 }
-            }
-        }, true, rootDirectory);
+            }, true, rootDirectory);
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
         new Thread()
         {
             @Override
@@ -172,8 +184,9 @@ public class ProjectManager
         throw new IllegalStateException("Could not determine project path");
     }
 
-    private void initializeAll() throws IOException
+    private void initializeAll()
     {
+        logger.info("Initializing projects");
         if (rootConfiguration.isDirectoryWatchEnabled())
         {
             setupDirectoryWatcher();
@@ -273,5 +286,14 @@ public class ProjectManager
     public void unload(Project project)
     {
         closeProject(project.getAlias());
+    }
+
+    @Override
+    public void onApplicationEvent(final @Nonnull ApplicationEvent event)
+    {
+        if (event instanceof ApplicationStartedEvent)
+        {
+            initializeAll();
+        }
     }
 }
