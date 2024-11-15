@@ -214,7 +214,7 @@ public class ProjectManager implements ApplicationListener<ApplicationEvent>
 
     private void loadProject(final String alias)
     {
-        logger.info("Loading {}", alias);
+        logger.info("Loading project '{}'", alias);
 
         Project project = null;
         try
