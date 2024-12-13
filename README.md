@@ -29,7 +29,7 @@ Add dependency to your `pom.xml`
 <dependency>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda-spring-web-starter</artifactId>
-    <version>3.0.0</version>
+    <version>{$lamebda_version}</version>
 </dependency>
 ```
 
