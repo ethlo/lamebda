@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda</artifactId>
-    <version>3.2.0</version>
+    <version>3.3.0</version>
     <packaging>pom</packaging>
     <name>Lamebda</name>
     <description>Powerful plug-in system for adding custom functionality to existing applications with live reload.
@@ -25,7 +25,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.4</version>
+        <version>3.3.6</version>
     </parent>
     <modules>
         <module>lamebda-core</module>

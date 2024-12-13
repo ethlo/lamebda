@@ -33,16 +33,19 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 import com.ethlo.lamebda.LamebdaActuator;
 import com.ethlo.lamebda.LamebdaConfiguration;
 import com.ethlo.lamebda.ProjectCleanupService;
 import com.ethlo.lamebda.ProjectManager;
 import com.ethlo.lamebda.ProjectSetupService;
+import com.ethlo.lamebda.startup.ProjectInitCfg;
 
 @Configuration
 @EnableConfigurationProperties(LamebdaConfiguration.class)
 @ConditionalOnProperty(prefix = "lamebda", name = "enabled")
+@Import(ProjectInitCfg.class)
 public class LamebdaSpringWebAutoConfiguration
 {
     private final List<MethodInterceptor> methodInterceptors;
