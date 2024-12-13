@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import com.ethlo.lamebda.startup.ProjectInitCfg;
+
 import org.aopalliance.intercept.MethodInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -38,9 +40,12 @@ import com.ethlo.lamebda.LamebdaActuator;
 import com.ethlo.lamebda.LamebdaConfiguration;
 import com.ethlo.lamebda.ProjectManager;
 
+import org.springframework.context.annotation.Import;
+
 @Configuration
 @EnableConfigurationProperties(LamebdaConfiguration.class)
 @ConditionalOnProperty(prefix = "lamebda", name = "enabled")
+@Import(ProjectInitCfg.class)
 public class LamebdaSpringWebAutoConfiguration
 {
     private final List<MethodInterceptor> methodInterceptors;
