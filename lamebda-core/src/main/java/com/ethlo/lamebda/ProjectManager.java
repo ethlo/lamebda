@@ -35,10 +35,7 @@ import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.util.FileSystemUtils;
 
@@ -46,9 +43,8 @@ import com.ethlo.lamebda.dao.LocalProjectDao;
 import com.ethlo.lamebda.dao.LocalProjectDaoImpl;
 import com.ethlo.lamebda.io.ChangeType;
 import com.ethlo.lamebda.io.WatchDir;
-import jakarta.annotation.Nonnull;
 
-public class ProjectManager implements ApplicationListener<ApplicationEvent>
+public class ProjectManager
 {
     public static final String WORKDIR_DIRECTORY_NAME = "workdir";
     private static final Logger logger = LoggerFactory.getLogger(ProjectManager.class);
@@ -77,7 +73,14 @@ public class ProjectManager implements ApplicationListener<ApplicationEvent>
 
         logger.debug("Parent application context ID: {}", parentContext.getId());
 
-        parentContext.addApplicationListener(this);
+        if (rootConfiguration.isDirectoryWatchEnabled())
+        {
+            setupDirectoryWatcher();
+        }
+        else
+        {
+            logger.info("Directory watch is disabled. No automatic reload will occur");
+        }
     }
 
     public static Path setupWorkDir(final Path projectPath)
@@ -184,18 +187,8 @@ public class ProjectManager implements ApplicationListener<ApplicationEvent>
         throw new IllegalStateException("Could not determine project path");
     }
 
-    private void initializeAll()
+    public void initializeAll()
     {
-        logger.info("Initializing projects");
-        if (rootConfiguration.isDirectoryWatchEnabled())
-        {
-            setupDirectoryWatcher();
-        }
-        else
-        {
-            logger.info("Directory watch is disabled. No automatic reload will occur");
-        }
-
         for (Path projectPath : localProjectDao.getLocalProjectDirectories())
         {
             loadProject(Project.toAlias(projectPath));
@@ -286,14 +279,5 @@ public class ProjectManager implements ApplicationListener<ApplicationEvent>
     public void unload(Project project)
     {
         closeProject(project.getAlias());
-    }
-
-    @Override
-    public void onApplicationEvent(final @Nonnull ApplicationEvent event)
-    {
-        if (event instanceof ApplicationStartedEvent)
-        {
-            initializeAll();
-        }
     }
 }
