@@ -69,7 +69,7 @@ public class LamebdaConfiguration
 
     private final Set<String> requiredProjects;
 
-    public LamebdaConfiguration(final String requestPath, final Boolean enabled, final Path rootDirectory, final Boolean directoryWatchEnabled, final Boolean haltOnError, Set<String> requiredProjects)
+    public LamebdaConfiguration(final String requestPath, final Boolean enabled, final Path rootDirectory, final Boolean directoryWatchEnabled, final Boolean haltOnError, final Set<String> requiredProjects)
     {
         this.requestPath = requestPath;
         this.enabled = Optional.ofNullable(enabled).orElse(true);
