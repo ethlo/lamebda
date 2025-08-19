@@ -143,7 +143,7 @@ public class ProjectManager
                 }
                 else if (e.changeType() == ChangeType.MODIFIED && (isKnownType || isProjectPath || isProjectJar))
                 {
-                    if (!reloadDisabledByFile)
+                    if (!reloadDisabledByFile && !rootConfiguration.getRequiredProjects().contains(alias))
                     {
                         logger.info("Reloading project {} due to modification of {}", alias, path);
                         closeProject(alias);
@@ -151,7 +151,7 @@ public class ProjectManager
                     }
                     else
                     {
-                        logger.info("Reload is temporarily disabled for project {} due to the presence of file {}", alias, noReloadFile);
+                        logger.info("Reload is disabled for project {}", alias);
                     }
                 }
             }, true, rootDirectory);
@@ -192,6 +192,14 @@ public class ProjectManager
         for (Path projectPath : localProjectDao.getLocalProjectDirectories())
         {
             loadProject(Project.toAlias(projectPath));
+        }
+
+        for (final String requiredProject : rootConfiguration.getRequiredProjects())
+        {
+            if (! projects.containsKey(requiredProject))
+            {
+                throw new IllegalStateException("There is defined a required project '" + requiredProject + "' which is not found");
+            }
         }
     }
 

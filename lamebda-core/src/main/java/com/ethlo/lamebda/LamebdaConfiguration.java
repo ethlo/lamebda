@@ -24,6 +24,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -66,13 +67,16 @@ public class LamebdaConfiguration
      */
     private final boolean haltOnError;
 
-    public LamebdaConfiguration(final String requestPath, final Boolean enabled, final Path rootDirectory, final Boolean directoryWatchEnabled, final Boolean haltOnError)
+    private final Set<String> requiredProjects;
+
+    public LamebdaConfiguration(final String requestPath, final Boolean enabled, final Path rootDirectory, final Boolean directoryWatchEnabled, final Boolean haltOnError, Set<String> requiredProjects)
     {
         this.requestPath = requestPath;
         this.enabled = Optional.ofNullable(enabled).orElse(true);
-        this.rootDirectory = Optional.ofNullable(rootDirectory).map(dir->Paths.get(dir.toString().replaceFirst("^~", System.getProperty("user.home")))).orElseThrow(()->new IllegalArgumentException("The Lamebda root directory must be set"));
+        this.rootDirectory = Optional.ofNullable(rootDirectory).map(dir -> Paths.get(dir.toString().replaceFirst("^~", System.getProperty("user.home")))).orElseThrow(() -> new IllegalArgumentException("The Lamebda root directory must be set"));
         this.directoryWatchEnabled = Optional.ofNullable(directoryWatchEnabled).orElse(true);
         this.haltOnError = Optional.ofNullable(haltOnError).orElse(true);
+        this.requiredProjects = requiredProjects;
     }
 
     public String getRequestPath()
@@ -93,6 +97,11 @@ public class LamebdaConfiguration
     public boolean isDirectoryWatchEnabled()
     {
         return directoryWatchEnabled;
+    }
+
+    public Set<String> getRequiredProjects()
+    {
+        return Optional.ofNullable(requiredProjects).orElse(Set.of());
     }
 
     public String toPrettyString()

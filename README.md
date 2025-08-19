@@ -38,6 +38,7 @@ Add the following properties to your applications `application.properties|yaml`:
 lamebda.enabled=true
 lamebda.root-directory=/var/lib/lamebda
 lamebda.request-path=/gateway
+lamebda.required-projects= # Optional list of projects that have to be present for the project to start
 ```
 
 ### Project configuration
@@ -46,7 +47,6 @@ lamebda.request-path=/gateway
 * `project.base-packages` - The base packages that Spring IOC container is scanning for services and controllers.
 * `project.root-request-path-enabled` - Default is true. If you set this to false, the URLs in this project will not have the prepended `gateway` path.
 * `project.url-prefix-enabled` - Default is true. If you set this to false the URLs in this project will not have the prepended project alias.
-
 
 To create a project for deploying into Lamebda, please see https://github.com/ethlo/lamebda-samples.
 
