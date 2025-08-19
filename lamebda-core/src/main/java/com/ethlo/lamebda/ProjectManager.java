@@ -198,7 +198,7 @@ public class ProjectManager
         {
             if (! projects.containsKey(requiredProject))
             {
-                throw new IllegalStateException("There is defined a required project '" + requiredProject + "' which is not found");
+                throw new IllegalStateException("Required project '" + requiredProject + "' was not found");
             }
         }
     }
