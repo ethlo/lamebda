@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>lamebda-spring-web</artifactId>
+    <name>Lamebda Spring Web</name>
 
     <dependencies>
         <dependency>
