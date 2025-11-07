@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.env.Environment;
 import org.springframework.util.FileSystemUtils;
 
 import com.ethlo.lamebda.dao.LocalProjectDao;
@@ -55,7 +56,7 @@ public class ProjectManager
     private final LamebdaConfiguration rootConfiguration;
     private WatchDir watchDir;
 
-    public ProjectManager(final LamebdaConfiguration lamebdaConfiguration, ConfigurableApplicationContext parentContext) throws IOException
+    public ProjectManager(final Environment environment, final LamebdaConfiguration lamebdaConfiguration, ConfigurableApplicationContext parentContext) throws IOException
     {
         this.rootConfiguration = lamebdaConfiguration;
 
@@ -196,7 +197,7 @@ public class ProjectManager
 
         for (final String requiredProject : rootConfiguration.getRequiredProjects())
         {
-            if (! projects.containsKey(requiredProject))
+            if (!projects.containsKey(requiredProject))
             {
                 throw new IllegalStateException("Required project '" + requiredProject + "' was not found");
             }

@@ -41,7 +41,6 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <java.version>17</java.version>
         <gpg.skip>true</gpg.skip>
-        <groovy.version>4.0.28</groovy.version>
     </properties>
     <build>
         <plugins>
