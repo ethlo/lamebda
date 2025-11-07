@@ -196,7 +196,7 @@ public class ProjectManager
 
         for (final String requiredProject : rootConfiguration.getRequiredProjects())
         {
-            if (! projects.containsKey(requiredProject))
+            if (!projects.containsKey(requiredProject))
             {
                 throw new IllegalStateException("Required project '" + requiredProject + "' was not found");
             }
