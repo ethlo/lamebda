@@ -8,7 +8,7 @@
     <parent>
         <artifactId>lamebda</artifactId>
         <groupId>com.ethlo.lamebda</groupId>
-        <version>3.4.0</version>
+        <version>3.4.1-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -18,7 +18,7 @@
         <dependency>
             <groupId>com.ethlo.lamebda</groupId>
             <artifactId>lamebda-spring-web</artifactId>
-            <version>3.4.0</version>
+            <version>3.4.1-SNAPSHOT</version>
         </dependency>
 
 
