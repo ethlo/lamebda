@@ -247,6 +247,7 @@ public class ProjectImpl implements Project
             // Load project/module-specific properties
             final PropertySourcesPlaceholderConfigurer propertyConfigurer = new PropertySourcesPlaceholderConfigurer();
             propertyConfigurer.setLocations(configResources);
+            propertyConfigurer.setEnvironment(env);
 
             final PropertySource<Properties> propertySource = createPropertySource(configResources);
             env.getPropertySources().addFirst(propertySource);
