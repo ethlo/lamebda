@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.FileSystemResource;
@@ -270,26 +270,28 @@ public class ProjectImpl implements Project
 
         final Resource[] configResources = getConfigResources();
 
+        // Always base on a new environment that inherits parent
+        final StandardEnvironment env = new StandardEnvironment();
+        env.merge((ConfigurableEnvironment) parentContext.getEnvironment());
+
         if (configResources.length > 0)
         {
-            final PropertySourcesPlaceholderConfigurer propertyPlaceholderConfigurer = new PropertySourcesPlaceholderConfigurer();
-            propertyPlaceholderConfigurer.setLocations(configResources);
-            final PropertySource<Properties> propertySource = createPropertySource(configResources);
+            // Load project/module-specific properties
+            final PropertySourcesPlaceholderConfigurer propertyConfigurer = new PropertySourcesPlaceholderConfigurer();
+            propertyConfigurer.setLocations(configResources);
+            propertyConfigurer.setEnvironment(env);
 
-            final Environment parentEnv = parentContext.getEnvironment();
-            final StandardEnvironment env = new StandardEnvironment();
-            if (parentEnv instanceof ConfigurableEnvironment)
-            {
-                env.merge((ConfigurableEnvironment) parentEnv);
-            }
+            final PropertySource<Properties> propertySource = createPropertySource(configResources);
             env.getPropertySources().addFirst(propertySource);
 
-            this.projectCtx.setEnvironment(env);
-            this.projectCtx.addBeanFactoryPostProcessor(propertyPlaceholderConfigurer);
+            this.projectCtx.addBeanFactoryPostProcessor(propertyConfigurer);
 
-            logger.debug("Setting environment: {}", env);
+            logger.debug("Added property sources from: {}", Arrays.toString(configResources));
             prettyPrint(propertySource.getSource());
         }
+
+        // Set the fully merged environment on the child context
+        this.projectCtx.setEnvironment(env);
     }
 
     private Resource[] getConfigResources()
