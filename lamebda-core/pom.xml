@@ -2,6 +2,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <artifactId>lamebda-core</artifactId>
+    <name>Lamebda Core</name>
     <parent>
         <groupId>com.ethlo.lamebda</groupId>
         <artifactId>lamebda</artifactId>
@@ -11,7 +12,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <maven.compiler.source>${java.version}</maven.compiler.source>
-        <groovy.version>3.0.12</groovy.version>
+        <groovy.version>3.0.25</groovy.version>
     </properties>
     <dependencies>
         <dependency>

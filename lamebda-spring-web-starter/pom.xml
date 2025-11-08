@@ -7,6 +7,7 @@
         <version>1.4.1</version>
     </parent>
     <artifactId>lamebda-spring-web-starter</artifactId>
+    <name>Lamebda Spring Web Starter</name>
     <dependencies>
         <dependency>
             <groupId>javax.servlet</groupId>
