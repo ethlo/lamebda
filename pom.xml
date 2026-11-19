@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.ethlo.lamebda</groupId>
     <artifactId>lamebda</artifactId>
-    <version>3.4.2</version>
+    <version>0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Lamebda</name>
     <description>Powerful plug-in system for adding custom functionality to existing applications with live reload.
@@ -150,13 +150,6 @@
                 </executions>
             </plugin>
         </plugins>
-        <extensions>
-            <extension>
-                <groupId>org.apache.maven.wagon</groupId>
-                <artifactId>wagon-ssh</artifactId>
-                <version>3.4.3</version>
-            </extension>
-        </extensions>
     </build>
     <scm>
         <url>https://github.com/ethlo/lamebda</url>
